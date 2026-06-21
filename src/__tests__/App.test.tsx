@@ -1,84 +1,73 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 import { renderWithUIProvider } from "@/components/lib";
-
 import { App } from "../App";
 
-const setup = () => {
+const setup = (initialPath: string = "/") => {
   const user = userEvent.setup();
 
-  renderWithUIProvider(<App />);
+  renderWithUIProvider(
+    <MemoryRouter initialEntries={[initialPath]}>
+      <App />
+    </MemoryRouter>
+  );
 
   return { user };
 };
 
 describe("App", () => {
-  it("renders the button and heading by default", () => {
-    setup();
-
-    const button = screen.getByRole("button", { name: "Toggle visibility" });
-
-    expect(button).toBeInTheDocument();
-    expect(button.textContent).toBe("Toggle visibility");
-    expect(button).toBeEnabled();
-
-    const heading = screen.getByRole("heading", { name: "MindThreads" });
-
-    expect(heading).toBeInTheDocument();
-    expect(heading.textContent).toBe("MindThreads");
-  });
-
-  it("hides the heading when the toggle button is clicked", async () => {
-    const { user } = setup();
+  it("renders HomePage at the root path", () => {
+    setup("/");
 
     expect(
-      screen.getByRole("heading", { name: "MindThreads" })
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Toggle visibility" }));
-
-    expect(
-      screen.queryByRole("heading", { name: "MindThreads" })
-    ).not.toBeInTheDocument();
-  });
-
-  it("shows the heading again when the toggle button is clicked a second time", async () => {
-    const { user } = setup();
-    const button = screen.getByRole("button", { name: "Toggle visibility" });
-
-    expect(
-      screen.getByRole("heading", { name: "MindThreads" })
-    ).toBeInTheDocument();
-
-    await user.click(button);
-
-    expect(
-      screen.queryByRole("heading", { name: "MindThreads" })
-    ).not.toBeInTheDocument();
-
-    await user.click(button);
-
-    expect(
-      screen.getByRole("heading", { name: "MindThreads" })
+      screen.getByRole("heading", { name: "HomePage" })
     ).toBeInTheDocument();
   });
 
-  const checkButtonState = (button: HTMLElement): void => {
-    expect(button).toBeInTheDocument();
-    expect(button).toHaveAccessibleName("Toggle visibility");
-    expect(button).toBeEnabled();
-  };
+  it("renders ThreadPage at /threads/:threadId", () => {
+    setup("/threads/42");
 
-  it("button remains interactive and accessible in both visible and hidden states", async () => {
-    const { user } = setup();
-    const button = screen.getByRole("button", { name: "Toggle visibility" });
+    expect(
+      screen.getByRole("heading", { name: "ThreadPage" })
+    ).toBeInTheDocument();
+  });
 
-    checkButtonState(button);
+  it("renders navigation buttons", () => {
+    setup("/");
 
-    await user.click(button);
-    checkButtonState(button);
+    expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
 
-    await user.click(button);
-    checkButtonState(button);
+    expect(
+      screen.getByRole("button", { name: "Thread 1" })
+    ).toBeInTheDocument();
+  });
+
+  it("navigates to HomePage when Home button is clicked", async () => {
+    const { user } = setup("/threads/1");
+
+    expect(
+      screen.getByRole("heading", { name: "ThreadPage" })
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Home" }));
+
+    expect(
+      screen.getByRole("heading", { name: "HomePage" })
+    ).toBeInTheDocument();
+  });
+
+  it("navigates to ThreadPage when Thread 1 button is clicked", async () => {
+    const { user } = setup("/");
+
+    expect(
+      screen.getByRole("heading", { name: "HomePage" })
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Thread 1" }));
+
+    expect(
+      screen.getByRole("heading", { name: "ThreadPage" })
+    ).toBeInTheDocument();
   });
 });

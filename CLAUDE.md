@@ -24,7 +24,7 @@ All packages in `package.json` use fixed versions (no caret `^` or tilde `~` ran
 
 ## Architecture
 
-This is a React 19 + TypeScript + Vite project in its early stages (only a stub `App` component exists).
+This is a React 19 + TypeScript + Vite project with client-side routing.
 
 Key technical choices:
 - **React Compiler** is enabled via `babel-plugin-react-compiler` + `@rolldown/plugin-babel` in `vite.config.ts`. This means manual `useMemo`/`useCallback` is generally unnecessary — the compiler handles memoization automatically.
@@ -32,7 +32,12 @@ Key technical choices:
 - **Prettier** is configured via `.prettierrc.json` and formats only files in the `src/` folder.
 - **Testing** uses Vitest with React Testing Library. Component tests live co-located with components in `__tests__/` folders (e.g., `src/components/lib/Button/__tests__/Button.test.tsx`). Vitest configuration is in `vitest.config.ts` and the setup file is `vitest.setup.ts` at the project root.
 - **Path aliases**: The project uses path alias `@/` (configured in `tsconfig.app.json` and `vite.config.ts`) to import from `src/`. Example: `import { Button } from "@/components/lib"`.
-- Entry point: `src/main.tsx` wraps the app with `ChakraUIProvider` → `src/App.tsx`.
+- **React Router**: Client-side routing is handled by `react-router` (v8). Routes are defined in `src/routing/AppRoutes.tsx` and wrapped with `BrowserRouter` in `src/main.tsx`.
+- **Folder structure**:
+  - `src/pages/` — Page components (e.g., `HomePage`, `ThreadPage`), each in its own folder with an `index.ts` barrel export. Pages are co-located with their tests in `__tests__/` folders.
+  - `src/routing/` — Routing configuration, including `AppRoutes.tsx` which defines all routes.
+  - `src/components/lib/` — Reusable UI component adapters (wrappers around Chakra UI components).
+- Entry point: `src/main.tsx` wraps the app with `StrictMode` → `ChakraUIProvider` → `BrowserRouter` → `src/App.tsx`.
 
 ## Code Conventions
 
@@ -44,6 +49,14 @@ Key technical choices:
 - **Type-only imports**: Use `import type` for importing types (e.g., `import type { ReactNode } from "react"`). Required by `verbatimModuleSyntax` compiler option.
 - **Component functions**: Use arrow functions for components instead of function declarations (e.g., `export const MyComponent = () => {}`).
 - **Barrel exports**: Use barrel exports (`index.ts`) at multiple levels. Each component lives in its own folder with an `index.ts` (e.g., `src/components/lib/Button/index.ts`), and the parent folder also has an `index.ts` that re-exports all components (e.g., `src/components/lib/index.ts`). This enables easier future extraction to separate packages.
+- **Routing**: When testing components that use routing hooks (e.g., `useNavigate`), wrap them with `MemoryRouter` to provide routing context. Example:
+  ```tsx
+  renderWithUIProvider(
+    <MemoryRouter initialEntries={["/"]}>
+      <App />
+    </MemoryRouter>
+  );
+  ```
 
 ## Third-party Libraries
 
@@ -56,3 +69,4 @@ Key technical choices:
   );
   ```
   This structure allows for easier future extraction into a separate design system package. For testing components that use Chakra UI, always use `renderWithUIProvider` from `@/components/lib`.
+- **React Router**: Client-side routing library (v8) used for page navigation. Routes are defined in `src/routing/AppRoutes.tsx` using `Routes` and `Route` components. The app is wrapped with `BrowserRouter` in `src/main.tsx` to provide routing context. For testing, use `MemoryRouter` to simulate navigation without affecting the browser history.
