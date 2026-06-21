@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@/components/lib";
 
 export const App = () => {
   const [visible, setVisible] = useState(true);
@@ -9,7 +10,7 @@ export const App = () => {
 
   return (
     <>
-      <button onClick={handleToggleVisibility}>Toggle visibility</button>
+      <Button onClick={handleToggleVisibility}>Toggle visibility</Button>
       {visible ? <h1>MindThreads</h1> : null}
     </>
   );

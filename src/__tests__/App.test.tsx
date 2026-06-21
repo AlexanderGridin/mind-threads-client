@@ -1,11 +1,13 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderWithUIProvider } from "@/components/lib";
+
 import { App } from "../App";
 
 const setup = () => {
   const user = userEvent.setup();
 
-  render(<App />);
+  renderWithUIProvider(<App />);
 
   return { user };
 };
