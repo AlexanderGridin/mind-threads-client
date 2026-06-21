@@ -30,13 +30,13 @@ describe("App", () => {
     const { user } = setup();
 
     expect(
-      screen.getByRole("heading", { name: "MindThreads" }),
+      screen.getByRole("heading", { name: "MindThreads" })
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Toggle visibility" }));
 
     expect(
-      screen.queryByRole("heading", { name: "MindThreads" }),
+      screen.queryByRole("heading", { name: "MindThreads" })
     ).not.toBeInTheDocument();
   });
 
@@ -45,19 +45,19 @@ describe("App", () => {
     const button = screen.getByRole("button", { name: "Toggle visibility" });
 
     expect(
-      screen.getByRole("heading", { name: "MindThreads" }),
+      screen.getByRole("heading", { name: "MindThreads" })
     ).toBeInTheDocument();
 
     await user.click(button);
 
     expect(
-      screen.queryByRole("heading", { name: "MindThreads" }),
+      screen.queryByRole("heading", { name: "MindThreads" })
     ).not.toBeInTheDocument();
 
     await user.click(button);
 
     expect(
-      screen.getByRole("heading", { name: "MindThreads" }),
+      screen.getByRole("heading", { name: "MindThreads" })
     ).toBeInTheDocument();
   });
 
