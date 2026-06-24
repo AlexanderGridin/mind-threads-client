@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { renderWithUIProvider } from "@/components/lib";
 import { App } from "../App";
+import { ColorModeButtonTestId } from "@/components/lib/color-mode/components/ColorModeButton/ColorModeButton.constants";
 
 const setup = (initialPath: string = "/") => {
   const user = userEvent.setup();
@@ -40,6 +41,14 @@ describe("App", () => {
 
     expect(
       screen.getByRole("button", { name: "Thread 1" })
+    ).toBeInTheDocument();
+  });
+
+  it("renders the color mode toggle button", () => {
+    setup("/");
+
+    expect(
+      screen.getByTestId(ColorModeButtonTestId.container)
     ).toBeInTheDocument();
   });
 

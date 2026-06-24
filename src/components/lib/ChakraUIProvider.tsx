@@ -1,8 +1,6 @@
-import {
-  ChakraProvider as ChakraProviderComponent,
-  defaultSystem,
-} from "@chakra-ui/react";
+import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
 import type { ReactNode } from "react";
+import { ColorModeProvider } from "./color-mode/ColorModeProvider";
 
 type ChakraUIProviderProps = {
   children: ReactNode;
@@ -10,8 +8,8 @@ type ChakraUIProviderProps = {
 
 export const ChakraUIProvider = ({ children }: ChakraUIProviderProps) => {
   return (
-    <ChakraProviderComponent value={defaultSystem}>
-      {children}
-    </ChakraProviderComponent>
+    <ChakraProvider value={defaultSystem}>
+      <ColorModeProvider>{children}</ColorModeProvider>
+    </ChakraProvider>
   );
 };

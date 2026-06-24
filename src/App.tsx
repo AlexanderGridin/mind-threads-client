@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import { AppRoutes } from "@/routing";
-import { Button } from "@/components/lib";
+import { Button, ColorModeButton } from "@/components/lib";
 
 export const App = () => {
   const navigate = useNavigate();
@@ -25,6 +25,7 @@ export const App = () => {
       >
         <Button onClick={handleNavigateToHome}>Home</Button>
         <Button onClick={handleNavigateToThread}>Thread 1</Button>
+        <ColorModeButton />
       </nav>
 
       <AppRoutes />
