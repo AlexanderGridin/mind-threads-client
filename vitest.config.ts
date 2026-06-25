@@ -9,7 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     coverage: {
-      exclude: ["src/main.tsx", "src/index.css", "index.ts", "*.types.ts"],
+      exclude: ["src/main.tsx", "src/index.css", "index.ts", "*.types.ts", "src/pages/ColorsDemoPage/**"],
       thresholds: {
         lines: 90,
         functions: 90,
