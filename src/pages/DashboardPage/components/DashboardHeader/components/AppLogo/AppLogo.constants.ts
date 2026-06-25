@@ -1,0 +1,9 @@
+import { initTestIdCreator } from "@/components/lib/utils";
+
+const createTestId = initTestIdCreator("AppLogo__");
+
+export const AppLogoTestId = {
+  container: createTestId("container"),
+  icon: createTestId("icon"),
+  text: createTestId("text"),
+} as const;

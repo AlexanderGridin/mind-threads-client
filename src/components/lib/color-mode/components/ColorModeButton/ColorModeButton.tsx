@@ -13,7 +13,9 @@ export const ColorModeButton = forwardRef<HTMLButtonElement, unknown>(
       <IconButton
         data-testid={ColorModeButtonTestId.container}
         aria-label="Toggle color mode"
-        variant="ghost"
+        variant="outline"
+        borderColor="border"
+        color="fg"
         size="sm"
         ref={ref}
         css={{
