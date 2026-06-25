@@ -1,3 +1,3 @@
-export * from "./HomePage";
+export * from "./DashboardPage";
 export * from "./ThreadPage";
 export * from "./ColorsDemoPage";
