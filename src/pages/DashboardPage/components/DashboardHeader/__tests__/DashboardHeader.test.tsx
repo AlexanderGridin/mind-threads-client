@@ -1,5 +1,6 @@
 import { screen } from "@testing-library/react";
 import { renderWithUIProvider } from "@/components/lib";
+import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import { DashboardHeader } from "../DashboardHeader";
 import { DashboardHeaderTestId } from "../DashboardHeader.constants";
 import { ColorModeButtonTestId } from "@/components/lib/color-mode/components/ColorModeButton/ColorModeButton.constants";
@@ -10,6 +11,19 @@ const mockUseColorModeReturn = { toggleColorMode: vi.fn() };
 vi.mock("@/components/lib/color-mode/color-mode.hooks", () => ({
   useColorMode: () => mockUseColorModeReturn,
 }));
+
+vi.mock(
+  "@/pages/DashboardPage/components/DashboardPageLoader/DashboardPageLoader.hooks",
+  () => ({
+    useDashboardPageValue: () => ({
+      threads: [],
+      threadListMode: ThreadListMode.Grid,
+    }),
+    useDashboardPageAction: () => ({
+      toggleThreadListMode: vi.fn(),
+    }),
+  })
+);
 
 const setup = () => {
   renderWithUIProvider(<DashboardHeader />);

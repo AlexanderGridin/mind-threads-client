@@ -11,6 +11,10 @@ export type HStackProps = {
   py?: string;
   borderBottomWidth?: string;
   borderColor?: string;
+  backgroundColor?: string;
+  "data-testid"?: string;
+  fontSize?: string;
+  color?: string;
 };
 
 export const HStack = ({ children, ...props }: HStackProps) => (
