@@ -7,6 +7,7 @@ export type TextProps = {
   fontSize?: string;
   fontWeight?: string;
   color?: string;
+  "data-testid"?: string;
 };
 
 export const Text = ({ children, ...props }: TextProps) => (

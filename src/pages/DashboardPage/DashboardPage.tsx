@@ -1,5 +1,14 @@
-import { DashboardHeader } from "./components";
+import {
+  DashboardHeader,
+  DashboardPageLoader,
+  DashboardContent,
+} from "./components";
 
 export const DashboardPage = () => {
-  return <DashboardHeader />;
+  return (
+    <DashboardPageLoader>
+      <DashboardHeader />
+      <DashboardContent />
+    </DashboardPageLoader>
+  );
 };
