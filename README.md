@@ -1,75 +1,93 @@
-# React + TypeScript + Vite
+# Mind Threads — Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Web client for **Mind Threads**, a React 19 + TypeScript single-page application built with Vite.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 19** with the [React Compiler](https://react.dev/learn/react-compiler) enabled (automatic memoization — manual `useMemo`/`useCallback` is generally unnecessary)
+- **TypeScript** with strict, type-aware configuration
+- **Vite** for dev server (HMR) and production builds
+- **Chakra UI** (v3) with a custom Nord color theme and light/dark color modes
+- **React Router** (v8) for client-side routing
+- **Vitest** + **React Testing Library** for unit and component testing
+- **ESLint** (flat config) and **Prettier** for linting and formatting
 
-## React Compiler
+## Requirements
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+- **Node.js** ≥ 20 (developed on Node 24)
+- **npm** (project uses a `package-lock.json`)
 
-Note: This will impact Vite dev & build performances.
+## Getting Started
 
-## Expanding the ESLint configuration
+```bash
+# Install dependencies exactly as pinned in package-lock.json
+npm ci
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Start the dev server with hot module replacement
+npm run start
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+> Use `npm ci` for clean, reproducible installs (CI and fresh setups): it installs
+> strictly from `package-lock.json` and fails if the lockfile is out of sync — which
+> reinforces this project's pinned-dependency policy. Use `npm install` only when you
+> intentionally add or upgrade a dependency, since `npm ci` won't modify the lockfile.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The app will be available at the URL printed by Vite (default: <http://localhost:5173>).
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Available Scripts
+
+| Script | Description |
+| --- | --- |
+| `npm run start` | Start the Vite dev server with HMR |
+| `npm run build` | Type-check and build for production (`tsc -b && vite build`) |
+| `npm run preview` | Preview the production build locally |
+| `npm run ts:check` | Type-check without emitting output |
+| `npm run lint` | Run ESLint over the project |
+| `npm run format` | Format `src/` with Prettier |
+| `npm run test` | Run all unit tests once |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests with a coverage report (console output) |
+| `npm run test:coverage:report` | Run tests and write a coverage report to `coverage/` |
+
+## Project Structure
+
+```
+src/
+├── main.tsx              # Entry point (StrictMode → ChakraUIProvider → BrowserRouter → App)
+├── App.tsx               # Root component
+├── pages/                # Page components, each in its own folder with a barrel export
+│   ├── DashboardPage/     #   Dashboard (index route)
+│   ├── ThreadPage/        #   Single thread (/threads/:threadId)
+│   └── ColorsDemoPage/    #   Theme/color demo (/colors-demo)
+├── routing/              # Route definitions (AppRoutes.tsx)
+├── components/lib/       # Reusable UI adapters wrapping Chakra UI components
+├── services/             # App services (e.g. local-storage)
+├── types/                # Shared domain types
+└── utils/                # Shared utilities
+```
+
+### Routes
+
+| Path | Page |
+| --- | --- |
+| `/` | Dashboard |
+| `/threads/:threadId` | Thread detail |
+| `/colors-demo` | Color theme demo |
+
+## Conventions
+
+- **Path alias**: import from `src/` using the `@/` alias (e.g. `import { Button } from "@/components/lib"`).
+- **Barrel exports**: each component/module lives in its own folder with an `index.ts`, re-exported by a parent `index.ts`.
+- **UI adapters**: Chakra UI components are wrapped in `src/components/lib/` to allow future extraction into a design-system package.
+- **Fixed dependency versions**: all packages are pinned (no `^`/`~`) for reproducible builds. Use exact versions when adding or upgrading dependencies.
+
+See [`CLAUDE.md`](./CLAUDE.md) for the full set of code conventions and architectural guidelines.
+
+## Testing
+
+Tests are co-located with the code they cover in `__tests__/` folders and run with Vitest and React Testing Library. Components that rely on Chakra UI should be rendered with `renderWithUIProvider` from `@/components/lib`; components using routing hooks should be wrapped in a `MemoryRouter`.
+
+```bash
+npm run test          # single run
+npm run test:watch    # watch mode
 ```
