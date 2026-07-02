@@ -5,16 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run start          # Start dev server with HMR (alias for dev)
-npm run dev            # Start dev server with HMR
+npm run start          # Start dev server with HMR
 npm run build          # Type-check and build for production (tsc -b && vite build)
 npm run ts:check       # Check TypeScript types without emitting (tsc -p tsconfig.app.json --noEmit)
 npm run lint           # Run ESLint
 npm run format         # Format src/ with Prettier
 npm run preview        # Preview production build locally
-npm run test              # Run all unit tests once (vitest run)
-npm run test:watch        # Run tests in watch mode
-npm run test:coverage     # Run tests with coverage report (console output only)
+npm run test           # Run all unit tests once (vitest run)
+npm run test:watch     # Run tests in watch mode
+npm run test:coverage  # Run tests with coverage report (console output only)
 npm run test:coverage:report  # Run tests and generate coverage report in coverage/ folder
 ```
 

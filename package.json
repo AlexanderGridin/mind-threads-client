@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "start": "vite",
-    "dev": "vite",
     "build": "tsc -b && vite build",
     "ts:check": "tsc -p tsconfig.app.json --noEmit",
     "lint": "eslint .",
@@ -13,8 +12,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:coverage:report": "COVERAGE_REPORT=true vitest run --coverage"
+    "test:coverage": "vitest run --coverage --silent",
+    "test:coverage:report": "COVERAGE_REPORT=true vitest run --coverage --silent"
   },
   "dependencies": {
     "@chakra-ui/react": "3.36.0",
