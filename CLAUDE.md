@@ -31,11 +31,16 @@ Key technical choices:
 - **Prettier** is configured via `.prettierrc.json` and formats only files in the `src/` folder.
 - **Testing** uses Vitest with React Testing Library. Component tests live co-located with components in `__tests__/` folders (e.g., `src/components/lib/Button/__tests__/Button.test.tsx`). Vitest configuration is in `vitest.config.ts` and the setup file is `vitest.setup.ts` at the project root.
 - **Path aliases**: The project uses path alias `@/` (configured in `tsconfig.app.json` and `vite.config.ts`) to import from `src/`. Example: `import { Button } from "@/components/lib"`.
-- **React Router**: Client-side routing is handled by `react-router` (v8). Routes are defined in `src/routing/AppRoutes.tsx` and wrapped with `BrowserRouter` in `src/main.tsx`.
+- **React Router**: Client-side routing is handled by `react-router` (v8). Routes are defined in `src/routing/AppRoutes.tsx` using `Routes`/`Route` and wrapped with `BrowserRouter` in `src/main.tsx`. For testing, use `MemoryRouter` (see Code Conventions → Routing).
 - **Folder structure**:
-  - `src/pages/` — Page components (e.g., `HomePage`, `ThreadPage`), each in its own folder with an `index.ts` barrel export. Pages are co-located with their tests in `__tests__/` folders.
+  - `src/pages/` — Page components (e.g., `DashboardPage`, `ThreadPage`), each in its own folder with an `index.ts` barrel export. Pages are co-located with their tests in `__tests__/` folders.
   - `src/routing/` — Routing configuration, including `AppRoutes.tsx` which defines all routes.
   - `src/components/lib/` — Reusable UI component adapters (wrappers around Chakra UI components).
+  - `src/services/` — Service layer (e.g., `local-storage`), organized as a folder per service.
+  - `src/types/` — Shared TypeScript types, re-exported via a barrel `index.ts`.
+  - `src/utils/` — Standalone utility functions, co-located with their tests in `__tests__/`.
+  - `src/__mocks__/`, `src/__test-fixtures__/` — Shared test mocks and fixtures.
+- **File-naming conventions**: Within a feature folder, split concerns into co-located files by suffix — e.g. `local-storage.hooks.ts` (hooks), `local-storage.types.ts` (types) — and expose them through the folder's `index.ts`.
 - Entry point: `src/main.tsx` wraps the app with `StrictMode` → `ChakraUIProvider` → `BrowserRouter` → `src/App.tsx`.
 
 ## Code Conventions
@@ -68,4 +73,3 @@ Key technical choices:
   );
   ```
   This structure allows for easier future extraction into a separate design system package. For testing components that use Chakra UI, always use `renderWithUIProvider` from `@/components/lib`.
-- **React Router**: Client-side routing library (v8) used for page navigation. Routes are defined in `src/routing/AppRoutes.tsx` using `Routes` and `Route` components. The app is wrapped with `BrowserRouter` in `src/main.tsx` to provide routing context. For testing, use `MemoryRouter` to simulate navigation without affecting the browser history.
