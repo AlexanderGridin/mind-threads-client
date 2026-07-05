@@ -1,7 +1,7 @@
-import { vi } from 'vitest';
-import '@testing-library/jest-dom';
+import { vi } from "vitest";
+import "@testing-library/jest-dom";
 
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query) => ({
     matches: false,
@@ -14,3 +14,9 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 });
+
+globalThis.ResizeObserver = class {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+};
