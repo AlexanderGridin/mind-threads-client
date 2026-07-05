@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib";
 import { mockThreads } from "@/__mocks__/threads";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
-import { useLocalStorage } from "@/services/local-storage";
+import { useLocalStorage } from "@/hooks";
 import {
   useDashboardPageAction,
   useDashboardPageValue,
@@ -15,7 +15,7 @@ import { THREAD_LIST_MODE_STORAGE_KEY } from "../DashboardPageLoader.constants";
 const mockReadThreadListMode = vi.fn();
 const mockSetThreadListMode = vi.fn();
 
-vi.mock("@/services/local-storage", () => ({
+vi.mock("@/hooks", () => ({
   useLocalStorage: vi.fn().mockImplementation(() => ({
     read: mockReadThreadListMode,
     set: mockSetThreadListMode,

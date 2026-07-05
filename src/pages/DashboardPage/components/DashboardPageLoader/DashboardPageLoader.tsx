@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { mockThreads } from "@/__mocks__/threads";
-import { useLocalStorage } from "@/services/local-storage";
+import { useLocalStorage } from "@/hooks";
 import { ThreadListMode } from "../../DashboardPage.constants";
 import type { ThreadListModeType } from "../../DashboardPage.types";
 import {
