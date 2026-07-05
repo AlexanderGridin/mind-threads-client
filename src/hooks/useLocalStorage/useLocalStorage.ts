@@ -2,7 +2,7 @@ import { useRef } from "react";
 import type {
   LocalStorageUpdater,
   UseLocalStorageReturn,
-} from "./local-storage.types";
+} from "./useLocalStorage.types";
 
 export const useLocalStorage = <ValueType>(
   key: string

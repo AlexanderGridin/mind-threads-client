@@ -36,7 +36,7 @@ Key technical choices:
   - `src/pages/` — Page components (e.g., `DashboardPage`, `ThreadPage`), each in its own folder with an `index.ts` barrel export. Pages are co-located with their tests in `__tests__/` folders.
   - `src/routing/` — Routing configuration, including `AppRoutes.tsx` which defines all routes.
   - `src/components/lib/` — Reusable UI component adapters (wrappers around Chakra UI components).
-  - `src/services/` — Service layer (e.g., `local-storage`), organized as a folder per service.
+  - `src/hooks/` — Reusable hooks (e.g., `useLocalStorage`, `useFetch`), organized as a folder per hook.
   - `src/types/` — Shared TypeScript types, re-exported via a barrel `index.ts`.
   - `src/utils/` — Standalone utility functions, co-located with their tests in `__tests__/`.
   - `src/__mocks__/`, `src/__test-fixtures__/` — Shared test mocks and fixtures.
