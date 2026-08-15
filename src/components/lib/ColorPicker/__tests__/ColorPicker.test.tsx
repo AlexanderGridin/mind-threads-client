@@ -30,6 +30,9 @@ describe("ColorPicker", () => {
   it("should render properly when a color selection is not triggered", () => {
     setup({ label: labelText });
 
+    const container = screen.getByTestId(ColorPickerTestId.container);
+    expect(container).toBeInTheDocument();
+
     const label = screen.getByTestId(ColorPickerTestId.label);
     expect(label).toBeInTheDocument();
     expect(label.textContent).toBe(labelText);
@@ -64,6 +67,9 @@ describe("ColorPicker", () => {
   it("should render properly when a color selection is triggered", async () => {
     const { user } = setup({ label: labelText });
 
+    const container = screen.getByTestId(ColorPickerTestId.container);
+    expect(container).toBeInTheDocument();
+
     const content = screen.getByTestId(ColorPickerTestId.content);
     expect(content).toHaveAttribute("hidden", "");
 
@@ -87,7 +93,21 @@ describe("ColorPicker", () => {
     await user.click(swatchTrigger);
 
     expect(mockOnChange).toHaveBeenCalledWith(
-      parseColor(NORD_AURORA_SWATCHES[1]).toString()
+      parseColor(NORD_AURORA_SWATCHES[1]).toString("hex")
     );
+  });
+
+  it("renders without portal when portal prop is false", () => {
+    renderWithUIProvider(
+      <ColorPicker
+        label="Test Color"
+        value="#bf616a"
+        portal={false}
+        onChange={vi.fn()}
+      />
+    );
+
+    const content = screen.getByTestId(ColorPickerTestId.content);
+    expect(content).toBeInTheDocument();
   });
 });

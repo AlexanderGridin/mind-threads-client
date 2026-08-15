@@ -1,13 +1,21 @@
 import { describe, it, expect, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { Input, type InputProps } from "../Input";
 import { renderWithUIProvider } from "../../utils";
+import {
+  INPUT_LABEL_TEST_ID,
+  INPUT_REQUIRED_INDICATOR_TEST_ID,
+} from "../Input.constants";
+
+const TEST_ID = "custom-input";
+
+const mockOnChange = vi.fn();
 
 const setup = ({
   value = "",
-  onChange = vi.fn(),
+  onChange = mockOnChange,
   ...props
 }: Partial<InputProps> = {}) => {
   const user = userEvent.setup();
@@ -17,21 +25,76 @@ const setup = ({
   return { user };
 };
 
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 describe("Input", () => {
   it("renders with the given value", () => {
     setup({ value: "test value" });
 
     expect(screen.getByDisplayValue("test value")).toBeInTheDocument();
+    expect(screen.queryByTestId(INPUT_LABEL_TEST_ID)).not.toBeInTheDocument();
+
+    expect(
+      screen.queryByTestId(INPUT_REQUIRED_INDICATOR_TEST_ID)
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders with the given label", () => {
+    setup({ label: "Input" });
+
+    const label = screen.getByTestId(INPUT_LABEL_TEST_ID);
+
+    expect(label).toBeInTheDocument();
+    expect(label.textContent).toBe("Input");
+    expect(label.tagName).toBe("LABEL");
+
+    expect(
+      screen.queryByTestId(INPUT_REQUIRED_INDICATOR_TEST_ID)
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders with the given label and a required indicator when required", () => {
+    setup({ label: "Input", required: true });
+
+    const label = screen.getByTestId(INPUT_LABEL_TEST_ID);
+
+    expect(label).toBeInTheDocument();
+    expect(label.textContent).toBe("Input *");
+
+    expect(
+      within(label).getByTestId(INPUT_REQUIRED_INDICATOR_TEST_ID)
+    ).toBeInTheDocument();
   });
 
   it("renders placeholder when provided", () => {
     setup({ placeholder: "Enter text here" });
-
     expect(screen.getByPlaceholderText("Enter text here")).toBeInTheDocument();
   });
 
+  it("applies data-testid", () => {
+    setup({ "data-testid": TEST_ID, label: "Input", required: true });
+
+    expect(screen.getByTestId(TEST_ID)).toBeInTheDocument();
+
+    expect(
+      screen.getByTestId(`${TEST_ID}__${INPUT_LABEL_TEST_ID}`)
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByTestId(`${TEST_ID}__${INPUT_REQUIRED_INDICATOR_TEST_ID}`)
+    ).toBeInTheDocument();
+  });
+
+  it("applies disabled attribute correctly", () => {
+    setup({ disabled: true });
+
+    const input = screen.getByRole("textbox");
+    expect(input).toBeDisabled();
+  });
+
   it("calls onChange with the typed string when the user types", async () => {
-    const mockOnChange = vi.fn();
     const { user } = setup({ onChange: mockOnChange });
 
     const input = screen.getByRole("textbox");
@@ -42,18 +105,5 @@ describe("Input", () => {
     expect(mockOnChange).toHaveBeenCalledWith("l");
     expect(mockOnChange).toHaveBeenCalledWith("l");
     expect(mockOnChange).toHaveBeenCalledWith("o");
-  });
-
-  it("applies data-testid", () => {
-    setup({ "data-testid": "custom-input" });
-
-    expect(screen.getByTestId("custom-input")).toBeInTheDocument();
-  });
-
-  it("applies disabled attribute correctly", () => {
-    setup({ disabled: true });
-
-    const input = screen.getByRole("textbox");
-    expect(input).toBeDisabled();
   });
 });

@@ -1,6 +1,6 @@
 import { HStack, ColorModeButton } from "@/components/lib";
 import { DashboardHeaderTestId } from "./DashboardHeader.constants";
-import { AppLogo, ThreadListModeButton } from "./components";
+import { AppLogo, ThreadListModeButton, AddNewThread } from "./components";
 
 export const DashboardHeader = () => {
   return (
@@ -17,6 +17,7 @@ export const DashboardHeader = () => {
       <AppLogo />
 
       <HStack gap="2">
+        <AddNewThread />
         <ThreadListModeButton />
         <ColorModeButton />
       </HStack>

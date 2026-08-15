@@ -1,10 +1,11 @@
 import { screen } from "@testing-library/react";
+import { vi } from "vitest";
 import { renderWithUIProvider } from "@/components/lib";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import { DashboardHeader } from "../DashboardHeader";
 import { DashboardHeaderTestId } from "../DashboardHeader.constants";
 import { ColorModeButtonTestId } from "@/components/lib/color-mode/components/ColorModeButton/ColorModeButton.constants";
-import { AppLogoTestId } from "../components";
+import { AppLogoTestId, AddNewThreadTestId } from "../components";
 
 const mockUseColorModeReturn = { toggleColorMode: vi.fn() };
 
@@ -38,6 +39,10 @@ describe("DashboardHeader", () => {
     ).toBeInTheDocument();
 
     expect(screen.getByTestId(AppLogoTestId.container)).toBeInTheDocument();
+
+    expect(
+      screen.getByTestId(AddNewThreadTestId.openModalButton)
+    ).toBeInTheDocument();
 
     expect(
       screen.getByTestId(ColorModeButtonTestId.container)

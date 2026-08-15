@@ -11,6 +11,7 @@ export const NORD_AURORA_SWATCHES = [
 const createTestId = initTestIdCreator("ColorPicker__");
 
 export const ColorPickerTestId = {
+  container: createTestId("container"),
   label: createTestId("label"),
   trigger: createTestId("trigger"),
   content: createTestId("content"),
