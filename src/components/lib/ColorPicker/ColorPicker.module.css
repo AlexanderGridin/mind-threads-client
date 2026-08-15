@@ -1,0 +1,3 @@
+.trigger > [data-part="swatch"] {
+  flex-grow: 1;
+}
