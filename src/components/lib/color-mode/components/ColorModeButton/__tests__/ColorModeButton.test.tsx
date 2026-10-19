@@ -25,10 +25,10 @@ beforeEach(() => {
 });
 
 describe("ColorModeButton", () => {
-  it("renders the button properly", () => {
+  it("renders the button properly", async () => {
     setup();
 
-    const button = screen.getByTestId(ColorModeButtonTestId.container);
+    const button = await screen.findByTestId(ColorModeButtonTestId.container);
 
     expect(button).toBeInTheDocument();
     expect(button).toHaveAccessibleName("Toggle color mode");

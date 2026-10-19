@@ -48,6 +48,28 @@ describe("AddNewThreadModal", () => {
     });
   });
 
+  it("disables Add when the title contains only spaces", async () => {
+    const { user } = setup();
+
+    const titleInput = screen.getByTestId(ThreadFormTestId.titleInput);
+    await user.type(titleInput, "   ");
+
+    expect(
+      screen.getByTestId(AddNewThreadModalActionsTestId.addButton)
+    ).toBeDisabled();
+  });
+
+  it("enables Add when the title has text surrounded by spaces", async () => {
+    const { user } = setup();
+
+    const titleInput = screen.getByTestId(ThreadFormTestId.titleInput);
+    await user.type(titleInput, "  a  ");
+
+    expect(
+      screen.getByTestId(AddNewThreadModalActionsTestId.addButton)
+    ).toBeEnabled();
+  });
+
   it("calls onClose when Cancel button is clicked", async () => {
     const { user } = setup();
 

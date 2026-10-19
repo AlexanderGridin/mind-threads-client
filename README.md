@@ -61,7 +61,8 @@ src/
 │   └── ColorsDemoPage/    #   Theme/color demo (/colors-demo)
 ├── routing/              # Route definitions (AppRoutes.tsx)
 ├── components/lib/       # Reusable UI adapters wrapping Chakra UI components
-├── services/             # App services (e.g. local-storage)
+├── hooks/                # Shared hooks (e.g. useLocalStorage, useFetch)
+├── services/             # Data-access hooks (e.g. useThreadsService)
 ├── types/                # Shared domain types
 └── utils/                # Shared utilities
 ```

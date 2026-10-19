@@ -1,5 +1,11 @@
-import { vi } from "vitest";
+import { afterEach, vi } from "vitest";
 import "@testing-library/jest-dom";
+import { notificationsToaster } from "@/components/lib/Notifications";
+
+afterEach(() => {
+  notificationsToaster.remove();
+  localStorage.clear();
+});
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,

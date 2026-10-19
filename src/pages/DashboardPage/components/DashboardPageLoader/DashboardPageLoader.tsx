@@ -1,19 +1,27 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { mockThreads } from "@/__mocks__/threads";
+import { notify } from "@/components/lib";
 import { useLocalStorage } from "@/hooks";
+import type { NewMindThread } from "@/types";
 import { ThreadListMode } from "../../DashboardPage.constants";
 import type { ThreadListModeType } from "../../DashboardPage.types";
 import {
   DashboardPageValueContext,
   DashboardPageActionContext,
 } from "./DashboardPageLoader.context";
-import { THREAD_LIST_MODE_STORAGE_KEY } from "./DashboardPageLoader.constants";
+import {
+  SAVE_THREAD_ERROR_MESSAGE,
+  THREAD_LIST_MODE_STORAGE_KEY,
+} from "./DashboardPageLoader.constants";
+import { getThreadCreatedMessage } from "./DashboardPageLoader.utils";
+import { useThreadsState } from "./DashboardPageLoader.hooks";
 
 export const DashboardPageLoader = ({ children }: { children: ReactNode }) => {
-  const threadListModeStorage = useLocalStorage<ThreadListModeType>(
-    THREAD_LIST_MODE_STORAGE_KEY
-  );
+  const threadListModeStorage = useLocalStorage<ThreadListModeType>({
+    key: THREAD_LIST_MODE_STORAGE_KEY,
+  });
+
+  const { threads, threadsStatus, addThread } = useThreadsState();
 
   const [threadListMode, setThreadListMode] = useState<ThreadListModeType>(
     () => {
@@ -30,6 +38,8 @@ export const DashboardPageLoader = ({ children }: { children: ReactNode }) => {
     }
   );
 
+  const [isAddThreadModalOpen, setIsAddThreadModalOpen] = useState(false);
+
   const toggleThreadListMode = () => {
     setThreadListMode((current) => {
       const newThreadListMode =
@@ -43,10 +53,31 @@ export const DashboardPageLoader = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const openAddThreadModal = () => setIsAddThreadModalOpen(true);
+  const closeAddThreadModal = () => setIsAddThreadModalOpen(false);
+
+  const submitNewThread = async (newThread: NewMindThread) => {
+    try {
+      const createdThread = await addThread(newThread);
+
+      closeAddThreadModal();
+      notify.success(getThreadCreatedMessage(createdThread.title));
+    } catch {
+      notify.error(SAVE_THREAD_ERROR_MESSAGE);
+    }
+  };
+
   return (
-    <DashboardPageActionContext.Provider value={{ toggleThreadListMode }}>
+    <DashboardPageActionContext.Provider
+      value={{
+        toggleThreadListMode,
+        openAddThreadModal,
+        closeAddThreadModal,
+        submitNewThread,
+      }}
+    >
       <DashboardPageValueContext.Provider
-        value={{ threadListMode, threads: mockThreads }}
+        value={{ threadListMode, threads, threadsStatus, isAddThreadModalOpen }}
       >
         {children}
       </DashboardPageValueContext.Provider>

@@ -1,31 +1,27 @@
 import { describe, it, expect } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { renderWithUIProvider } from "@/components/lib";
-import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
+import {
+  mindThreadFixturesWithSingleItem,
+  seedThreads,
+} from "@/__test-fixtures__";
+import { DashboardPageLoader } from "@/pages/DashboardPage/components/DashboardPageLoader";
 import { DashboardContent } from "../DashboardContent";
 import { DashboardContentTestId } from "../DashboardContent.constants";
 import { MindThreadListTestId } from "../components/MindThreadList/MindThreadList.constants";
-import { mindThreadFixturesWithSingleItem } from "@/__test-fixtures__";
-
-vi.mock(
-  "@/pages/DashboardPage/components/DashboardPageLoader/DashboardPageLoader.hooks",
-  () => ({
-    useDashboardPageValue: () => ({
-      threads: mindThreadFixturesWithSingleItem,
-      threadListMode: ThreadListMode.Grid,
-    }),
-    useDashboardPageAction: () => ({
-      toggleThreadListMode: vi.fn(),
-    }),
-  })
-);
 
 const setup = () => {
-  renderWithUIProvider(<DashboardContent />);
+  renderWithUIProvider(
+    <DashboardPageLoader>
+      <DashboardContent />
+    </DashboardPageLoader>
+  );
 };
 
 describe("DashboardContent", () => {
-  it("renders properly", () => {
+  it("renders the main container with the thread list for stored threads", async () => {
+    seedThreads(mindThreadFixturesWithSingleItem);
+
     setup();
 
     const mainContainer = screen.getByTestId(DashboardContentTestId.container);
@@ -33,8 +29,10 @@ describe("DashboardContent", () => {
     expect(mainContainer).toBeInTheDocument();
     expect(mainContainer.tagName).toBe("MAIN");
 
-    expect(
-      screen.getByTestId(MindThreadListTestId.container)
-    ).toBeInTheDocument();
+    const threadsList = await within(mainContainer).findByTestId(
+      MindThreadListTestId.container
+    );
+
+    expect(threadsList).toBeInTheDocument();
   });
 });

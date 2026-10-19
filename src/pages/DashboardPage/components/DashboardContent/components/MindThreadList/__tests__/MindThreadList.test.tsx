@@ -7,15 +7,20 @@ import type { ThreadListModeType } from "@/pages/DashboardPage/DashboardPage.typ
 import { MindThreadList } from "../MindThreadList";
 import { MindThreadListTestId } from "../MindThreadList.constants";
 import { MindThreadCardTestId } from "../../MindThreadCard/MindThreadCard.constants";
-import { mindThreadFixtures } from "@/__test-fixtures__";
+import {
+  mindThreadFixtures,
+  mindThreadFixturesWithSameTitle,
+} from "@/__test-fixtures__";
+import type { MindThread } from "@/types";
 
 let mockThreadListMode: ThreadListModeType = ThreadListMode.Grid;
+let mockThreads: MindThread[] = mindThreadFixtures;
 
 vi.mock(
   "@/pages/DashboardPage/components/DashboardPageLoader/DashboardPageLoader.hooks",
   () => ({
     useDashboardPageValue: () => ({
-      threads: mindThreadFixtures,
+      threads: mockThreads,
       threadListMode: mockThreadListMode,
     }),
     useDashboardPageAction: () => ({
@@ -30,9 +35,16 @@ const setup = () => {
   return { user };
 };
 
+const getRenderedSections = () => {
+  return screen
+    .getAllByTestId(MindThreadCardTestId.sections)
+    .map((sections) => sections.textContent);
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockThreadListMode = ThreadListMode.Grid;
+  mockThreads = mindThreadFixtures;
 });
 
 describe("MindThreadList", () => {
@@ -66,6 +78,37 @@ describe("MindThreadList", () => {
 
     expect(container).toHaveStyle({ display: "flex" });
     expect(container.tagName).toBe("UL");
+  });
+
+  it("renders two cards when two threads share the same title", () => {
+    mockThreads = mindThreadFixturesWithSameTitle;
+
+    setup();
+
+    const cards = screen.getAllByTestId(MindThreadCardTestId.container);
+
+    expect(cards.length).toBe(2);
+
+    cards.forEach((card) => {
+      expect(card).toHaveTextContent("Testing Strategy");
+    });
+  });
+
+  it("renders the threads with the same title in the given order in grid mode", () => {
+    mockThreads = mindThreadFixturesWithSameTitle;
+
+    setup();
+
+    expect(getRenderedSections()).toStrictEqual(["8 sections", "0 sections"]);
+  });
+
+  it("renders the threads with the same title in the given order in list mode", () => {
+    mockThreads = mindThreadFixturesWithSameTitle;
+    mockThreadListMode = ThreadListMode.List;
+
+    setup();
+
+    expect(getRenderedSections()).toStrictEqual(["8 sections", "0 sections"]);
   });
 
   it("calls console.log with the thread when a card is clicked", async () => {

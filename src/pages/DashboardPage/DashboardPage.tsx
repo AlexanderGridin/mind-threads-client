@@ -2,6 +2,7 @@ import {
   DashboardHeader,
   DashboardPageLoader,
   DashboardContent,
+  AddNewThreadModalContainer,
 } from "./components";
 
 export const DashboardPage = () => {
@@ -9,6 +10,7 @@ export const DashboardPage = () => {
     <DashboardPageLoader>
       <DashboardHeader />
       <DashboardContent />
+      <AddNewThreadModalContainer />
     </DashboardPageLoader>
   );
 };

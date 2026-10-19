@@ -56,6 +56,7 @@ describe("MindThreadCard", () => {
 
   const rendersNAWhenLastUpdatedTextIsEmpty = () => {
     const lastUpdated = screen.getByTestId(MindThreadCardTestId.lastUpdated);
+
     expect(lastUpdated).toBeInTheDocument();
     expect(lastUpdated.textContent).toBe("Updated: N/A");
   };
@@ -82,6 +83,29 @@ describe("MindThreadCard", () => {
 
       setup(futureThread);
       rendersNAWhenLastUpdatedTextIsEmpty();
+    });
+
+    it("renders zero counts and 'Updated: just now' for a new thread", () => {
+      const newThread = {
+        ...mindThreadFixture,
+        totalSections: 0,
+        totalPages: 0,
+        lastUpdated: new Date().toISOString(),
+      };
+
+      setup(newThread);
+
+      expect(
+        screen.getByTestId(MindThreadCardTestId.sections)
+      ).toHaveTextContent("0 sections");
+
+      expect(screen.getByTestId(MindThreadCardTestId.pages)).toHaveTextContent(
+        "0 pages"
+      );
+
+      expect(
+        screen.getByTestId(MindThreadCardTestId.lastUpdated)
+      ).toHaveTextContent("Updated: just now");
     });
 
     it("renders color border top", () => {

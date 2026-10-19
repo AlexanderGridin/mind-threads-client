@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
+import { MALFORMED_JSON } from "@/__test-fixtures__";
 import { useLocalStorage } from "../useLocalStorage";
+import type { UseLocalStorageParams } from "../useLocalStorage.types";
 
 const TEST_STORAGE_KEY = "test-key";
 
@@ -10,14 +12,15 @@ const NEW_VALUE = "new-value";
 const TEST_VALUE_1 = "value1";
 const TEST_VALUE_2 = "value2";
 
-const MALFORMED_JSON = "not-json";
-
 beforeEach(() => {
   localStorage.clear();
 });
 
-const setup = <ValueType = string>(key: string = TEST_STORAGE_KEY) => {
-  return renderHook(() => useLocalStorage<ValueType>(key));
+const setup = <ValueType = string>({
+  key = TEST_STORAGE_KEY,
+  throwOnError,
+}: Partial<UseLocalStorageParams> = {}) => {
+  return renderHook(() => useLocalStorage<ValueType>({ key, throwOnError }));
 };
 
 describe("useLocalStorage", () => {
@@ -108,8 +111,8 @@ describe("useLocalStorage", () => {
   });
 
   it("two independent renderHook calls with different key values do not share a cache", () => {
-    const { result: result1 } = setup("key1");
-    const { result: result2 } = setup("key2");
+    const { result: result1 } = setup({ key: "key1" });
+    const { result: result2 } = setup({ key: "key2" });
 
     localStorage.setItem("key1", JSON.stringify(TEST_VALUE_1));
     localStorage.setItem("key2", JSON.stringify(TEST_VALUE_2));
@@ -140,5 +143,48 @@ describe("useLocalStorage", () => {
 
     setItemSpy.mockRestore();
     consoleErrorSpy.mockRestore();
+  });
+
+  describe("with throwOnError", () => {
+    it("read() throws a malformed stored value and still logs via console.error", () => {
+      const { result } = setup({ throwOnError: true });
+
+      localStorage.setItem(TEST_STORAGE_KEY, MALFORMED_JSON);
+
+      const consoleErrorSpy = vi.spyOn(console, "error");
+
+      expect(() => result.current.read()).toThrow(SyntaxError);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        `Failed to read from localStorage for key "${TEST_STORAGE_KEY}":`,
+        expect.any(SyntaxError)
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("set() throws when localStorage.setItem fails and keeps the previously cached value", () => {
+      const { result } = setup({ throwOnError: true });
+
+      result.current.set(TEST_VALUE_1);
+
+      const setItemSpy = vi
+        .spyOn(Storage.prototype, "setItem")
+        .mockImplementation(() => {
+          throw new Error("Storage quota exceeded");
+        });
+
+      expect(() => result.current.set(NEW_VALUE)).toThrow(
+        "Storage quota exceeded"
+      );
+      expect(result.current.read()).toBe(TEST_VALUE_1);
+
+      setItemSpy.mockRestore();
+    });
+
+    it("read() returns null without throwing when the key is missing", () => {
+      const { result } = setup({ throwOnError: true });
+
+      expect(result.current.read()).toBeNull();
+    });
   });
 });
