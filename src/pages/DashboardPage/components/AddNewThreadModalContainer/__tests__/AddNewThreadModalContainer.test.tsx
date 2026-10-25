@@ -88,12 +88,16 @@ describe("AddNewThreadModalContainer", () => {
     vi.restoreAllMocks();
   });
 
-  it("does not render the modal until it is opened", () => {
-    setup();
+  it("does not render the modal until it is opened", async () => {
+    const context = setup();
 
-    expect(
-      screen.queryByText(ADD_NEW_THREAD_MODAL_TITLE)
-    ).not.toBeInTheDocument();
+    let modalTitle = screen.queryByText(ADD_NEW_THREAD_MODAL_TITLE);
+    expect(modalTitle).not.toBeInTheDocument();
+
+    await openModal(context);
+
+    modalTitle = screen.getByText(ADD_NEW_THREAD_MODAL_TITLE);
+    expect(modalTitle).toBeInTheDocument();
   });
 
   it("closes the modal when Cancel is clicked", async () => {
@@ -104,9 +108,11 @@ describe("AddNewThreadModalContainer", () => {
     const modalTitle = screen.getByText(ADD_NEW_THREAD_MODAL_TITLE);
     expect(modalTitle).toBeInTheDocument();
 
-    await context.user.click(
-      screen.getByTestId(AddNewThreadModalActionsTestId.cancelButton)
+    const cancelButton = screen.getByTestId(
+      AddNewThreadModalActionsTestId.cancelButton
     );
+
+    await context.user.click(cancelButton);
 
     expect(modalTitle).not.toBeInTheDocument();
   });
@@ -117,13 +123,15 @@ describe("AddNewThreadModalContainer", () => {
     await openModal(context);
 
     const modalTitle = screen.getByText(ADD_NEW_THREAD_MODAL_TITLE);
+    expect(modalTitle).toBeInTheDocument();
 
     await fillAndSubmit(context, THREAD_TITLE);
 
-    expect(
-      await screen.findByText(getThreadCreatedMessage(THREAD_TITLE))
-    ).toBeInTheDocument();
+    const threadCreatedMessage = await screen.findByText(
+      getThreadCreatedMessage(THREAD_TITLE)
+    );
 
+    expect(threadCreatedMessage).toBeInTheDocument();
     expect(modalTitle).not.toBeInTheDocument();
   });
 
@@ -144,11 +152,12 @@ describe("AddNewThreadModalContainer", () => {
 
     await clickAdd(context);
 
-    expect(
-      await screen.findByText(SAVE_THREAD_ERROR_MESSAGE)
-    ).toBeInTheDocument();
+    const errorMessage = await screen.findByText(SAVE_THREAD_ERROR_MESSAGE);
+    expect(errorMessage).toBeInTheDocument();
 
-    expect(screen.getByText(ADD_NEW_THREAD_MODAL_TITLE)).toBeInTheDocument();
+    const modalTitle = screen.getByText(ADD_NEW_THREAD_MODAL_TITLE);
+    expect(modalTitle).toBeInTheDocument();
+
     expect(getTitleInput().value).toBe(THREAD_TITLE);
     expect(getSelectedColor()).toBe(selectedColor);
   });
@@ -169,9 +178,8 @@ describe("AddNewThreadModalContainer", () => {
 
     await clickAdd(context);
 
-    expect(
-      await screen.findByText(SAVE_THREAD_ERROR_MESSAGE)
-    ).toBeInTheDocument();
+    const errorMessage = await screen.findByText(SAVE_THREAD_ERROR_MESSAGE);
+    expect(errorMessage).toBeInTheDocument();
 
     setItemSpy.mockRestore();
 
@@ -180,9 +188,11 @@ describe("AddNewThreadModalContainer", () => {
 
     await clickAdd(context);
 
-    expect(
-      await screen.findByText(getThreadCreatedMessage(THREAD_TITLE))
-    ).toBeInTheDocument();
+    const threadCreatedMessage = await screen.findByText(
+      getThreadCreatedMessage(THREAD_TITLE)
+    );
+
+    expect(threadCreatedMessage).toBeInTheDocument();
 
     expect(modalTitle).not.toBeInTheDocument();
   });

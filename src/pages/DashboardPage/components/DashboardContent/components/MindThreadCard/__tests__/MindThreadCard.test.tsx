@@ -95,25 +95,27 @@ describe("MindThreadCard", () => {
 
       setup(newThread);
 
-      expect(
-        screen.getByTestId(MindThreadCardTestId.sections)
-      ).toHaveTextContent("0 sections");
+      const sections = screen.getByTestId(MindThreadCardTestId.sections);
+      expect(sections).toBeInTheDocument();
+      expect(sections.textContent).toBe("0 sections");
 
-      expect(screen.getByTestId(MindThreadCardTestId.pages)).toHaveTextContent(
-        "0 pages"
-      );
+      const pages = screen.getByTestId(MindThreadCardTestId.pages);
+      expect(pages).toBeInTheDocument();
+      expect(pages.textContent).toBe("0 pages");
 
-      expect(
-        screen.getByTestId(MindThreadCardTestId.lastUpdated)
-      ).toHaveTextContent("Updated: just now");
+      const lastUpdated = screen.getByTestId(MindThreadCardTestId.lastUpdated);
+      expect(lastUpdated).toBeInTheDocument();
+      expect(lastUpdated.textContent).toBe("Updated: just now");
     });
 
     it("renders color border top", () => {
       setup();
 
-      expect(
-        screen.queryByTestId(MindThreadCardTestId.colorBorderLeft)
-      ).not.toBeInTheDocument();
+      const colorBorderLeft = screen.queryByTestId(
+        MindThreadCardTestId.colorBorderLeft
+      );
+
+      expect(colorBorderLeft).not.toBeInTheDocument();
 
       const colorBorderTop = screen.getByTestId(
         MindThreadCardTestId.colorBorderTop
@@ -148,9 +150,11 @@ describe("MindThreadCard", () => {
     it("renders color border left", () => {
       setup(mindThreadFixture, ThreadListMode.List);
 
-      expect(
-        screen.queryByTestId(MindThreadCardTestId.colorBorderTop)
-      ).not.toBeInTheDocument();
+      const colorBorderTop = screen.queryByTestId(
+        MindThreadCardTestId.colorBorderTop
+      );
+
+      expect(colorBorderTop).not.toBeInTheDocument();
 
       const colorBorderLeft = screen.getByTestId(
         MindThreadCardTestId.colorBorderLeft

@@ -26,26 +26,34 @@ const setup = () => {
 };
 
 describe("EmptyThreadList", () => {
-  it("renders the exact message and the add button", () => {
+  it("renders the exact message and the add button", async () => {
     setup();
 
-    expect(screen.getByTestId(EmptyThreadListTestId.message).textContent).toBe(
-      EMPTY_THREAD_LIST_MESSAGE
-    );
+    const message = await screen.findByTestId(EmptyThreadListTestId.message);
+
+    expect(message).toBeInTheDocument();
+    expect(message.textContent).toBe(EMPTY_THREAD_LIST_MESSAGE);
 
     const addButton = screen.getByTestId(EmptyThreadListTestId.addButton);
+    expect(addButton).toBeInTheDocument();
+    expect(addButton).toBeEnabled();
     expect(addButton.textContent).toBe(EMPTY_THREAD_LIST_BUTTON_LABEL);
   });
 
   it("opens the 'Add new thread' modal when the add button is clicked", async () => {
     const { user } = setup();
 
-    await user.click(screen.getByTestId(EmptyThreadListTestId.addButton));
+    const addButton = await screen.findByTestId(
+      EmptyThreadListTestId.addButton
+    );
 
-    const dialog = await screen.findByRole("dialog");
+    await user.click(addButton);
 
-    expect(
-      within(dialog).getByText(ADD_NEW_THREAD_MODAL_TITLE)
-    ).toBeInTheDocument();
+    const newThreadModal = await screen.findByRole("dialog");
+    const modalTitle = within(newThreadModal).getByText(
+      ADD_NEW_THREAD_MODAL_TITLE
+    );
+
+    expect(modalTitle).toBeInTheDocument();
   });
 });

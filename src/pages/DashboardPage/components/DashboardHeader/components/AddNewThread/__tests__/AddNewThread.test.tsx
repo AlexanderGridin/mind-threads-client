@@ -36,20 +36,25 @@ describe("AddNewThread", () => {
     setup();
 
     const button = await findOpenModalButton();
+
+    expect(button).toBeInTheDocument();
     expect(button).toBeEnabled();
+    expect(button).toHaveAccessibleName("+ New Thread");
+    expect(button.textContent).toBe("+ New Thread");
   });
 
   it("opens the modal when the button is clicked", async () => {
     const { user } = setup();
 
     const button = await findOpenModalButton();
-    expect(button).toBeEnabled();
+
+    let modalTitle = screen.queryByText(ADD_NEW_THREAD_MODAL_TITLE);
+    expect(modalTitle).not.toBeInTheDocument();
 
     await user.click(button);
 
-    expect(
-      await screen.findByText(ADD_NEW_THREAD_MODAL_TITLE)
-    ).toBeInTheDocument();
+    modalTitle = await screen.findByText(ADD_NEW_THREAD_MODAL_TITLE);
+    expect(modalTitle).toBeInTheDocument();
   });
 
   it("disables the button when the stored threads are malformed", async () => {

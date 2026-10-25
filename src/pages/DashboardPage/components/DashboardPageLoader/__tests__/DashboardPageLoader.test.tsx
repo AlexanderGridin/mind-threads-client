@@ -136,13 +136,11 @@ describe("DashboardPageLoader", () => {
 
       await waitForThreadsLoaded();
 
-      expect(screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent).toBe(
-        ThreadListMode.Grid
-      );
+      const listMode = screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent;
+      expect(listMode).toBe(ThreadListMode.Grid);
 
-      expect(screen.getByTestId(IS_MODAL_OPEN_TEST_ID).textContent).toBe(
-        "false"
-      );
+      const isModalOpen = screen.getByTestId(IS_MODAL_OPEN_TEST_ID).textContent;
+      expect(isModalOpen).toBe("false");
 
       expect(getThreadTitles()).toStrictEqual([]);
     });
@@ -154,15 +152,13 @@ describe("DashboardPageLoader", () => {
 
       setup();
 
-      expect(screen.getByTestId(THREADS_STATUS_TEST_ID).textContent).toBe(
-        ThreadsStatus.Loading
-      );
+      let threadStatus = screen.getByTestId(THREADS_STATUS_TEST_ID).textContent;
+      expect(threadStatus).toBe(ThreadsStatus.Loading);
 
       await waitForThreadsLoaded();
 
-      expect(screen.getByTestId(THREADS_STATUS_TEST_ID).textContent).toBe(
-        ThreadsStatus.Loaded
-      );
+      threadStatus = screen.getByTestId(THREADS_STATUS_TEST_ID).textContent;
+      expect(threadStatus).toBe(ThreadsStatus.Loaded);
 
       expect(getThreadTitles()).toStrictEqual(
         mindThreadFixtures.map((thread) => thread.title)
@@ -176,11 +172,14 @@ describe("DashboardPageLoader", () => {
 
       setup();
 
-      expect(await screen.findByText(ThreadsStatus.Error)).toBeInTheDocument();
+      const errorStatus = await screen.findByText(ThreadsStatus.Error);
+      expect(errorStatus).toBeInTheDocument();
 
-      expect(
-        screen.queryByTestId(NotificationsTestId.notification)
-      ).not.toBeInTheDocument();
+      const notification = screen.queryByTestId(
+        NotificationsTestId.notification
+      );
+
+      expect(notification).not.toBeInTheDocument();
     });
 
     it("prepends the new thread, closes the modal, and shows a success notification", async () => {
@@ -188,21 +187,26 @@ describe("DashboardPageLoader", () => {
 
       const { user } = setup();
 
+      let isModalOpen = (await screen.findByTestId(IS_MODAL_OPEN_TEST_ID))
+        .textContent;
+
+      expect(isModalOpen).toBe("false");
+
       await openAddThreadModal(user);
 
-      expect(screen.getByTestId(IS_MODAL_OPEN_TEST_ID).textContent).toBe(
-        "true"
-      );
+      isModalOpen = screen.getByTestId(IS_MODAL_OPEN_TEST_ID).textContent;
+      expect(isModalOpen).toBe("true");
 
       await submitNewThread(user);
 
-      expect(
-        await screen.findByText(getThreadCreatedMessage(NEW_THREAD_TITLE))
-      ).toBeInTheDocument();
-
-      expect(screen.getByTestId(IS_MODAL_OPEN_TEST_ID).textContent).toBe(
-        "false"
+      const newThreadTitle = await screen.findByText(
+        getThreadCreatedMessage(NEW_THREAD_TITLE)
       );
+
+      expect(newThreadTitle).toBeInTheDocument();
+
+      isModalOpen = screen.getByTestId(IS_MODAL_OPEN_TEST_ID).textContent;
+      expect(isModalOpen).toBe("false");
 
       expect(getThreadTitles()).toStrictEqual([
         NEW_THREAD_TITLE,
@@ -251,15 +255,16 @@ describe("DashboardPageLoader", () => {
 
       await submitNewThread(user);
 
-      expect(
-        await screen.findByText(SAVE_THREAD_ERROR_MESSAGE)
-      ).toBeInTheDocument();
+      const errorMessage = await screen.findByText(SAVE_THREAD_ERROR_MESSAGE);
+      expect(errorMessage).toBeInTheDocument();
 
       await submitNewThread(user);
 
-      expect(
-        await screen.findByText(getThreadCreatedMessage(NEW_THREAD_TITLE))
-      ).toBeInTheDocument();
+      const newThreadTitle = await screen.findByText(
+        getThreadCreatedMessage(NEW_THREAD_TITLE)
+      );
+
+      expect(newThreadTitle).toBeInTheDocument();
 
       expect(getThreadTitles()[0]).toBe(NEW_THREAD_TITLE);
     });
@@ -269,55 +274,56 @@ describe("DashboardPageLoader", () => {
     it("toggles threadListMode from 'grid' to 'list'", async () => {
       const { user } = setup();
 
-      expect(screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent).toBe(
-        ThreadListMode.Grid
-      );
+      let listMode = screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent;
+      expect(listMode).toBe(ThreadListMode.Grid);
 
       await user.click(screen.getByTestId(TOGGLE_BUTTON_TEST_ID));
 
-      expect(screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent).toBe(
-        ThreadListMode.List
-      );
+      listMode = screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent;
+      expect(listMode).toBe(ThreadListMode.List);
     });
 
     it("toggles threadListMode from 'list' back to 'grid'", async () => {
       const { user } = setup();
 
+      let listMode = (await screen.findByTestId(THREAD_LIST_MODE_TEST_ID))
+        .textContent;
+
+      expect(listMode).toBe(ThreadListMode.Grid);
+
       await user.click(screen.getByTestId(TOGGLE_BUTTON_TEST_ID));
 
-      expect(screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent).toBe(
-        ThreadListMode.List
-      );
+      listMode = screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent;
+      expect(listMode).toBe(ThreadListMode.List);
 
       await user.click(screen.getByTestId(TOGGLE_BUTTON_TEST_ID));
 
-      expect(screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent).toBe(
-        ThreadListMode.Grid
-      );
+      listMode = screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent;
+      expect(listMode).toBe(ThreadListMode.Grid);
     });
 
     it("toggles multiple times correctly", async () => {
       const { user } = setup();
 
-      const toggleButton = screen.getByTestId(TOGGLE_BUTTON_TEST_ID);
+      const toggleButton = await screen.findByTestId(TOGGLE_BUTTON_TEST_ID);
+
+      let listMode = screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent;
+      expect(listMode).toBe(ThreadListMode.Grid);
 
       await user.click(toggleButton);
 
-      expect(screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent).toBe(
-        ThreadListMode.List
-      );
+      listMode = screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent;
+      expect(listMode).toBe(ThreadListMode.List);
 
       await user.click(toggleButton);
 
-      expect(screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent).toBe(
-        ThreadListMode.Grid
-      );
+      listMode = screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent;
+      expect(listMode).toBe(ThreadListMode.Grid);
 
       await user.click(toggleButton);
 
-      expect(screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent).toBe(
-        ThreadListMode.List
-      );
+      listMode = screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent;
+      expect(listMode).toBe(ThreadListMode.List);
     });
   });
 
@@ -327,9 +333,8 @@ describe("DashboardPageLoader", () => {
 
       setup();
 
-      expect(screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent).toBe(
-        ThreadListMode.List
-      );
+      const listMode = screen.getByTestId(THREAD_LIST_MODE_TEST_ID).textContent;
+      expect(listMode).toBe(ThreadListMode.List);
     });
 
     it("persists the default value to storage when storage is empty", () => {
@@ -343,7 +348,8 @@ describe("DashboardPageLoader", () => {
     it("persists the new value to storage when toggle is clicked", async () => {
       const { user } = setup();
 
-      await user.click(screen.getByTestId(TOGGLE_BUTTON_TEST_ID));
+      const toggleButton = screen.getByTestId(TOGGLE_BUTTON_TEST_ID);
+      await user.click(toggleButton);
 
       expect(readStoredThreadListMode()).toBe(
         JSON.stringify(ThreadListMode.List)

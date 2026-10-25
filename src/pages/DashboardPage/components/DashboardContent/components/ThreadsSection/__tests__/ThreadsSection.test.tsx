@@ -30,9 +30,17 @@ describe("ThreadsSection", () => {
   it("shows the empty state when no threads are stored", async () => {
     setup();
 
-    expect(
-      await screen.findByTestId(EmptyThreadListTestId.container)
-    ).toBeInTheDocument();
+    const emptyStateContainer = await screen.findByTestId(
+      EmptyThreadListTestId.container
+    );
+
+    expect(emptyStateContainer).toBeInTheDocument();
+
+    const threadsListContainer = screen.queryByTestId(
+      MindThreadListTestId.container
+    );
+
+    expect(threadsListContainer).not.toBeInTheDocument();
   });
 
   it("shows the thread list when threads are stored", async () => {
@@ -40,13 +48,20 @@ describe("ThreadsSection", () => {
 
     setup();
 
-    expect(
-      await screen.findByTestId(MindThreadListTestId.container)
-    ).toBeInTheDocument();
-
-    expect(screen.getAllByTestId(MindThreadListTestId.listItem)).toHaveLength(
-      mindThreadFixtures.length
+    const threadsListContainer = await screen.findByTestId(
+      MindThreadListTestId.container
     );
+
+    expect(threadsListContainer).toBeInTheDocument();
+
+    const listItems = screen.getAllByTestId(MindThreadListTestId.listItem);
+    expect(listItems).toHaveLength(mindThreadFixtures.length);
+
+    const emptyStateContainer = screen.queryByTestId(
+      EmptyThreadListTestId.container
+    );
+
+    expect(emptyStateContainer).not.toBeInTheDocument();
   });
 
   it("shows the error card without the empty state or a notification when the stored threads are malformed", async () => {
@@ -56,16 +71,25 @@ describe("ThreadsSection", () => {
 
     setup();
 
-    expect(
-      await screen.findByTestId(ThreadsLoadErrorTestId.container)
-    ).toBeInTheDocument();
+    const threadsLoadError = await screen.findByTestId(
+      ThreadsLoadErrorTestId.container
+    );
 
-    expect(
-      screen.queryByTestId(EmptyThreadListTestId.container)
-    ).not.toBeInTheDocument();
+    expect(threadsLoadError).toBeInTheDocument();
 
-    expect(
-      screen.queryByTestId(NotificationsTestId.notification)
-    ).not.toBeInTheDocument();
+    const threadsListContainer = screen.queryByTestId(
+      MindThreadListTestId.container
+    );
+
+    expect(threadsListContainer).not.toBeInTheDocument();
+
+    const emptyThreadList = screen.queryByTestId(
+      EmptyThreadListTestId.container
+    );
+
+    expect(emptyThreadList).not.toBeInTheDocument();
+
+    const notification = screen.queryByTestId(NotificationsTestId.notification);
+    expect(notification).not.toBeInTheDocument();
   });
 });

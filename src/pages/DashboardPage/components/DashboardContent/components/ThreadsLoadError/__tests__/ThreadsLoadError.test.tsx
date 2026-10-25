@@ -12,15 +12,17 @@ const setup = () => {
 };
 
 describe("ThreadsLoadError", () => {
-  it("renders the container with the exact load error message", () => {
+  it("renders the container with the exact load error message", async () => {
     setup();
 
-    expect(
-      screen.getByTestId(ThreadsLoadErrorTestId.container)
-    ).toBeInTheDocument();
-
-    expect(screen.getByTestId(ThreadsLoadErrorTestId.message).textContent).toBe(
-      THREADS_LOAD_ERROR_MESSAGE
+    const container = await screen.findByTestId(
+      ThreadsLoadErrorTestId.container
     );
+
+    expect(container).toBeInTheDocument();
+
+    const message = screen.getByTestId(ThreadsLoadErrorTestId.message);
+    expect(message).toBeInTheDocument();
+    expect(message.textContent).toBe(THREADS_LOAD_ERROR_MESSAGE);
   });
 });
