@@ -22,6 +22,7 @@ export const CardContent = ({ thread, forMode }: CardContentProps) => {
       gap={contentGap}
       alignItems="flex-start"
       p="4"
+      pr="12"
     >
       <Text
         data-testid={MindThreadCardTestId.title}

@@ -2,17 +2,29 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib";
-import { MALFORMED_JSON } from "@/__test-fixtures__";
+import {
+  MALFORMED_JSON,
+  mindThreadFixture,
+  mindThreadFixtures,
+  seedThreads,
+} from "@/__test-fixtures__";
 import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsService.constants";
 import { DashboardPage } from "../DashboardPage";
 import { AddNewThreadTestId } from "../components/DashboardHeader/components/AddNewThread/AddNewThread.constants";
 import { ThreadListModeButtonTestId } from "../components/DashboardHeader/components/ThreadListModeButton/ThreadListModeButton.constants";
 import { ThreadFormTestId } from "../components/AddNewThreadModalContainer/components/AddNewThreadModal/components/ThreadForm/ThreadForm.constants";
 import { AddNewThreadModalActionsTestId } from "../components/AddNewThreadModalContainer/components/AddNewThreadModal/components/AddNewThreadModalActions/AddNewThreadModalActions.constants";
-import { EmptyThreadListTestId } from "../components/DashboardContent/components/EmptyThreadList/EmptyThreadList.constants";
+import {
+  EMPTY_THREAD_LIST_MESSAGE,
+  EmptyThreadListTestId,
+} from "../components/DashboardContent/components/EmptyThreadList/EmptyThreadList.constants";
 import { MindThreadListTestId } from "../components/DashboardContent/components/MindThreadList/MindThreadList.constants";
 import { MindThreadCardTestId } from "../components/DashboardContent/components/MindThreadCard/MindThreadCard.constants";
 import { ThreadsLoadErrorTestId } from "../components/DashboardContent/components/ThreadsLoadError/ThreadsLoadError.constants";
+import { getThreadDeletedMessage } from "../components/DashboardPageLoader/DashboardPageLoader.utils";
+import { DELETE_THREAD_MODAL_TITLE } from "../components/DeleteThreadModalContainer/components/DeleteThreadModal/DeleteThreadModal.constants";
+import { getDeleteThreadModalText } from "../components/DeleteThreadModalContainer/components/DeleteThreadModal/DeleteThreadModal.utils";
+import { DeleteThreadModalActionsTestId } from "../components/DeleteThreadModalContainer/components/DeleteThreadModal/components/DeleteThreadModalActions/DeleteThreadModalActions.constants";
 
 const DEFAULT_THREAD_TITLE = "My thread";
 
@@ -213,5 +225,174 @@ describe("DashboardPage", () => {
 
     const button = await findOpenModalButton();
     expect(button).toBeDisabled();
+  });
+
+  describe("delete thread", () => {
+    const seedThreeThreads = () => {
+      seedThreads([
+        mindThreadFixtures[0],
+        mindThreadFixtures[1],
+        mindThreadFixture,
+      ]);
+    };
+
+    const openDeleteModalFromMenu = async (
+      user: SetupResult["user"],
+      threadTitle: string
+    ) => {
+      const menuButton = screen.getByRole("button", {
+        name: `Thread actions for ${threadTitle}`,
+      });
+
+      await user.click(menuButton);
+
+      const [deleteMenuItem] = await screen.findAllByRole("menuitem");
+      await user.click(deleteMenuItem);
+    };
+
+    const confirmDelete = async (user: SetupResult["user"]) => {
+      const confirmButton = screen.getByTestId(
+        DeleteThreadModalActionsTestId.deleteButton
+      );
+
+      await user.click(confirmButton);
+    };
+
+    it("shows a thread actions button on every card in grid and list view", async () => {
+      seedThreeThreads();
+
+      const { user } = setup();
+
+      const titles = await findThreadTitles();
+
+      titles.forEach((title) => {
+        const menuButton = screen.getByRole("button", {
+          name: `Thread actions for ${title}`,
+        });
+
+        expect(menuButton).toBeInTheDocument();
+      });
+
+      const listModeButton = screen.getByTestId(
+        ThreadListModeButtonTestId.container
+      );
+
+      await user.click(listModeButton);
+
+      const listContainer = screen.getByTestId(MindThreadListTestId.container);
+      expect(listContainer).toHaveStyle({
+        display: "flex",
+      });
+
+      titles.forEach((title) => {
+        const menuButton = screen.getByRole("button", {
+          name: `Thread actions for ${title}`,
+        });
+
+        expect(menuButton).toBeInTheDocument();
+      });
+    });
+
+    it("deletes the second of three threads, keeps the others in order and shows a success notification", async () => {
+      seedThreeThreads();
+
+      const { user } = setup();
+
+      await findThreadTitles();
+
+      await openDeleteModalFromMenu(user, mindThreadFixtures[1].title);
+
+      let modalTitle: HTMLElement | null = screen.getByText(
+        DELETE_THREAD_MODAL_TITLE
+      );
+      expect(modalTitle).toBeInTheDocument();
+
+      const modalText = screen.getByText(
+        getDeleteThreadModalText(mindThreadFixtures[1].title)
+      );
+
+      expect(modalText).toBeInTheDocument();
+
+      await confirmDelete(user);
+
+      const notification = await screen.findByText(
+        getThreadDeletedMessage(mindThreadFixtures[1].title)
+      );
+
+      expect(notification).toBeInTheDocument();
+
+      modalTitle = screen.queryByText(DELETE_THREAD_MODAL_TITLE);
+      expect(modalTitle).not.toBeInTheDocument();
+
+      const threadTitles = await findThreadTitles();
+      expect(threadTitles).toStrictEqual([
+        mindThreadFixtures[0].title,
+        mindThreadFixture.title,
+      ]);
+    });
+
+    it("keeps a deleted thread gone after the page is rendered again", async () => {
+      seedThreeThreads();
+
+      const firstRender = setup();
+
+      await findThreadTitles();
+
+      await openDeleteModalFromMenu(
+        firstRender.user,
+        mindThreadFixtures[1].title
+      );
+
+      await confirmDelete(firstRender.user);
+
+      const threadDeletedMessage = await screen.findByText(
+        getThreadDeletedMessage(mindThreadFixtures[1].title)
+      );
+
+      expect(threadDeletedMessage).toBeInTheDocument();
+
+      expect(await findThreadTitles()).toStrictEqual([
+        mindThreadFixtures[0].title,
+        mindThreadFixture.title,
+      ]);
+
+      firstRender.unmount();
+
+      setup();
+
+      expect(await findThreadTitles()).toStrictEqual([
+        mindThreadFixtures[0].title,
+        mindThreadFixture.title,
+      ]);
+    });
+
+    it("shows the empty state after the only thread is deleted", async () => {
+      seedThreads([mindThreadFixture]);
+
+      const { user } = setup();
+
+      await findThreadTitles();
+      await openDeleteModalFromMenu(user, mindThreadFixture.title);
+      await confirmDelete(user);
+
+      const emptyState = await screen.findByText(EMPTY_THREAD_LIST_MESSAGE);
+      expect(emptyState).toBeInTheDocument();
+    });
+
+    it("does not open the thread when Delete is chosen from a card's menu", async () => {
+      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+      seedThreeThreads();
+
+      const { user } = setup();
+
+      await findThreadTitles();
+      await openDeleteModalFromMenu(user, mindThreadFixtures[0].title);
+
+      const modalTitle = await screen.findByText(DELETE_THREAD_MODAL_TITLE);
+      expect(modalTitle).toBeInTheDocument();
+
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
   });
 });

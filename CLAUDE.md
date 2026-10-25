@@ -37,7 +37,7 @@ Key technical choices:
   - `src/routing/` — Routing configuration, including `AppRoutes.tsx` which defines all routes.
   - `src/components/lib/` — Reusable UI component adapters (wrappers around Chakra UI components).
   - `src/hooks/` — Reusable hooks (e.g., `useLocalStorage`, `useFetch`), organized as a folder per hook.
-  - `src/services/` — Data-access hooks that return async methods (e.g., `useThreadsService`), organized as a folder per service. Threads are currently persisted in `localStorage` under the `threads` key.
+  - `src/services/` — Data-access hooks that return async methods (e.g., `useThreadsService`, which exposes `getThreads`, `createThread` and `deleteThread`), organized as a folder per service. Threads are currently persisted in `localStorage` under the `threads` key.
   - `src/types/` — Shared TypeScript types, re-exported via a barrel `index.ts`.
   - `src/utils/` — Standalone utility functions, co-located with their tests in `__tests__/`.
   - `src/__mocks__/`, `src/__test-fixtures__/` — Shared test mocks and fixtures.
@@ -76,3 +76,5 @@ Key technical choices:
   This structure allows for easier future extraction into a separate design system package. For testing components that use Chakra UI, always use `renderWithUIProvider` from `@/components/lib`.
 
   App-wide notifications are rendered by `Notifications`, which is mounted inside `ChakraUIProvider`, and triggered with `notify.success(message)` or `notify.error(message)` from `@/components/lib`. They appear bottom-right, close automatically after 5 s, and follow the color mode. Tests rendered with `renderWithUIProvider` see them, and `vitest.setup.ts` clears them after each test.
+
+  Adapter props worth knowing: `Menu` takes a `triggerLabel`, a `triggerIcon` and an `items` array (`{ value, label, color?, onSelect }`); `Dialog` accepts `closeDisabled` (blocks Esc, outside click and the × button) and `initialFocusRef`; `Button` accepts `loading` and forwards a ref.

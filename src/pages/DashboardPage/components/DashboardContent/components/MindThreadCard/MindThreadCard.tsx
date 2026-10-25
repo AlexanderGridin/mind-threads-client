@@ -2,19 +2,21 @@ import { Box } from "@/components/lib";
 import type { MindThread } from "@/types";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import type { ThreadListModeType } from "@/pages/DashboardPage/DashboardPage.types";
-import { CardColorIndicator, CardContent } from "./components";
+import { CardActions, CardColorIndicator, CardContent } from "./components";
 import { MindThreadCardTestId } from "./MindThreadCard.constants";
 
 type MindThreadCardProps = {
   thread: MindThread;
   forMode?: ThreadListModeType;
   onClick: (thread: MindThread) => void;
+  onDelete: (thread: MindThread) => void;
 };
 
 export const MindThreadCard = ({
   thread,
   forMode = ThreadListMode.Grid,
   onClick,
+  onDelete,
 }: MindThreadCardProps) => {
   const forListMode = forMode === ThreadListMode.List;
 
@@ -27,6 +29,7 @@ export const MindThreadCard = ({
     <Box
       data-testid={MindThreadCardTestId.container}
       display="flex"
+      position="relative"
       flexDirection={flexDirection}
       borderRadius="md"
       borderWidth="1px"
@@ -46,6 +49,7 @@ export const MindThreadCard = ({
     >
       <CardColorIndicator color={thread.color} forMode={forMode} />
       <CardContent thread={thread} forMode={forMode} />
+      <CardActions thread={thread} forMode={forMode} onDelete={onDelete} />
     </Box>
   );
 };

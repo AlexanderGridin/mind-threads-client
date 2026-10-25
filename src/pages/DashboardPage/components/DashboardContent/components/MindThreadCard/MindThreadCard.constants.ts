@@ -11,4 +11,11 @@ export const MindThreadCardTestId = {
   lastUpdated: createTestId("last-updated"),
   colorBorderLeft: createTestId("color-border-left"),
   colorBorderTop: createTestId("color-border-top"),
+  actions: createTestId("actions"),
+  actionsMenu: createTestId("actions-menu"),
+} as const;
+
+export const DELETE_THREAD_MENU_ITEM = {
+  value: "delete",
+  label: "Delete",
 } as const;
