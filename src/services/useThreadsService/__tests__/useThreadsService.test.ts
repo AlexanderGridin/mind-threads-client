@@ -2,7 +2,9 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import {
   MALFORMED_JSON,
+  mindThreadFixture,
   mindThreadFixtures,
+  mindThreadFixturesWithSingleItem,
   seedThreads,
 } from "@/__test-fixtures__";
 import type { MindThread } from "@/types";
@@ -151,6 +153,77 @@ describe("useThreadsService", () => {
       ).rejects.toThrow("Storage quota exceeded");
 
       expect(readStoredThreads()).toStrictEqual(mindThreadFixtures);
+    });
+  });
+
+  describe("deleteThread", () => {
+    const threadsToDelete: MindThread[] = [
+      mindThreadFixtures[0],
+      mindThreadFixtures[1],
+      mindThreadFixture,
+    ];
+
+    it("removes only the thread with the given id and keeps the rest in stored order", async () => {
+      const { result } = setup();
+
+      seedThreads(threadsToDelete);
+
+      await result.current.deleteThread(mindThreadFixtures[1].id);
+
+      expect(readStoredThreads()).toStrictEqual([
+        mindThreadFixtures[0],
+        mindThreadFixture,
+      ]);
+    });
+
+    it("resolves and leaves the storage unchanged for an unknown id", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixtures);
+
+      await result.current.deleteThread("unknown-thread-id");
+
+      expect(readStoredThreads()).toStrictEqual(mindThreadFixtures);
+    });
+
+    it("resolves with an empty stored list when the only thread is deleted", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixturesWithSingleItem);
+
+      await result.current.deleteThread(mindThreadFixture.id);
+
+      expect(readStoredThreads()).toStrictEqual([]);
+    });
+
+    it("rejects when localStorage.setItem fails and leaves the storage unchanged", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixtures);
+
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new Error("Storage quota exceeded");
+      });
+
+      await expect(
+        result.current.deleteThread(mindThreadFixtures[0].id)
+      ).rejects.toThrow("Storage quota exceeded");
+
+      expect(readStoredThreads()).toStrictEqual(mindThreadFixtures);
+    });
+
+    it("rejects when the stored value is not a list of threads", async () => {
+      const { result } = setup();
+
+      localStorage.setItem(
+        THREADS_STORAGE_KEY,
+        JSON.stringify({ id: "thread-1" })
+      );
+
+      await expect(
+        result.current.deleteThread(mindThreadFixtures[0].id)
+      ).rejects.toThrow(INVALID_THREADS_DATA_ERROR);
     });
   });
 });

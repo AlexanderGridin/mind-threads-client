@@ -16,6 +16,8 @@ import type { MindThread } from "@/types";
 let mockThreadListMode: ThreadListModeType = ThreadListMode.Grid;
 let mockThreads: MindThread[] = mindThreadFixtures;
 
+const mockOpenDeleteThreadModal = vi.fn();
+
 vi.mock(
   "@/pages/DashboardPage/components/DashboardPageLoader/DashboardPageLoader.hooks",
   () => ({
@@ -24,7 +26,7 @@ vi.mock(
       threadListMode: mockThreadListMode,
     }),
     useDashboardPageAction: () => ({
-      toggleThreadListMode: vi.fn(),
+      openDeleteThreadModal: mockOpenDeleteThreadModal,
     }),
   })
 );
@@ -109,6 +111,25 @@ describe("MindThreadList", () => {
     setup();
 
     expect(getRenderedSections()).toStrictEqual(["8 sections", "0 sections"]);
+  });
+
+  it("calls openDeleteThreadModal with the thread when Delete is chosen from a card's menu", async () => {
+    const { user } = setup();
+
+    const [firstActionsButton] = screen.getAllByRole("button", {
+      name: /^Thread actions for/,
+    });
+
+    await user.click(firstActionsButton);
+
+    const [deleteMenuItem] = await screen.findAllByRole("menuitem");
+    await user.click(deleteMenuItem);
+
+    expect(mockOpenDeleteThreadModal).toHaveBeenCalledOnce();
+
+    expect(mockOpenDeleteThreadModal).toHaveBeenCalledWith(
+      mindThreadFixtures[0]
+    );
   });
 
   it("calls console.log with the thread when a card is clicked", async () => {

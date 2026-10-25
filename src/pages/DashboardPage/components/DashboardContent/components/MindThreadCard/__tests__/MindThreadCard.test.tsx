@@ -9,6 +9,7 @@ import { MindThreadCardTestId } from "../MindThreadCard.constants";
 import { mindThreadFixture } from "@/__test-fixtures__";
 
 const mockOnClick = vi.fn();
+const mockOnDelete = vi.fn();
 
 const setup = (
   thread = mindThreadFixture,
@@ -17,7 +18,12 @@ const setup = (
   const user = userEvent.setup();
 
   renderWithUIProvider(
-    <MindThreadCard thread={thread} forMode={forMode} onClick={mockOnClick} />
+    <MindThreadCard
+      thread={thread}
+      forMode={forMode}
+      onClick={mockOnClick}
+      onDelete={mockOnDelete}
+    />
   );
 
   return { user };
@@ -67,6 +73,33 @@ describe("MindThreadCard", () => {
 
     expect(mockOnClick).toHaveBeenCalledOnce();
     expect(mockOnClick).toHaveBeenCalledWith(mindThreadFixture);
+  };
+
+  const getActionsButton = () => {
+    return screen.getByRole("button", {
+      name: "Thread actions for Test Thread",
+    });
+  };
+
+  const rendersActionsButton = () => {
+    expect(getActionsButton()).toBeInTheDocument();
+  };
+
+  const doesNotTriggerCardClickOnActions = async (user: UserEvent) => {
+    await user.click(getActionsButton());
+    expect(mockOnClick).not.toHaveBeenCalled();
+  };
+
+  const handlesDeleteProperly = async (user: UserEvent) => {
+    await user.click(getActionsButton());
+
+    const menuItems = await screen.findAllByRole("menuitem");
+    await user.click(menuItems[0]);
+
+    expect(mockOnDelete).toHaveBeenCalledOnce();
+    expect(mockOnDelete).toHaveBeenCalledWith(mindThreadFixture);
+
+    expect(mockOnClick).not.toHaveBeenCalled();
   };
 
   describe("grid layout", () => {
@@ -129,6 +162,21 @@ describe("MindThreadCard", () => {
       const { user } = setup();
       await handlesClickProperly(user);
     });
+
+    it("renders the thread actions button", () => {
+      setup();
+      rendersActionsButton();
+    });
+
+    it("does not call onClick when the actions button is clicked", async () => {
+      const { user } = setup();
+      await doesNotTriggerCardClickOnActions(user);
+    });
+
+    it("calls onDelete with the thread and not onClick when Delete is chosen", async () => {
+      const { user } = setup();
+      await handlesDeleteProperly(user);
+    });
   });
 
   describe("list layout", () => {
@@ -167,6 +215,21 @@ describe("MindThreadCard", () => {
     it("calls onClick with thread when clicked", async () => {
       const { user } = setup(mindThreadFixture, ThreadListMode.List);
       await handlesClickProperly(user);
+    });
+
+    it("renders the thread actions button", () => {
+      setup(mindThreadFixture, ThreadListMode.List);
+      rendersActionsButton();
+    });
+
+    it("does not call onClick when the actions button is clicked", async () => {
+      const { user } = setup(mindThreadFixture, ThreadListMode.List);
+      await doesNotTriggerCardClickOnActions(user);
+    });
+
+    it("calls onDelete with the thread and not onClick when Delete is chosen", async () => {
+      const { user } = setup(mindThreadFixture, ThreadListMode.List);
+      await handlesDeleteProperly(user);
     });
   });
 });

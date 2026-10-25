@@ -5,9 +5,12 @@ import { renderWithUIProvider } from "@/components/lib";
 import { NotificationsTestId } from "@/components/lib/Notifications/Notifications.constants";
 import {
   MALFORMED_JSON,
+  createDeferred,
+  mindThreadFixture,
   mindThreadFixtures,
   seedThreads,
 } from "@/__test-fixtures__";
+import type { MindThread } from "@/types";
 import {
   ThreadListMode,
   ThreadsStatus,
@@ -19,10 +22,37 @@ import {
 } from "../DashboardPageLoader.hooks";
 import { DashboardPageLoader } from "../DashboardPageLoader";
 import {
+  DELETE_THREAD_ERROR_MESSAGE,
   SAVE_THREAD_ERROR_MESSAGE,
   THREAD_LIST_MODE_STORAGE_KEY,
 } from "../DashboardPageLoader.constants";
-import { getThreadCreatedMessage } from "../DashboardPageLoader.utils";
+import {
+  getThreadCreatedMessage,
+  getThreadDeletedMessage,
+} from "../DashboardPageLoader.utils";
+
+const deleteThreadOverride = vi.hoisted(() => ({
+  current: null as ((threadId: string) => Promise<void>) | null,
+}));
+
+vi.mock("@/services", async (importOriginal) => {
+  const actualServices = await importOriginal<typeof import("@/services")>();
+
+  return {
+    ...actualServices,
+    useThreadsService: () => {
+      const threadsService = actualServices.useThreadsService();
+
+      return {
+        ...threadsService,
+        deleteThread: (threadId: string) =>
+          deleteThreadOverride.current
+            ? deleteThreadOverride.current(threadId)
+            : threadsService.deleteThread(threadId),
+      };
+    },
+  };
+});
 
 const THREAD_LIST_MODE_TEST_ID = "thread-list-mode";
 const THREADS_STATUS_TEST_ID = "threads-status";
@@ -31,19 +61,65 @@ const THREAD_TITLE_TEST_ID = "thread-title";
 const TOGGLE_BUTTON_TEST_ID = "toggle-button";
 const OPEN_MODAL_BUTTON_TEST_ID = "open-modal-button";
 const SUBMIT_BUTTON_TEST_ID = "submit-button";
+const THREAD_TO_DELETE_TEST_ID = "thread-to-delete";
+const IS_DELETING_THREAD_TEST_ID = "is-deleting-thread";
+const OPEN_DELETE_BUTTON_TEST_ID_PREFIX = "open-delete-button-";
+const CLOSE_DELETE_BUTTON_TEST_ID = "close-delete-button";
+const CONFIRM_DELETE_BUTTON_TEST_ID = "confirm-delete-button";
+const NO_THREAD_TO_DELETE = "none";
 
 const NEW_THREAD_TITLE = "New";
 const NEW_THREAD = { title: "  New  ", color: "#000" };
 
-const TestConsumer = () => {
-  const { threadListMode, threads, threadsStatus, isAddThreadModalOpen } =
-    useDashboardPageValue();
+type ThreadDeleteButtonProps = {
+  thread: MindThread;
+};
 
-  const { toggleThreadListMode, openAddThreadModal, submitNewThread } =
-    useDashboardPageAction();
+const ThreadDeleteButton = ({ thread }: ThreadDeleteButtonProps) => {
+  const { openDeleteThreadModal } = useDashboardPageAction();
+
+  const handleOpenDeleteModal = () => {
+    openDeleteThreadModal(thread);
+  };
+
+  return (
+    <button
+      onClick={handleOpenDeleteModal}
+      data-testid={`${OPEN_DELETE_BUTTON_TEST_ID_PREFIX}${thread.id}`}
+    >
+      Delete
+    </button>
+  );
+};
+
+const TestConsumer = () => {
+  const {
+    threadListMode,
+    threads,
+    threadsStatus,
+    isAddThreadModalOpen,
+    threadToDelete,
+    isDeletingThread,
+  } = useDashboardPageValue();
+
+  const {
+    toggleThreadListMode,
+    openAddThreadModal,
+    submitNewThread,
+    closeDeleteThreadModal,
+    confirmDeleteThread,
+  } = useDashboardPageAction();
 
   const handleSubmitNewThread = () => {
     submitNewThread(NEW_THREAD);
+  };
+
+  const handleCloseDeleteModal = () => {
+    closeDeleteThreadModal();
+  };
+
+  const handleConfirmDeleteThread = () => {
+    confirmDeleteThread();
   };
 
   return (
@@ -54,6 +130,13 @@ const TestConsumer = () => {
         {String(isAddThreadModalOpen)}
       </div>
 
+      <div data-testid={THREAD_TO_DELETE_TEST_ID}>
+        {threadToDelete?.id ?? NO_THREAD_TO_DELETE}
+      </div>
+      <div data-testid={IS_DELETING_THREAD_TEST_ID}>
+        {String(isDeletingThread)}
+      </div>
+
       <ul>
         {threads.map((thread) => (
           <li key={thread.id} data-testid={THREAD_TITLE_TEST_ID}>
@@ -61,6 +144,12 @@ const TestConsumer = () => {
           </li>
         ))}
       </ul>
+
+      <div>
+        {threads.map((thread) => (
+          <ThreadDeleteButton key={thread.id} thread={thread} />
+        ))}
+      </div>
 
       <button
         onClick={toggleThreadListMode}
@@ -81,6 +170,20 @@ const TestConsumer = () => {
         data-testid={SUBMIT_BUTTON_TEST_ID}
       >
         Submit
+      </button>
+
+      <button
+        onClick={handleCloseDeleteModal}
+        data-testid={CLOSE_DELETE_BUTTON_TEST_ID}
+      >
+        Close Delete
+      </button>
+
+      <button
+        onClick={handleConfirmDeleteThread}
+        data-testid={CONFIRM_DELETE_BUTTON_TEST_ID}
+      >
+        Confirm Delete
       </button>
     </>
   );
@@ -106,6 +209,10 @@ const readStoredThreadListMode = () => {
   return localStorage.getItem(THREAD_LIST_MODE_STORAGE_KEY);
 };
 
+const readStoredThreads = (): MindThread[] => {
+  return JSON.parse(localStorage.getItem(THREADS_STORAGE_KEY) ?? "[]");
+};
+
 const getThreadTitles = () => {
   return screen
     .queryAllByTestId(THREAD_TITLE_TEST_ID)
@@ -125,9 +232,32 @@ const submitNewThread = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(screen.getByTestId(SUBMIT_BUTTON_TEST_ID));
 };
 
+const openDeleteModalFor = async (
+  user: ReturnType<typeof userEvent.setup>,
+  thread: MindThread
+) => {
+  await waitForThreadsLoaded();
+  await user.click(
+    screen.getByTestId(`${OPEN_DELETE_BUTTON_TEST_ID_PREFIX}${thread.id}`)
+  );
+};
+
+const confirmDelete = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(screen.getByTestId(CONFIRM_DELETE_BUTTON_TEST_ID));
+};
+
+const mockStorageSetItemFailure = () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+
+  return vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    throw new Error("Storage quota exceeded");
+  });
+};
+
 describe("DashboardPageLoader", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    deleteThreadOverride.current = null;
   });
 
   describe("context values", () => {
@@ -372,6 +502,175 @@ describe("DashboardPageLoader", () => {
       expect(readStoredThreadListMode()).toBe(
         JSON.stringify(ThreadListMode.Grid)
       );
+    });
+  });
+
+  describe("delete thread", () => {
+    it("opens the modal for a thread and closes it again", async () => {
+      seedThreads(mindThreadFixtures);
+
+      const { user } = setup();
+
+      await openDeleteModalFor(user, mindThreadFixtures[0]);
+
+      let threadToDeleteText = screen.getByTestId(
+        THREAD_TO_DELETE_TEST_ID
+      ).textContent;
+
+      expect(threadToDeleteText).toBe(mindThreadFixtures[0].id);
+
+      const closeButton = screen.getByTestId(CLOSE_DELETE_BUTTON_TEST_ID);
+      await user.click(closeButton);
+
+      threadToDeleteText = screen.getByTestId(
+        THREAD_TO_DELETE_TEST_ID
+      ).textContent;
+
+      expect(threadToDeleteText).toBe(NO_THREAD_TO_DELETE);
+    });
+
+    it("removes the confirmed thread, clears the modal and shows a success notification", async () => {
+      seedThreads(mindThreadFixtures);
+
+      const { user } = setup();
+
+      await openDeleteModalFor(user, mindThreadFixtures[0]);
+      await confirmDelete(user);
+
+      const notification = await screen.findByText(
+        getThreadDeletedMessage(mindThreadFixtures[0].title)
+      );
+
+      expect(notification).toBeInTheDocument();
+
+      expect(getThreadTitles()).toStrictEqual([mindThreadFixtures[1].title]);
+
+      const threadToDeleteText = screen.getByTestId(
+        THREAD_TO_DELETE_TEST_ID
+      ).textContent;
+
+      expect(threadToDeleteText).toBe(NO_THREAD_TO_DELETE);
+    });
+
+    it("keeps the other two threads in order and updates storage when the second of three is deleted", async () => {
+      seedThreads([
+        mindThreadFixtures[0],
+        mindThreadFixtures[1],
+        mindThreadFixture,
+      ]);
+
+      const { user } = setup();
+
+      await openDeleteModalFor(user, mindThreadFixtures[1]);
+      await confirmDelete(user);
+
+      const threadDeletedMessage = await screen.findByText(
+        getThreadDeletedMessage(mindThreadFixtures[1].title)
+      );
+
+      expect(threadDeletedMessage).toBeInTheDocument();
+
+      expect(getThreadTitles()).toStrictEqual([
+        mindThreadFixtures[0].title,
+        mindThreadFixture.title,
+      ]);
+
+      expect(readStoredThreads()).toStrictEqual([
+        mindThreadFixtures[0],
+        mindThreadFixture,
+      ]);
+    });
+
+    it("keeps the modal open and the thread listed when the delete fails", async () => {
+      seedThreads(mindThreadFixtures);
+
+      const { user } = setup();
+
+      await openDeleteModalFor(user, mindThreadFixtures[0]);
+
+      mockStorageSetItemFailure();
+
+      await confirmDelete(user);
+
+      const errorMessage = await screen.findByText(DELETE_THREAD_ERROR_MESSAGE);
+      expect(errorMessage).toBeInTheDocument();
+
+      const threadToDeleteText = screen.getByTestId(
+        THREAD_TO_DELETE_TEST_ID
+      ).textContent;
+
+      expect(threadToDeleteText).toBe(mindThreadFixtures[0].id);
+
+      const isDeletingText = screen.getByTestId(
+        IS_DELETING_THREAD_TEST_ID
+      ).textContent;
+
+      expect(isDeletingText).toBe("false");
+
+      expect(getThreadTitles()).toStrictEqual(
+        mindThreadFixtures.map((thread) => thread.title)
+      );
+    });
+
+    it("removes the thread when a retry after a failed delete succeeds", async () => {
+      seedThreads(mindThreadFixtures);
+
+      const { user } = setup();
+
+      await openDeleteModalFor(user, mindThreadFixtures[0]);
+
+      const setItemSpy = mockStorageSetItemFailure();
+
+      await confirmDelete(user);
+
+      const deletionError = await screen.findByText(
+        DELETE_THREAD_ERROR_MESSAGE
+      );
+
+      expect(deletionError).toBeInTheDocument();
+
+      setItemSpy.mockRestore();
+
+      await confirmDelete(user);
+
+      const deletedMessage = await screen.findByText(
+        getThreadDeletedMessage(mindThreadFixtures[0].title)
+      );
+
+      expect(deletedMessage).toBeInTheDocument();
+      expect(getThreadTitles()).toStrictEqual([mindThreadFixtures[1].title]);
+    });
+
+    it("reports isDeletingThread while the delete is pending and clears it once it settles", async () => {
+      seedThreads(mindThreadFixtures);
+
+      const deferredDelete = createDeferred();
+      deleteThreadOverride.current = () => deferredDelete.promise;
+
+      const { user } = setup();
+
+      await openDeleteModalFor(user, mindThreadFixtures[0]);
+      await confirmDelete(user);
+
+      let isDeletingText = screen.getByTestId(
+        IS_DELETING_THREAD_TEST_ID
+      ).textContent;
+
+      expect(isDeletingText).toBe("true");
+
+      deferredDelete.resolve();
+
+      const deletedMessage = await screen.findByText(
+        getThreadDeletedMessage(mindThreadFixtures[0].title)
+      );
+
+      expect(deletedMessage).toBeInTheDocument();
+
+      isDeletingText = screen.getByTestId(
+        IS_DELETING_THREAD_TEST_ID
+      ).textContent;
+
+      expect(isDeletingText).toBe("false");
     });
   });
 });
