@@ -4,6 +4,7 @@ import userEvent, {
   PointerEventsCheckLevel,
 } from "@testing-library/user-event";
 
+import { clickOutside, waitForDismissListeners } from "@/__test-fixtures__";
 import { Menu } from "../Menu";
 import type { MenuItem, MenuProps } from "../Menu.types";
 import { renderWithUIProvider } from "../../utils";
@@ -12,14 +13,6 @@ const TRIGGER_LABEL = "Thread actions";
 const TRIGGER_ICON = <span>⋮</span>;
 const FIRST_ITEM_LABEL = "First item";
 const SECOND_ITEM_LABEL = "Second item";
-const OUTSIDE_POINTER_POSITION = 10_000;
-
-// Zag attaches its dismiss listeners (Escape and outside interaction) asynchronously,
-// after the menu opens. A short tick is not enough in jsdom, so wait longer.
-const waitForDismissListeners = async () => {
-  const promise = new Promise((resolve) => setTimeout(resolve, 100));
-  await promise;
-};
 
 const setup = ({
   pointerEventsCheck = PointerEventsCheckLevel.EachApiCall,
@@ -160,16 +153,7 @@ describe("Menu", () => {
 
     await openMenuWithClick(user);
 
-    await waitForDismissListeners();
-
-    await user.pointer({
-      keys: "[MouseLeft]",
-      target: document.body,
-      coords: {
-        clientX: OUTSIDE_POINTER_POSITION,
-        clientY: OUTSIDE_POINTER_POSITION,
-      },
-    });
+    await clickOutside(user);
 
     await waitFor(() =>
       expect(screen.queryAllByRole("menuitem")).toHaveLength(0)

@@ -5,6 +5,11 @@ import userEvent, {
 } from "@testing-library/user-event";
 import { createRef } from "react";
 
+import {
+  clickOutside,
+  stubLayout,
+  waitForDismissListeners,
+} from "@/__test-fixtures__";
 import { Dialog, type DialogProps } from "../Dialog";
 import { renderWithUIProvider } from "../../utils";
 
@@ -35,36 +40,6 @@ const setup = ({
   );
 
   return { user };
-};
-
-const stubLayout = () => {
-  vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([
-    {},
-  ] as unknown as DOMRectList);
-};
-
-// Zag attaches its dismiss listeners (Escape and outside interaction) asynchronously,
-// after the dialog mounts. A short tick is not enough in jsdom, so wait longer.
-const waitForDismissListeners = async () => {
-  const promise = new Promise((resolve) => setTimeout(resolve, 100));
-  await promise;
-};
-
-// jsdom lays out every element at (0, 0) with no size, so the pointer must land
-// far away from the origin to count as outside the dialog.
-const OUTSIDE_POINTER_POSITION = 10_000;
-
-const clickOutsideDialog = async (user: ReturnType<typeof userEvent.setup>) => {
-  await waitForDismissListeners();
-
-  await user.pointer({
-    keys: "[MouseLeft]",
-    target: document.body,
-    coords: {
-      clientX: OUTSIDE_POINTER_POSITION,
-      clientY: OUTSIDE_POINTER_POSITION,
-    },
-  });
 };
 
 describe("Dialog", () => {
@@ -121,7 +96,7 @@ describe("Dialog", () => {
         pointerEventsCheck: PointerEventsCheckLevel.Never,
       });
 
-      await clickOutsideDialog(user);
+      await clickOutside(user);
 
       expect(mockOnClose).not.toHaveBeenCalled();
     });
@@ -148,7 +123,7 @@ describe("Dialog", () => {
         pointerEventsCheck: PointerEventsCheckLevel.Never,
       });
 
-      await clickOutsideDialog(user);
+      await clickOutside(user);
 
       await waitFor(() => expect(mockOnClose).toHaveBeenCalled());
     });

@@ -12,7 +12,9 @@ import {
   createDeferred,
   mindThreadFixture,
   mindThreadFixtures,
+  clickOutside,
   seedThreads,
+  waitForDismissListeners,
 } from "@/__test-fixtures__";
 import type { MindThread } from "@/types";
 import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsService.constants";
@@ -54,14 +56,6 @@ vi.mock("@/services", async (importOriginal) => {
 const THREAD_TITLE_TEST_ID = "thread-title";
 const OPEN_DELETE_BUTTON_TEST_ID_PREFIX = "open-delete-button-";
 const STORAGE_ERROR_MESSAGE = "Storage quota exceeded";
-const OUTSIDE_POINTER_POSITION = 10_000;
-
-// Zag attaches its dismiss listeners (Escape and outside interaction) asynchronously,
-// after the modal mounts. A short tick is not enough in jsdom, so wait longer.
-const waitForDismissListeners = async () => {
-  const promise = new Promise((resolve) => setTimeout(resolve, 100));
-  await promise;
-};
 
 type ThreadDeleteButtonProps = {
   thread: MindThread;
@@ -382,14 +376,7 @@ describe("DeleteThreadModalContainer", () => {
     await waitForDismissListeners();
     await context.user.keyboard("{Escape}");
 
-    await context.user.pointer({
-      keys: "[MouseLeft]",
-      target: document.body,
-      coords: {
-        clientX: OUTSIDE_POINTER_POSITION,
-        clientY: OUTSIDE_POINTER_POSITION,
-      },
-    });
+    await clickOutside(context.user, { shouldWaitForDismissListeners: false });
 
     expect(modalTitle).toBeInTheDocument();
 

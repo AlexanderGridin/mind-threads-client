@@ -22,3 +22,11 @@ export type DashboardPageAction = {
   closeDeleteThreadModal: () => void;
   confirmDeleteThread: () => Promise<void>;
 };
+
+export type UseDeleteThreadParams = {
+  removeThread: (threadId: string) => Promise<void>;
+};
+
+export type UseAddThreadParams = {
+  addThread: (newThread: NewMindThread) => Promise<MindThread>;
+};

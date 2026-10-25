@@ -4,6 +4,11 @@ import userEvent, {
   PointerEventsCheckLevel,
 } from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib";
+import {
+  clickOutside,
+  stubLayout,
+  waitForDismissListeners,
+} from "@/__test-fixtures__";
 import { DeleteThreadModal } from "../DeleteThreadModal";
 import { DELETE_THREAD_MODAL_TITLE } from "../DeleteThreadModal.constants";
 import { DeleteThreadModalActionsTestId } from "../components/DeleteThreadModalActions/DeleteThreadModalActions.constants";
@@ -11,21 +16,6 @@ import { getDeleteThreadModalText } from "../DeleteThreadModal.utils";
 import type { DeleteThreadModalProps } from "../DeleteThreadModal.types";
 
 const THREAD_TITLE = "Testing Strategy";
-const OUTSIDE_POINTER_POSITION = 10_000;
-
-// jsdom has no layout, so Zag would not focus an element with no size.
-const stubLayout = () => {
-  vi.spyOn(HTMLElement.prototype, "getClientRects").mockReturnValue([
-    {},
-  ] as unknown as DOMRectList);
-};
-
-// Zag attaches its dismiss listeners (Escape and outside interaction) asynchronously,
-// after the modal mounts. A short tick is not enough in jsdom, so wait longer.
-const waitForDismissListeners = async () => {
-  const promise = new Promise((resolve) => setTimeout(resolve, 100));
-  await promise;
-};
 
 const setup = ({
   threadTitle = THREAD_TITLE,
@@ -60,19 +50,6 @@ const getCancelButton = () => {
 // While deleting, the loading spinner replaces the label, so the button is found by test id.
 const getDeleteButton = () => {
   return screen.getByTestId(DeleteThreadModalActionsTestId.deleteButton);
-};
-
-const clickOutsideModal = async (user: ReturnType<typeof userEvent.setup>) => {
-  await waitForDismissListeners();
-
-  await user.pointer({
-    keys: "[MouseLeft]",
-    target: document.body,
-    coords: {
-      clientX: OUTSIDE_POINTER_POSITION,
-      clientY: OUTSIDE_POINTER_POSITION,
-    },
-  });
 };
 
 describe("DeleteThreadModal", () => {
@@ -128,7 +105,7 @@ describe("DeleteThreadModal", () => {
         pointerEventsCheck: PointerEventsCheckLevel.Never,
       });
 
-      await clickOutsideModal(user);
+      await clickOutside(user);
 
       await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
     });
@@ -163,7 +140,7 @@ describe("DeleteThreadModal", () => {
         pointerEventsCheck: PointerEventsCheckLevel.Never,
       });
 
-      await clickOutsideModal(user);
+      await clickOutside(user);
 
       expect(onClose).not.toHaveBeenCalled();
     });
