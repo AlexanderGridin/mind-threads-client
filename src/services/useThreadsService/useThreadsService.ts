@@ -36,5 +36,13 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     return createdThread;
   };
 
-  return { getThreads, createThread };
+  const deleteThread = async (threadId: string): Promise<void> => {
+    const storedThreads = await getThreads();
+
+    threadsStorage.set(
+      storedThreads.filter((thread) => thread.id !== threadId)
+    );
+  };
+
+  return { getThreads, createThread, deleteThread };
 };

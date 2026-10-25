@@ -7,6 +7,7 @@ export type VStackProps = {
   gap?: string;
   alignItems?: "flex-start" | "flex-end" | "center";
   p?: string;
+  pr?: string;
   as?: ElementType;
 };
 

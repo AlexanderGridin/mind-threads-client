@@ -70,5 +70,13 @@ export const useThreadsState = () => {
     return createdThread;
   };
 
-  return { threads, threadsStatus, addThread };
+  const removeThread = async (threadId: string) => {
+    await threadsService.deleteThread(threadId);
+
+    setThreads((currentThreads) =>
+      currentThreads.filter((thread) => thread.id !== threadId)
+    );
+  };
+
+  return { threads, threadsStatus, addThread, removeThread };
 };

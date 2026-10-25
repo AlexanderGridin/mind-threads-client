@@ -9,6 +9,8 @@ export type DashboardPageValue = {
   threads: MindThread[];
   threadsStatus: ThreadsStatusType;
   isAddThreadModalOpen: boolean;
+  threadToDelete: MindThread | null;
+  isDeletingThread: boolean;
 };
 
 export type DashboardPageAction = {
@@ -16,4 +18,7 @@ export type DashboardPageAction = {
   openAddThreadModal: () => void;
   closeAddThreadModal: () => void;
   submitNewThread: (newThread: NewMindThread) => Promise<void>;
+  openDeleteThreadModal: (thread: MindThread) => void;
+  closeDeleteThreadModal: () => void;
+  confirmDeleteThread: () => Promise<void>;
 };

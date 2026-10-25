@@ -1,12 +1,16 @@
 import { Box } from "@/components/lib";
 import type { MindThread } from "@/types";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
-import { useDashboardPageValue } from "../../../DashboardPageLoader";
+import {
+  useDashboardPageAction,
+  useDashboardPageValue,
+} from "../../../DashboardPageLoader";
 import { MindThreadCard } from "../MindThreadCard";
 import { MindThreadListTestId } from "./MindThreadList.constants";
 
 export const MindThreadList = () => {
   const { threads, threadListMode } = useDashboardPageValue();
+  const { openDeleteThreadModal } = useDashboardPageAction();
 
   const inListMode = threadListMode === ThreadListMode.List;
 
@@ -40,6 +44,7 @@ export const MindThreadList = () => {
             thread={thread}
             forMode={threadListMode}
             onClick={handleThreadClick}
+            onDelete={openDeleteThreadModal}
           />
         </Box>
       ))}
