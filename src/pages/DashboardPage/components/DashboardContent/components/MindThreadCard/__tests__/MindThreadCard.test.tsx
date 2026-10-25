@@ -56,6 +56,7 @@ describe("MindThreadCard", () => {
 
   const rendersNAWhenLastUpdatedTextIsEmpty = () => {
     const lastUpdated = screen.getByTestId(MindThreadCardTestId.lastUpdated);
+
     expect(lastUpdated).toBeInTheDocument();
     expect(lastUpdated.textContent).toBe("Updated: N/A");
   };
@@ -84,12 +85,37 @@ describe("MindThreadCard", () => {
       rendersNAWhenLastUpdatedTextIsEmpty();
     });
 
+    it("renders zero counts and 'Updated: just now' for a new thread", () => {
+      const newThread = {
+        ...mindThreadFixture,
+        totalSections: 0,
+        totalPages: 0,
+        lastUpdated: new Date().toISOString(),
+      };
+
+      setup(newThread);
+
+      const sections = screen.getByTestId(MindThreadCardTestId.sections);
+      expect(sections).toBeInTheDocument();
+      expect(sections.textContent).toBe("0 sections");
+
+      const pages = screen.getByTestId(MindThreadCardTestId.pages);
+      expect(pages).toBeInTheDocument();
+      expect(pages.textContent).toBe("0 pages");
+
+      const lastUpdated = screen.getByTestId(MindThreadCardTestId.lastUpdated);
+      expect(lastUpdated).toBeInTheDocument();
+      expect(lastUpdated.textContent).toBe("Updated: just now");
+    });
+
     it("renders color border top", () => {
       setup();
 
-      expect(
-        screen.queryByTestId(MindThreadCardTestId.colorBorderLeft)
-      ).not.toBeInTheDocument();
+      const colorBorderLeft = screen.queryByTestId(
+        MindThreadCardTestId.colorBorderLeft
+      );
+
+      expect(colorBorderLeft).not.toBeInTheDocument();
 
       const colorBorderTop = screen.getByTestId(
         MindThreadCardTestId.colorBorderTop
@@ -124,9 +150,11 @@ describe("MindThreadCard", () => {
     it("renders color border left", () => {
       setup(mindThreadFixture, ThreadListMode.List);
 
-      expect(
-        screen.queryByTestId(MindThreadCardTestId.colorBorderTop)
-      ).not.toBeInTheDocument();
+      const colorBorderTop = screen.queryByTestId(
+        MindThreadCardTestId.colorBorderTop
+      );
+
+      expect(colorBorderTop).not.toBeInTheDocument();
 
       const colorBorderLeft = screen.getByTestId(
         MindThreadCardTestId.colorBorderLeft

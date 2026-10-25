@@ -9,9 +9,10 @@ const setup = () => {
 };
 
 describe("LightMode", () => {
-  it("renders child content", () => {
+  it("renders child content", async () => {
     setup();
 
-    expect(screen.getByText("Light mode content")).toBeInTheDocument();
+    const content = await screen.findByText("Light mode content");
+    expect(content).toBeInTheDocument();
   });
 });

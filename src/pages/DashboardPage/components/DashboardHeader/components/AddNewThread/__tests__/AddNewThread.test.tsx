@@ -1,27 +1,41 @@
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib";
+import { MALFORMED_JSON } from "@/__test-fixtures__";
+import { DashboardPageLoader } from "@/pages/DashboardPage/components/DashboardPageLoader";
+import { AddNewThreadModalContainer } from "@/pages/DashboardPage/components/AddNewThreadModalContainer";
+import { ADD_NEW_THREAD_MODAL_TITLE } from "@/pages/DashboardPage/components/AddNewThreadModalContainer/components/AddNewThreadModal/AddNewThreadModal.constants";
+import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsService.constants";
 import { AddNewThread } from "../AddNewThread";
 import { AddNewThreadTestId } from "../AddNewThread.constants";
-import { vi } from "vitest";
-import { AddNewThreadModalActionsTestId } from "../components/AddNewThreadModal/components/AddNewThreadModalActions/AddNewThreadModalActions.constants";
-import { ThreadFormTestId } from "../components/AddNewThreadModal/components/ThreadForm/ThreadForm.constants";
 
 const setup = () => {
   const user = userEvent.setup();
-  renderWithUIProvider(<AddNewThread />);
+
+  renderWithUIProvider(
+    <DashboardPageLoader>
+      <AddNewThread />
+      <AddNewThreadModalContainer />
+    </DashboardPageLoader>
+  );
+
   return { user };
 };
 
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+const findOpenModalButton = () => {
+  return screen.findByTestId(AddNewThreadTestId.openModalButton);
+};
 
 describe("AddNewThread", () => {
-  it("renders the + New Thread button", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("enables the button after the threads are loaded", async () => {
     setup();
 
-    const button = screen.getByTestId(AddNewThreadTestId.openModalButton);
+    const button = await findOpenModalButton();
 
     expect(button).toBeInTheDocument();
     expect(button).toBeEnabled();
@@ -29,67 +43,32 @@ describe("AddNewThread", () => {
     expect(button.textContent).toBe("+ New Thread");
   });
 
-  it("opens the modal when button is clicked", async () => {
+  it("opens the modal when the button is clicked", async () => {
     const { user } = setup();
 
-    expect(
-      screen.queryByTestId(AddNewThreadModalActionsTestId.container)
-    ).not.toBeInTheDocument();
+    const button = await findOpenModalButton();
 
-    const button = screen.getByTestId(AddNewThreadTestId.openModalButton);
+    let modalTitle = screen.queryByText(ADD_NEW_THREAD_MODAL_TITLE);
+    expect(modalTitle).not.toBeInTheDocument();
+
     await user.click(button);
 
-    expect(
-      screen.getByTestId(AddNewThreadModalActionsTestId.container)
-    ).toBeInTheDocument();
+    modalTitle = await screen.findByText(ADD_NEW_THREAD_MODAL_TITLE);
+    expect(modalTitle).toBeInTheDocument();
   });
 
-  it("closes the modal when Cancel is clicked", async () => {
-    const { user } = setup();
+  it("disables the button when the stored threads are malformed", async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
-    const button = screen.getByTestId(AddNewThreadTestId.openModalButton);
-    await user.click(button);
+    localStorage.setItem(THREADS_STORAGE_KEY, MALFORMED_JSON);
 
-    expect(
-      screen.getByTestId(AddNewThreadModalActionsTestId.container)
-    ).toBeInTheDocument();
+    setup();
 
-    const cancelButton = screen.getByTestId(
-      AddNewThreadModalActionsTestId.cancelButton
-    );
+    const button = await findOpenModalButton();
+    expect(button).toBeDisabled();
 
-    await user.click(cancelButton);
-
-    expect(
-      screen.queryByTestId(AddNewThreadModalActionsTestId.container)
-    ).not.toBeInTheDocument();
-  });
-
-  it("logs form value and closes modal when Add is clicked", async () => {
-    const { user } = setup();
-    const logSpy = vi.spyOn(console, "log");
-
-    const button = screen.getByTestId(AddNewThreadTestId.openModalButton);
-    await user.click(button);
-
-    const titleInput = screen.getByTestId(ThreadFormTestId.titleInput);
-    await user.type(titleInput, "New Thread");
-
-    const addButton = screen.getByTestId(
-      AddNewThreadModalActionsTestId.addButton
-    );
-
-    await user.click(addButton);
-
-    expect(logSpy).toHaveBeenCalledWith({
-      title: "New Thread",
-      color: "#a3be8c",
-    });
-
-    expect(
-      screen.queryByTestId(AddNewThreadModalActionsTestId.container)
-    ).not.toBeInTheDocument();
-
-    logSpy.mockRestore();
+    expect(consoleErrorSpy).toHaveBeenCalled();
   });
 });

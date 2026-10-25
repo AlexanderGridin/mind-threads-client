@@ -1,5 +1,5 @@
 import { Box } from "@/components/lib";
-import { MindThreadList } from "./components";
+import { ThreadsSection } from "./components";
 import { DashboardContentTestId } from "./DashboardContent.constants";
 
 export const DashboardContent = () => {
@@ -12,7 +12,7 @@ export const DashboardContent = () => {
       py="6"
       flexGrow={1}
     >
-      <MindThreadList />
+      <ThreadsSection />
     </Box>
   );
 };

@@ -1,3 +1,8 @@
+export type UseLocalStorageParams = {
+  key: string;
+  throwOnError?: boolean;
+};
+
 export type LocalStorageUpdater<ValueType> = (
   prevValue: ValueType | null
 ) => ValueType;

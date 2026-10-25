@@ -32,7 +32,7 @@ export const MindThreadList = () => {
     >
       {threads.map((thread) => (
         <Box
-          key={thread.title}
+          key={thread.id}
           data-testid={MindThreadListTestId.listItem}
           as="li"
         >

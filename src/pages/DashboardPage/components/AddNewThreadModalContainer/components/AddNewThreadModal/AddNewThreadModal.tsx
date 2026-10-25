@@ -33,7 +33,7 @@ export const AddNewThreadModal = ({
       actions={
         <AddNewThreadModalActions
           onAdd={handleAdd}
-          submitDisabled={!formValue.title}
+          submitDisabled={!formValue.title.trim()}
           onCancel={onClose}
         />
       }

@@ -8,6 +8,7 @@ export { IconButton, type IconButtonProps } from "./IconButton";
 export { Input, type InputProps } from "./Input";
 export { ColorPicker, type ColorPickerProps } from "./ColorPicker";
 export { Dialog, type DialogProps } from "./Dialog";
+export { Notifications, notify } from "./Notifications";
 export * from "./utils";
 export * from "./color-mode";
 export { nordSystem } from "./theme";
