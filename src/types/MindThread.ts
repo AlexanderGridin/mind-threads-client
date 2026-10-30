@@ -8,3 +8,5 @@ export type MindThread = {
 };
 
 export type NewMindThread = Pick<MindThread, "title" | "color">;
+
+export type MindThreadUpdate = Pick<MindThread, "id" | "title" | "color">;

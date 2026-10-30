@@ -1,4 +1,4 @@
-import type { MindThread, NewMindThread } from "@/types";
+import type { MindThread, MindThreadUpdate, NewMindThread } from "@/types";
 import type {
   ThreadListModeType,
   ThreadsStatusType,
@@ -9,6 +9,8 @@ export type DashboardPageValue = {
   threads: MindThread[];
   threadsStatus: ThreadsStatusType;
   isAddThreadModalOpen: boolean;
+  threadToEdit: MindThread | null;
+  isSavingThread: boolean;
   threadToDelete: MindThread | null;
   isDeletingThread: boolean;
 };
@@ -18,6 +20,9 @@ export type DashboardPageAction = {
   openAddThreadModal: () => void;
   closeAddThreadModal: () => void;
   submitNewThread: (newThread: NewMindThread) => Promise<void>;
+  openEditThreadModal: (thread: MindThread) => void;
+  closeEditThreadModal: () => void;
+  submitEditedThread: (threadChanges: NewMindThread) => Promise<void>;
   openDeleteThreadModal: (thread: MindThread) => void;
   closeDeleteThreadModal: () => void;
   confirmDeleteThread: () => Promise<void>;
@@ -29,4 +34,8 @@ export type UseDeleteThreadParams = {
 
 export type UseAddThreadParams = {
   addThread: (newThread: NewMindThread) => Promise<MindThread>;
+};
+
+export type UseEditThreadParams = {
+  editThread: (threadUpdate: MindThreadUpdate) => Promise<MindThread>;
 };

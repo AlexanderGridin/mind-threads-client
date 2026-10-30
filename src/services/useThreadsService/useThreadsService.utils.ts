@@ -1,4 +1,5 @@
 import type { MindThread, NewMindThread } from "@/types";
+import type { ApplyThreadUpdateParams } from "./useThreadsService.types";
 
 export const buildThread = ({ title, color }: NewMindThread): MindThread => ({
   id: crypto.randomUUID(),
@@ -9,8 +10,22 @@ export const buildThread = ({ title, color }: NewMindThread): MindThread => ({
   lastUpdated: new Date().toISOString(),
 });
 
+export const applyThreadUpdate = ({
+  thread,
+  threadUpdate,
+}: ApplyThreadUpdateParams): MindThread => {
+  return {
+    ...thread,
+    title: threadUpdate.title.trim(),
+    color: threadUpdate.color,
+    lastUpdated: new Date().toISOString(),
+  };
+};
+
 const isMindThread = (value: unknown): value is MindThread => {
-  if (typeof value !== "object" || value === null) return false;
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
 
   const thread = value as Partial<Record<keyof MindThread, unknown>>;
 

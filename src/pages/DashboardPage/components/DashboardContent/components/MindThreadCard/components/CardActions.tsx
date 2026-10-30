@@ -6,6 +6,7 @@ import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import type { ThreadListModeType } from "@/pages/DashboardPage/DashboardPage.types";
 import {
   DELETE_THREAD_MENU_ITEM,
+  EDIT_THREAD_MENU_ITEM,
   MindThreadCardTestId,
 } from "../MindThreadCard.constants";
 import { getThreadActionsLabel } from "../utils";
@@ -13,12 +14,14 @@ import { getThreadActionsLabel } from "../utils";
 type CardActionsProps = {
   thread: MindThread;
   forMode: ThreadListModeType;
+  onEdit: (thread: MindThread) => void;
   onDelete: (thread: MindThread) => void;
 };
 
 export const CardActions = ({
   thread,
   forMode,
+  onEdit,
   onDelete,
 }: CardActionsProps) => {
   const forListMode = forMode === ThreadListMode.List;
@@ -28,11 +31,16 @@ export const CardActions = ({
     event.stopPropagation();
   };
 
+  const handleEdit = () => {
+    onEdit(thread);
+  };
+
   const handleDelete = () => {
     onDelete(thread);
   };
 
   const menuItems: MenuItem[] = [
+    { ...EDIT_THREAD_MENU_ITEM, onSelect: handleEdit },
     { ...DELETE_THREAD_MENU_ITEM, color: "red", onSelect: handleDelete },
   ];
 

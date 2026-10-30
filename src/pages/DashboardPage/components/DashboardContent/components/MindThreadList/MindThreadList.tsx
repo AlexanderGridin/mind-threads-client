@@ -10,7 +10,8 @@ import { MindThreadListTestId } from "./MindThreadList.constants";
 
 export const MindThreadList = () => {
   const { threads, threadListMode } = useDashboardPageValue();
-  const { openDeleteThreadModal } = useDashboardPageAction();
+  const { openEditThreadModal, openDeleteThreadModal } =
+    useDashboardPageAction();
 
   const inListMode = threadListMode === ThreadListMode.List;
 
@@ -44,6 +45,7 @@ export const MindThreadList = () => {
             thread={thread}
             forMode={threadListMode}
             onClick={handleThreadClick}
+            onEdit={openEditThreadModal}
             onDelete={openDeleteThreadModal}
           />
         </Box>
