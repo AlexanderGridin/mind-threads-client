@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib";
 import {
@@ -12,8 +12,12 @@ import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsServ
 import { DashboardPage } from "../DashboardPage";
 import { AddNewThreadTestId } from "../components/DashboardHeader/components/AddNewThread/AddNewThread.constants";
 import { ThreadListModeButtonTestId } from "../components/DashboardHeader/components/ThreadListModeButton/ThreadListModeButton.constants";
-import { ThreadFormTestId } from "../components/AddNewThreadModalContainer/components/AddNewThreadModal/components/ThreadForm/ThreadForm.constants";
-import { AddNewThreadModalActionsTestId } from "../components/AddNewThreadModalContainer/components/AddNewThreadModal/components/AddNewThreadModalActions/AddNewThreadModalActions.constants";
+import { ThreadFormTestId } from "@/components/shared/ThreadForm/ThreadForm.constants";
+import {
+  ColorPickerTestId,
+  NORD_AURORA_SWATCHES,
+} from "@/components/lib/ColorPicker/ColorPicker.constants";
+import { ThreadFormModalActionsTestId } from "@/components/shared/ThreadFormModalActions/ThreadFormModalActions.constants";
 import {
   EMPTY_THREAD_LIST_MESSAGE,
   EmptyThreadListTestId,
@@ -21,7 +25,11 @@ import {
 import { MindThreadListTestId } from "../components/DashboardContent/components/MindThreadList/MindThreadList.constants";
 import { MindThreadCardTestId } from "../components/DashboardContent/components/MindThreadCard/MindThreadCard.constants";
 import { ThreadsLoadErrorTestId } from "../components/DashboardContent/components/ThreadsLoadError/ThreadsLoadError.constants";
-import { getThreadDeletedMessage } from "../components/DashboardPageLoader/DashboardPageLoader.utils";
+import {
+  getThreadDeletedMessage,
+  getThreadUpdatedMessage,
+} from "../components/DashboardPageLoader/DashboardPageLoader.utils";
+import { EDIT_THREAD_MODAL_TITLE } from "../components/EditThreadModalContainer/components/EditThreadModal/EditThreadModal.constants";
 import { DELETE_THREAD_MODAL_TITLE } from "../components/DeleteThreadModalContainer/components/DeleteThreadModal/DeleteThreadModal.constants";
 import { getDeleteThreadModalText } from "../components/DeleteThreadModalContainer/components/DeleteThreadModal/DeleteThreadModal.utils";
 import { DeleteThreadModalActionsTestId } from "../components/DeleteThreadModalContainer/components/DeleteThreadModal/components/DeleteThreadModalActions/DeleteThreadModalActions.constants";
@@ -81,7 +89,7 @@ const createThread = async ({
   await user.type(screen.getByTestId(ThreadFormTestId.titleInput), title);
 
   await user.click(
-    screen.getByTestId(AddNewThreadModalActionsTestId.addButton)
+    screen.getByTestId(ThreadFormModalActionsTestId.submitButton)
   );
 
   const threadsAfter = await findThreadTitles();
@@ -118,7 +126,7 @@ describe("DashboardPage", () => {
     );
 
     await user.click(
-      screen.getByTestId(AddNewThreadModalActionsTestId.addButton)
+      screen.getByTestId(ThreadFormModalActionsTestId.submitButton)
     );
 
     expect(
@@ -246,7 +254,7 @@ describe("DashboardPage", () => {
 
       await user.click(menuButton);
 
-      const [deleteMenuItem] = await screen.findAllByRole("menuitem");
+      const [, deleteMenuItem] = await screen.findAllByRole("menuitem");
       await user.click(deleteMenuItem);
     };
 
@@ -390,6 +398,186 @@ describe("DashboardPage", () => {
       await openDeleteModalFromMenu(user, mindThreadFixtures[0].title);
 
       const modalTitle = await screen.findByText(DELETE_THREAD_MODAL_TITLE);
+      expect(modalTitle).toBeInTheDocument();
+
+      expect(consoleSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("edit thread", () => {
+    const seedThreeThreads = () => {
+      seedThreads([
+        mindThreadFixtures[0],
+        mindThreadFixtures[1],
+        mindThreadFixture,
+      ]);
+    };
+
+    const openCardMenu = async (
+      user: SetupResult["user"],
+      threadTitle: string
+    ) => {
+      const menuButton = screen.getByRole("button", {
+        name: `Thread actions for ${threadTitle}`,
+      });
+
+      await user.click(menuButton);
+    };
+
+    const openEditModalFromMenu = async (
+      user: SetupResult["user"],
+      threadTitle: string
+    ) => {
+      await openCardMenu(user, threadTitle);
+
+      const [editMenuItem] = await screen.findAllByRole("menuitem");
+      await user.click(editMenuItem);
+    };
+
+    const saveEdit = async (user: SetupResult["user"]) => {
+      await user.click(
+        screen.getByTestId(ThreadFormModalActionsTestId.submitButton)
+      );
+    };
+
+    it("shows Edit and Delete in the card menu in grid and in list view", async () => {
+      seedThreeThreads();
+
+      const { user } = setup();
+
+      await findThreadTitles();
+      await openCardMenu(user, mindThreadFixtures[0].title);
+
+      const menuItems = await screen.findAllByRole("menuitem");
+      expect(menuItems.map((menuItem) => menuItem.textContent)).toStrictEqual([
+        "Edit",
+        "Delete",
+      ]);
+
+      await user.keyboard("{Escape}");
+
+      await user.click(
+        screen.getByTestId(ThreadListModeButtonTestId.container)
+      );
+
+      await findThreadTitles();
+      await openCardMenu(user, mindThreadFixtures[0].title);
+
+      const listMenuItems = await screen.findAllByRole("menuitem");
+      expect(
+        listMenuItems.map((menuItem) => menuItem.textContent)
+      ).toStrictEqual(["Edit", "Delete"]);
+    });
+
+    it("edits the second of three threads in place: new name and color, Updated just now, counts unchanged", async () => {
+      seedThreeThreads();
+
+      const { user } = setup();
+
+      await findThreadTitles();
+      await openEditModalFromMenu(user, mindThreadFixtures[1].title);
+
+      const modalTitle = screen.getByText(EDIT_THREAD_MODAL_TITLE);
+      expect(modalTitle).toBeInTheDocument();
+
+      const nameInput = screen.getByTestId(ThreadFormTestId.titleInput);
+      expect(nameInput).toHaveValue(mindThreadFixtures[1].title);
+
+      await user.clear(nameInput);
+      await user.type(nameInput, "QA Strategy");
+
+      await user.click(screen.getByTestId(ColorPickerTestId.trigger));
+      const [firstSwatch] = screen.getAllByTestId(
+        ColorPickerTestId.swatchTrigger
+      );
+      await user.click(firstSwatch);
+
+      await saveEdit(user);
+
+      const updatedMessage = await screen.findByText(
+        getThreadUpdatedMessage("QA Strategy")
+      );
+      expect(updatedMessage).toBeInTheDocument();
+
+      expect(
+        screen.queryByText(EDIT_THREAD_MODAL_TITLE)
+      ).not.toBeInTheDocument();
+
+      expect(await findThreadTitles()).toStrictEqual([
+        mindThreadFixtures[0].title,
+        "QA Strategy",
+        mindThreadFixture.title,
+      ]);
+
+      const editedCard = screen.getAllByTestId(
+        MindThreadCardTestId.container
+      )[1];
+
+      const colorIndicator = within(editedCard).getByTestId(
+        MindThreadCardTestId.colorBorderTop
+      );
+      expect(colorIndicator).toHaveStyle({
+        backgroundColor: NORD_AURORA_SWATCHES[0],
+      });
+
+      const lastUpdated = within(editedCard).getByTestId(
+        MindThreadCardTestId.lastUpdated
+      );
+      expect(lastUpdated.textContent).toBe("Updated: just now");
+
+      const sections = within(editedCard).getByTestId(
+        MindThreadCardTestId.sections
+      );
+      expect(sections.textContent).toBe("5 sections");
+
+      const pages = within(editedCard).getByTestId(MindThreadCardTestId.pages);
+      expect(pages.textContent).toBe("20 pages");
+    });
+
+    it("keeps the edited name and color after the page is rendered again", async () => {
+      seedThreeThreads();
+
+      const firstRender = setup();
+
+      await findThreadTitles();
+      await openEditModalFromMenu(
+        firstRender.user,
+        mindThreadFixtures[1].title
+      );
+
+      const nameInput = screen.getByTestId(ThreadFormTestId.titleInput);
+      await firstRender.user.clear(nameInput);
+      await firstRender.user.type(nameInput, "QA Strategy");
+
+      await saveEdit(firstRender.user);
+
+      const updatedMessage = await screen.findByText(
+        getThreadUpdatedMessage("QA Strategy")
+      );
+      expect(updatedMessage).toBeInTheDocument();
+
+      firstRender.unmount();
+
+      setup();
+
+      expect(await findThreadTitles()).toStrictEqual([
+        mindThreadFixtures[0].title,
+        "QA Strategy",
+        mindThreadFixture.title,
+      ]);
+    });
+
+    it("does not open the thread when Edit is chosen from a card's menu", async () => {
+      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+      seedThreeThreads();
+
+      const { user } = setup();
+
+      await findThreadTitles();
+      await openEditModalFromMenu(user, mindThreadFixtures[0].title);
+
+      const modalTitle = await screen.findByText(EDIT_THREAD_MODAL_TITLE);
       expect(modalTitle).toBeInTheDocument();
 
       expect(consoleSpy).not.toHaveBeenCalled();

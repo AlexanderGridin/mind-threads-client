@@ -8,7 +8,9 @@ import {
   createDeferred,
   mindThreadFixture,
   mindThreadFixtures,
+  resetThreadsServiceOverrides,
   seedThreads,
+  threadsServiceOverrides,
 } from "@/__test-fixtures__";
 import type { MindThread } from "@/types";
 import {
@@ -29,29 +31,14 @@ import {
 import {
   getThreadCreatedMessage,
   getThreadDeletedMessage,
+  getThreadUpdatedMessage,
 } from "../DashboardPageLoader.utils";
 
-const deleteThreadOverride = vi.hoisted(() => ({
-  current: null as ((threadId: string) => Promise<void>) | null,
-}));
-
 vi.mock("@/services", async (importOriginal) => {
-  const actualServices = await importOriginal<typeof import("@/services")>();
+  const { createServicesMock } = await import("@/__test-fixtures__");
+  const original = await importOriginal<typeof import("@/services")>();
 
-  return {
-    ...actualServices,
-    useThreadsService: () => {
-      const threadsService = actualServices.useThreadsService();
-
-      return {
-        ...threadsService,
-        deleteThread: (threadId: string) =>
-          deleteThreadOverride.current
-            ? deleteThreadOverride.current(threadId)
-            : threadsService.deleteThread(threadId),
-      };
-    },
-  };
+  return createServicesMock(original);
 });
 
 const THREAD_LIST_MODE_TEST_ID = "thread-list-mode";
@@ -67,9 +54,22 @@ const OPEN_DELETE_BUTTON_TEST_ID_PREFIX = "open-delete-button-";
 const CLOSE_DELETE_BUTTON_TEST_ID = "close-delete-button";
 const CONFIRM_DELETE_BUTTON_TEST_ID = "confirm-delete-button";
 const NO_THREAD_TO_DELETE = "none";
+const THREAD_TO_EDIT_TEST_ID = "thread-to-edit";
+const IS_SAVING_THREAD_TEST_ID = "is-saving-thread";
+const OPEN_EDIT_BUTTON_TEST_ID_PREFIX = "open-edit-button-";
+const CLOSE_EDIT_BUTTON_TEST_ID = "close-edit-button";
+const SAVE_EDIT_BUTTON_TEST_ID = "save-edit-button";
+const NO_THREAD_TO_EDIT = "none";
 
 const NEW_THREAD_TITLE = "New";
 const NEW_THREAD = { title: "  New  ", color: "#000" };
+
+const EDITED_THREAD_TITLE = "QA Strategy";
+const EDITED_THREAD_COLOR = "#000000";
+const EDITED_THREAD_CHANGES = {
+  title: `  ${EDITED_THREAD_TITLE}  `,
+  color: EDITED_THREAD_COLOR,
+};
 
 type ThreadDeleteButtonProps = {
   thread: MindThread;
@@ -92,6 +92,27 @@ const ThreadDeleteButton = ({ thread }: ThreadDeleteButtonProps) => {
   );
 };
 
+type ThreadEditButtonProps = {
+  thread: MindThread;
+};
+
+const ThreadEditButton = ({ thread }: ThreadEditButtonProps) => {
+  const { openEditThreadModal } = useDashboardPageAction();
+
+  const handleOpenEditModal = () => {
+    openEditThreadModal(thread);
+  };
+
+  return (
+    <button
+      onClick={handleOpenEditModal}
+      data-testid={`${OPEN_EDIT_BUTTON_TEST_ID_PREFIX}${thread.id}`}
+    >
+      Edit
+    </button>
+  );
+};
+
 const TestConsumer = () => {
   const {
     threadListMode,
@@ -100,6 +121,8 @@ const TestConsumer = () => {
     isAddThreadModalOpen,
     threadToDelete,
     isDeletingThread,
+    threadToEdit,
+    isSavingThread,
   } = useDashboardPageValue();
 
   const {
@@ -108,6 +131,8 @@ const TestConsumer = () => {
     submitNewThread,
     closeDeleteThreadModal,
     confirmDeleteThread,
+    closeEditThreadModal,
+    submitEditedThread,
   } = useDashboardPageAction();
 
   const handleSubmitNewThread = () => {
@@ -120,6 +145,14 @@ const TestConsumer = () => {
 
   const handleConfirmDeleteThread = () => {
     confirmDeleteThread();
+  };
+
+  const handleCloseEditModal = () => {
+    closeEditThreadModal();
+  };
+
+  const handleSaveEditedThread = () => {
+    submitEditedThread(EDITED_THREAD_CHANGES);
   };
 
   return (
@@ -137,6 +170,11 @@ const TestConsumer = () => {
         {String(isDeletingThread)}
       </div>
 
+      <div data-testid={THREAD_TO_EDIT_TEST_ID}>
+        {threadToEdit?.id ?? NO_THREAD_TO_EDIT}
+      </div>
+      <div data-testid={IS_SAVING_THREAD_TEST_ID}>{String(isSavingThread)}</div>
+
       <ul>
         {threads.map((thread) => (
           <li key={thread.id} data-testid={THREAD_TITLE_TEST_ID}>
@@ -148,6 +186,9 @@ const TestConsumer = () => {
       <div>
         {threads.map((thread) => (
           <ThreadDeleteButton key={thread.id} thread={thread} />
+        ))}
+        {threads.map((thread) => (
+          <ThreadEditButton key={thread.id} thread={thread} />
         ))}
       </div>
 
@@ -184,6 +225,20 @@ const TestConsumer = () => {
         data-testid={CONFIRM_DELETE_BUTTON_TEST_ID}
       >
         Confirm Delete
+      </button>
+
+      <button
+        onClick={handleCloseEditModal}
+        data-testid={CLOSE_EDIT_BUTTON_TEST_ID}
+      >
+        Close Edit
+      </button>
+
+      <button
+        onClick={handleSaveEditedThread}
+        data-testid={SAVE_EDIT_BUTTON_TEST_ID}
+      >
+        Save Edit
       </button>
     </>
   );
@@ -225,11 +280,14 @@ const waitForThreadsLoaded = () => {
 
 const openAddThreadModal = async (user: ReturnType<typeof userEvent.setup>) => {
   await waitForThreadsLoaded();
-  await user.click(screen.getByTestId(OPEN_MODAL_BUTTON_TEST_ID));
+
+  const button = screen.getByTestId(OPEN_MODAL_BUTTON_TEST_ID);
+  await user.click(button);
 };
 
 const submitNewThread = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(screen.getByTestId(SUBMIT_BUTTON_TEST_ID));
+  const button = screen.getByTestId(SUBMIT_BUTTON_TEST_ID);
+  await user.click(button);
 };
 
 const openDeleteModalFor = async (
@@ -237,13 +295,40 @@ const openDeleteModalFor = async (
   thread: MindThread
 ) => {
   await waitForThreadsLoaded();
-  await user.click(
-    screen.getByTestId(`${OPEN_DELETE_BUTTON_TEST_ID_PREFIX}${thread.id}`)
+
+  const button = screen.getByTestId(
+    `${OPEN_DELETE_BUTTON_TEST_ID_PREFIX}${thread.id}`
   );
+
+  await user.click(button);
 };
 
 const confirmDelete = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(screen.getByTestId(CONFIRM_DELETE_BUTTON_TEST_ID));
+  const button = screen.getByTestId(CONFIRM_DELETE_BUTTON_TEST_ID);
+  await user.click(button);
+};
+
+const openEditModalFor = async (
+  user: ReturnType<typeof userEvent.setup>,
+  thread: MindThread
+) => {
+  await waitForThreadsLoaded();
+
+  const button = screen.getByTestId(
+    `${OPEN_EDIT_BUTTON_TEST_ID_PREFIX}${thread.id}`
+  );
+
+  await user.click(button);
+};
+
+const closeEditModal = async (user: ReturnType<typeof userEvent.setup>) => {
+  const button = screen.getByTestId(CLOSE_EDIT_BUTTON_TEST_ID);
+  await user.click(button);
+};
+
+const saveEditedThread = async (user: ReturnType<typeof userEvent.setup>) => {
+  const button = screen.getByTestId(SAVE_EDIT_BUTTON_TEST_ID);
+  await user.click(button);
 };
 
 const mockStorageSetItemFailure = () => {
@@ -257,7 +342,7 @@ const mockStorageSetItemFailure = () => {
 describe("DashboardPageLoader", () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    deleteThreadOverride.current = null;
+    resetThreadsServiceOverrides();
   });
 
   describe("context values", () => {
@@ -358,13 +443,14 @@ describe("DashboardPageLoader", () => {
 
       await submitNewThread(user);
 
-      expect(
-        await screen.findByText(SAVE_THREAD_ERROR_MESSAGE)
-      ).toBeInTheDocument();
+      const errorMessage = await screen.findByText(SAVE_THREAD_ERROR_MESSAGE);
+      expect(errorMessage).toBeInTheDocument();
 
-      expect(screen.getByTestId(IS_MODAL_OPEN_TEST_ID).textContent).toBe(
-        "true"
-      );
+      const isModalOpenText = screen.getByTestId(
+        IS_MODAL_OPEN_TEST_ID
+      ).textContent;
+
+      expect(isModalOpenText).toBe("true");
 
       expect(getThreadTitles()).toStrictEqual(
         mindThreadFixtures.map((thread) => thread.title)
@@ -645,7 +731,7 @@ describe("DashboardPageLoader", () => {
       seedThreads(mindThreadFixtures);
 
       const deferredDelete = createDeferred();
-      deleteThreadOverride.current = () => deferredDelete.promise;
+      threadsServiceOverrides.deleteThread = () => deferredDelete.promise;
 
       const { user } = setup();
 
@@ -671,6 +757,160 @@ describe("DashboardPageLoader", () => {
       ).textContent;
 
       expect(isDeletingText).toBe("false");
+    });
+  });
+
+  describe("edit thread", () => {
+    it("sets threadToEdit when a thread's edit action is chosen and clears it when closed", async () => {
+      seedThreads(mindThreadFixtures);
+
+      const { user } = setup();
+
+      await openEditModalFor(user, mindThreadFixtures[0]);
+
+      let threadToEditText = screen.getByTestId(
+        THREAD_TO_EDIT_TEST_ID
+      ).textContent;
+
+      expect(threadToEditText).toBe(mindThreadFixtures[0].id);
+
+      await closeEditModal(user);
+
+      threadToEditText = screen.getByTestId(THREAD_TO_EDIT_TEST_ID).textContent;
+
+      expect(threadToEditText).toBe(NO_THREAD_TO_EDIT);
+    });
+
+    it("updates only the edited thread in place, clears threadToEdit and shows a success notification", async () => {
+      seedThreads([
+        mindThreadFixtures[0],
+        mindThreadFixtures[1],
+        mindThreadFixture,
+      ]);
+
+      const { user } = setup();
+
+      await openEditModalFor(user, mindThreadFixtures[1]);
+      await saveEditedThread(user);
+
+      const updatedMessage = await screen.findByText(
+        getThreadUpdatedMessage(EDITED_THREAD_TITLE)
+      );
+
+      expect(updatedMessage).toBeInTheDocument();
+
+      expect(getThreadTitles()).toStrictEqual([
+        mindThreadFixtures[0].title,
+        EDITED_THREAD_TITLE,
+        mindThreadFixture.title,
+      ]);
+
+      expect(readStoredThreads()[1]).toMatchObject({
+        id: mindThreadFixtures[1].id,
+        title: EDITED_THREAD_TITLE,
+        color: EDITED_THREAD_COLOR,
+      });
+
+      const threadToEditText = screen.getByTestId(
+        THREAD_TO_EDIT_TEST_ID
+      ).textContent;
+
+      expect(threadToEditText).toBe(NO_THREAD_TO_EDIT);
+    });
+
+    it("keeps the thread being edited and the list unchanged when saving fails", async () => {
+      seedThreads(mindThreadFixtures);
+
+      const { user } = setup();
+
+      await openEditModalFor(user, mindThreadFixtures[0]);
+
+      mockStorageSetItemFailure();
+
+      await saveEditedThread(user);
+
+      const errorMessage = await screen.findByText(SAVE_THREAD_ERROR_MESSAGE);
+      expect(errorMessage).toBeInTheDocument();
+
+      const threadToEditText = screen.getByTestId(
+        THREAD_TO_EDIT_TEST_ID
+      ).textContent;
+
+      expect(threadToEditText).toBe(mindThreadFixtures[0].id);
+
+      expect(getThreadTitles()).toStrictEqual(
+        mindThreadFixtures.map((thread) => thread.title)
+      );
+
+      const isSavingText = screen.getByTestId(
+        IS_SAVING_THREAD_TEST_ID
+      ).textContent;
+
+      expect(isSavingText).toBe("false");
+    });
+
+    it("saves the edited thread when a retry after a failed save succeeds", async () => {
+      seedThreads(mindThreadFixtures);
+
+      const { user } = setup();
+
+      await openEditModalFor(user, mindThreadFixtures[0]);
+
+      const setItemSpy = mockStorageSetItemFailure();
+
+      await saveEditedThread(user);
+
+      const errorMessage = await screen.findByText(SAVE_THREAD_ERROR_MESSAGE);
+      expect(errorMessage).toBeInTheDocument();
+
+      setItemSpy.mockRestore();
+
+      await saveEditedThread(user);
+
+      const updatedMessage = await screen.findByText(
+        getThreadUpdatedMessage(EDITED_THREAD_TITLE)
+      );
+
+      expect(updatedMessage).toBeInTheDocument();
+
+      expect(getThreadTitles()).toStrictEqual([
+        EDITED_THREAD_TITLE,
+        mindThreadFixtures[1].title,
+      ]);
+    });
+
+    it("reports isSavingThread while the save is pending and clears it once it settles", async () => {
+      seedThreads(mindThreadFixtures);
+
+      const deferredUpdate = createDeferred<MindThread>();
+      threadsServiceOverrides.updateThread = () => deferredUpdate.promise;
+
+      const { user } = setup();
+
+      await openEditModalFor(user, mindThreadFixtures[0]);
+      await saveEditedThread(user);
+
+      let isSavingText = screen.getByTestId(
+        IS_SAVING_THREAD_TEST_ID
+      ).textContent;
+
+      expect(isSavingText).toBe("true");
+
+      deferredUpdate.resolve({
+        ...mindThreadFixtures[0],
+        title: EDITED_THREAD_TITLE,
+        color: EDITED_THREAD_COLOR,
+      });
+
+      const updatedMessage = await screen.findByText(
+        getThreadUpdatedMessage(EDITED_THREAD_TITLE)
+      );
+
+      expect(updatedMessage).toBeInTheDocument();
+
+      isSavingText = screen.getByTestId(IS_SAVING_THREAD_TEST_ID).textContent;
+
+      expect(isSavingText).toBe("false");
     });
   });
 });

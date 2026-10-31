@@ -18,6 +18,7 @@ export type ColorPickerProps = {
   "data-testid"?: string;
   portal?: boolean;
   fullWidth?: boolean;
+  disabled?: boolean;
 };
 
 export const ColorPicker = ({
@@ -26,6 +27,7 @@ export const ColorPicker = ({
   "data-testid": testId,
   portal = true,
   fullWidth = false,
+  disabled = false,
   onChange,
 }: ColorPickerProps) => {
   const width = fullWidth ? "100%" : undefined;
@@ -68,6 +70,7 @@ export const ColorPicker = ({
       data-testid={testId || ColorPickerTestId.container}
       value={parseColor(value).toFormat("hsba")}
       width={width}
+      disabled={disabled}
       onValueChange={handleValueChange}
     >
       <ChakraColorPicker.HiddenInput />

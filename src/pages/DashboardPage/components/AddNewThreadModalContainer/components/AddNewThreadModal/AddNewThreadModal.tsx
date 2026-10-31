@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Dialog } from "@/components/lib";
-import { ThreadForm, AddNewThreadModalActions } from "./components";
 import {
+  ThreadForm,
+  ThreadFormModalActions,
+  type ThreadFormValue,
+} from "@/components/shared";
+import {
+  ADD_BUTTON_LABEL,
   ADD_NEW_THREAD_MODAL_TITLE,
   DEFAULT_THREAD_FORM_VALUE,
 } from "./AddNewThreadModal.constants";
-import type { ThreadFormValue } from "./AddNewThreadModal.types";
 
 export type AddNewThreadModalProps = {
   onClose: () => void;
@@ -20,6 +24,8 @@ export const AddNewThreadModal = ({
     DEFAULT_THREAD_FORM_VALUE
   );
 
+  const submitDisabled = !formValue.title.trim();
+
   const handleAdd = () => {
     onSubmit(formValue);
   };
@@ -31,9 +37,10 @@ export const AddNewThreadModal = ({
       onClose={onClose}
       content={<ThreadForm value={formValue} onChange={setFormValue} />}
       actions={
-        <AddNewThreadModalActions
-          onAdd={handleAdd}
-          submitDisabled={!formValue.title.trim()}
+        <ThreadFormModalActions
+          submitLabel={ADD_BUTTON_LABEL}
+          submitDisabled={submitDisabled}
+          onSubmit={handleAdd}
           onCancel={onClose}
         />
       }

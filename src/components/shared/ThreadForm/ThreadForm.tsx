@@ -1,18 +1,17 @@
 import { VStack, Input, ColorPicker } from "@/components/lib";
-import type { ThreadFormValue } from "../../AddNewThreadModal.types";
 import {
   ThreadFormTestId,
   THREAD_NAME_PLACEHOLDER,
   THREAD_COLOR_LABEL,
   THREAD_NAME_LABEL,
 } from "./ThreadForm.constants";
+import type { ThreadFormProps } from "./ThreadForm.types";
 
-export type ThreadFormProps = {
-  value: ThreadFormValue;
-  onChange: (value: ThreadFormValue) => void;
-};
-
-export const ThreadForm = ({ value, onChange }: ThreadFormProps) => {
+export const ThreadForm = ({
+  value,
+  disabled = false,
+  onChange,
+}: ThreadFormProps) => {
   const handleTitleChange = (title: string) => {
     onChange({ ...value, title });
   };
@@ -34,6 +33,7 @@ export const ThreadForm = ({ value, onChange }: ThreadFormProps) => {
         label={THREAD_NAME_LABEL}
         required
         placeholder={THREAD_NAME_PLACEHOLDER}
+        disabled={disabled}
         onChange={handleTitleChange}
       />
 
@@ -43,6 +43,7 @@ export const ThreadForm = ({ value, onChange }: ThreadFormProps) => {
         value={value.color}
         portal={false}
         fullWidth
+        disabled={disabled}
         onChange={handleColorChange}
       />
     </VStack>

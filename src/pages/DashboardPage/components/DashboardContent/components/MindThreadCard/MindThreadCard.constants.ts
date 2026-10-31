@@ -15,6 +15,11 @@ export const MindThreadCardTestId = {
   actionsMenu: createTestId("actions-menu"),
 } as const;
 
+export const EDIT_THREAD_MENU_ITEM = {
+  value: "edit",
+  label: "Edit",
+} as const;
+
 export const DELETE_THREAD_MENU_ITEM = {
   value: "delete",
   label: "Delete",

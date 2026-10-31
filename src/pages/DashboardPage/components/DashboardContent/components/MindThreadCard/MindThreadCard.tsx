@@ -9,6 +9,7 @@ type MindThreadCardProps = {
   thread: MindThread;
   forMode?: ThreadListModeType;
   onClick: (thread: MindThread) => void;
+  onEdit: (thread: MindThread) => void;
   onDelete: (thread: MindThread) => void;
 };
 
@@ -16,6 +17,7 @@ export const MindThreadCard = ({
   thread,
   forMode = ThreadListMode.Grid,
   onClick,
+  onEdit,
   onDelete,
 }: MindThreadCardProps) => {
   const forListMode = forMode === ThreadListMode.List;
@@ -49,7 +51,12 @@ export const MindThreadCard = ({
     >
       <CardColorIndicator color={thread.color} forMode={forMode} />
       <CardContent thread={thread} forMode={forMode} />
-      <CardActions thread={thread} forMode={forMode} onDelete={onDelete} />
+      <CardActions
+        thread={thread}
+        forMode={forMode}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
     </Box>
   );
 };

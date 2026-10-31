@@ -1,9 +1,9 @@
 import { useContext, useEffect, useState } from "react";
 import { notify } from "@/components/lib";
 import { useLocalStorage } from "@/hooks";
-import { checkContext } from "@/utils";
+import { checkContext, replaceThread } from "@/utils";
 import { useThreadsService } from "@/services";
-import type { MindThread, NewMindThread } from "@/types";
+import type { MindThread, MindThreadUpdate, NewMindThread } from "@/types";
 import { ThreadListMode, ThreadsStatus } from "../../DashboardPage.constants";
 import type {
   ThreadListModeType,
@@ -21,10 +21,12 @@ import {
 import {
   getThreadCreatedMessage,
   getThreadDeletedMessage,
+  getThreadUpdatedMessage,
 } from "./DashboardPageLoader.utils";
 import type {
   UseAddThreadParams,
   UseDeleteThreadParams,
+  UseEditThreadParams,
 } from "./DashboardPageLoader.types";
 
 export const useDashboardPageValue = () => {
@@ -88,6 +90,16 @@ export const useThreadsState = () => {
     return createdThread;
   };
 
+  const editThread = async (threadUpdate: MindThreadUpdate) => {
+    const updatedThread = await threadsService.updateThread(threadUpdate);
+
+    setThreads((currentThreads) => {
+      return replaceThread({ threads: currentThreads, updatedThread });
+    });
+
+    return updatedThread;
+  };
+
   const removeThread = async (threadId: string) => {
     await threadsService.deleteThread(threadId);
 
@@ -96,7 +108,50 @@ export const useThreadsState = () => {
     );
   };
 
-  return { threads, threadsStatus, addThread, removeThread };
+  return { threads, threadsStatus, addThread, editThread, removeThread };
+};
+
+export const useEditThread = ({ editThread }: UseEditThreadParams) => {
+  const [threadToEdit, setThreadToEdit] = useState<MindThread | null>(null);
+  const [isSavingThread, setIsSavingThread] = useState(false);
+
+  const openEditThreadModal = (thread: MindThread) => {
+    setThreadToEdit(thread);
+  };
+
+  const closeEditThreadModal = () => {
+    setThreadToEdit(null);
+  };
+
+  const submitEditedThread = async (threadChanges: NewMindThread) => {
+    if (!threadToEdit) {
+      return;
+    }
+
+    setIsSavingThread(true);
+
+    try {
+      const updatedThread = await editThread({
+        id: threadToEdit.id,
+        ...threadChanges,
+      });
+
+      closeEditThreadModal();
+      notify.success(getThreadUpdatedMessage(updatedThread.title));
+    } catch {
+      notify.error(SAVE_THREAD_ERROR_MESSAGE);
+    } finally {
+      setIsSavingThread(false);
+    }
+  };
+
+  return {
+    threadToEdit,
+    isSavingThread,
+    openEditThreadModal,
+    closeEditThreadModal,
+    submitEditedThread,
+  };
 };
 
 export const useDeleteThread = ({ removeThread }: UseDeleteThreadParams) => {

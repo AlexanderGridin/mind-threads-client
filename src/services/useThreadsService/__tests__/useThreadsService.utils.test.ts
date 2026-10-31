@@ -1,6 +1,10 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { mindThreadFixtures } from "@/__test-fixtures__";
-import { buildThread, isMindThreadList } from "../useThreadsService.utils";
+import {
+  applyThreadUpdate,
+  buildThread,
+  isMindThreadList,
+} from "../useThreadsService.utils";
 
 const TEST_COLOR = "#A8E6CF";
 const FIXED_NOW = new Date("2026-06-20T12:00:00Z");
@@ -45,6 +49,49 @@ describe("useThreadsService.utils", () => {
       });
 
       expect(firstThread.id).not.toBe(secondThread.id);
+    });
+  });
+
+  describe("applyThreadUpdate", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("returns the thread with the trimmed title, the new color and the current lastUpdated", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(FIXED_NOW);
+
+      const thread = mindThreadFixtures[0];
+      const updatedThread = applyThreadUpdate({
+        thread,
+        threadUpdate: {
+          id: thread.id,
+          title: "  QA Strategy  ",
+          color: TEST_COLOR,
+        },
+      });
+
+      expect(updatedThread).toStrictEqual({
+        ...thread,
+        title: "QA Strategy",
+        color: TEST_COLOR,
+        lastUpdated: FIXED_NOW.toISOString(),
+      });
+    });
+
+    it("does not mutate the input thread", () => {
+      const originalThread = { ...mindThreadFixtures[0] };
+
+      const updatedThread = applyThreadUpdate({
+        thread: originalThread,
+        threadUpdate: {
+          id: originalThread.id,
+          title: "QA Strategy",
+          color: TEST_COLOR,
+        },
+      });
+
+      expect(updatedThread).not.toBe(originalThread);
     });
   });
 

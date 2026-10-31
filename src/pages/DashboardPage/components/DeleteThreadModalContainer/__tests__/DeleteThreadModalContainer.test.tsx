@@ -13,7 +13,9 @@ import {
   mindThreadFixture,
   mindThreadFixtures,
   clickOutside,
+  resetThreadsServiceOverrides,
   seedThreads,
+  threadsServiceOverrides,
   waitForDismissListeners,
 } from "@/__test-fixtures__";
 import type { MindThread } from "@/types";
@@ -30,27 +32,11 @@ import { DELETE_THREAD_MODAL_TITLE } from "../components/DeleteThreadModal/Delet
 import { getDeleteThreadModalText } from "../components/DeleteThreadModal/DeleteThreadModal.utils";
 import { DeleteThreadModalActionsTestId } from "../components/DeleteThreadModal/components/DeleteThreadModalActions/DeleteThreadModalActions.constants";
 
-const deleteThreadOverride = vi.hoisted(() => ({
-  current: null as ((threadId: string) => Promise<void>) | null,
-}));
-
 vi.mock("@/services", async (importOriginal) => {
-  const actualServices = await importOriginal<typeof import("@/services")>();
+  const { createServicesMock } = await import("@/__test-fixtures__");
+  const original = await importOriginal<typeof import("@/services")>();
 
-  return {
-    ...actualServices,
-    useThreadsService: () => {
-      const threadsService = actualServices.useThreadsService();
-
-      return {
-        ...threadsService,
-        deleteThread: (threadId: string) =>
-          deleteThreadOverride.current
-            ? deleteThreadOverride.current(threadId)
-            : threadsService.deleteThread(threadId),
-      };
-    },
-  };
+  return createServicesMock(original);
 });
 
 const THREAD_TITLE_TEST_ID = "thread-title";
@@ -174,7 +160,7 @@ const mockStorageSetItemFailure = () => {
 describe("DeleteThreadModalContainer", () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    deleteThreadOverride.current = null;
+    resetThreadsServiceOverrides();
   });
 
   it("does not render the modal until a thread's delete action is chosen, then shows the thread-specific text", async () => {
@@ -354,7 +340,7 @@ describe("DeleteThreadModalContainer", () => {
     seedThreads(mindThreadFixtures);
 
     const deferredDelete = createDeferred();
-    deleteThreadOverride.current = () => deferredDelete.promise;
+    threadsServiceOverrides.deleteThread = () => deferredDelete.promise;
 
     const context = setup({
       pointerEventsCheck: PointerEventsCheckLevel.Never,

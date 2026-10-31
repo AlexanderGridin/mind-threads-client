@@ -6,6 +6,7 @@ import {
 import {
   useAddThread,
   useDeleteThread,
+  useEditThread,
   useThreadListMode,
   useThreadsState,
 } from "./DashboardPageLoader.hooks";
@@ -13,7 +14,8 @@ import {
 export const DashboardPageLoader = ({ children }: { children: ReactNode }) => {
   const { threadListMode, toggleThreadListMode } = useThreadListMode();
 
-  const { threads, threadsStatus, addThread, removeThread } = useThreadsState();
+  const { threads, threadsStatus, addThread, editThread, removeThread } =
+    useThreadsState();
 
   const {
     isAddThreadModalOpen,
@@ -21,6 +23,14 @@ export const DashboardPageLoader = ({ children }: { children: ReactNode }) => {
     closeAddThreadModal,
     submitNewThread,
   } = useAddThread({ addThread });
+
+  const {
+    threadToEdit,
+    isSavingThread,
+    openEditThreadModal,
+    closeEditThreadModal,
+    submitEditedThread,
+  } = useEditThread({ editThread });
 
   const {
     threadToDelete,
@@ -37,6 +47,9 @@ export const DashboardPageLoader = ({ children }: { children: ReactNode }) => {
         openAddThreadModal,
         closeAddThreadModal,
         submitNewThread,
+        openEditThreadModal,
+        closeEditThreadModal,
+        submitEditedThread,
         openDeleteThreadModal,
         closeDeleteThreadModal,
         confirmDeleteThread,
@@ -48,6 +61,8 @@ export const DashboardPageLoader = ({ children }: { children: ReactNode }) => {
           threads,
           threadsStatus,
           isAddThreadModalOpen,
+          threadToEdit,
+          isSavingThread,
           threadToDelete,
           isDeletingThread,
         }}
