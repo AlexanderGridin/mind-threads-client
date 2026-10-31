@@ -14,11 +14,17 @@ const setup = ({
   label = "Color",
   value = "#bf616a",
   onChange = vi.fn(),
+  disabled = false,
 }: Partial<ColorPickerProps> = {}) => {
   const user = userEvent.setup();
 
   renderWithUIProvider(
-    <ColorPicker label={label} value={value} onChange={onChange} />
+    <ColorPicker
+      label={label}
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+    />
   );
 
   return { user };
@@ -77,6 +83,18 @@ describe("ColorPicker", () => {
     await user.click(trigger);
 
     expect(content).not.toHaveAttribute("hidden");
+  });
+
+  it("disables the trigger and does not open the content when disabled", async () => {
+    const { user } = setup({ disabled: true });
+
+    const trigger = screen.getByTestId(ColorPickerTestId.trigger);
+    expect(trigger).toBeDisabled();
+
+    await user.click(trigger);
+
+    const content = screen.getByTestId(ColorPickerTestId.content);
+    expect(content).toHaveAttribute("hidden", "");
   });
 
   it("calls onChange when a swatch trigger is clicked", async () => {

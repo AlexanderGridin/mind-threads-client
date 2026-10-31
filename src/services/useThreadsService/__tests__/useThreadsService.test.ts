@@ -11,10 +11,12 @@ import type { MindThread } from "@/types";
 import { useThreadsService } from "../useThreadsService";
 import {
   INVALID_THREADS_DATA_ERROR,
+  THREAD_NOT_FOUND_ERROR,
   THREADS_STORAGE_KEY,
 } from "../useThreadsService.constants";
 
 const TEST_COLOR = "#A8E6CF";
+const FIXED_NOW = new Date("2026-06-20T12:00:00Z");
 
 const setup = () => {
   return renderHook(() => useThreadsService());
@@ -98,6 +100,7 @@ describe("useThreadsService", () => {
         totalSections: 0,
         totalPages: 0,
       });
+
       expect(createdThread.id).toEqual(expect.any(String));
     });
 
@@ -153,6 +156,97 @@ describe("useThreadsService", () => {
       ).rejects.toThrow("Storage quota exceeded");
 
       expect(readStoredThreads()).toStrictEqual(mindThreadFixtures);
+    });
+  });
+
+  describe("updateThread", () => {
+    const threadsToUpdate: MindThread[] = [
+      mindThreadFixtures[0],
+      mindThreadFixtures[1],
+      mindThreadFixture,
+    ];
+
+    const threadToUpdate = threadsToUpdate[1];
+
+    const threadUpdate = {
+      id: threadToUpdate.id,
+      title: "  QA Strategy  ",
+      color: TEST_COLOR,
+    };
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("resolves the updated thread and stores all threads in order with only that thread changed", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(FIXED_NOW);
+
+      const { result } = setup();
+
+      seedThreads(threadsToUpdate);
+
+      const updatedThread = await result.current.updateThread(threadUpdate);
+
+      const expectedThread = {
+        ...threadToUpdate,
+        title: "QA Strategy",
+        color: TEST_COLOR,
+        lastUpdated: FIXED_NOW.toISOString(),
+      };
+
+      expect(updatedThread).toStrictEqual(expectedThread);
+
+      expect(readStoredThreads()).toStrictEqual([
+        threadsToUpdate[0],
+        expectedThread,
+        threadsToUpdate[2],
+      ]);
+    });
+
+    it("rejects with the not-found error for an unknown id and leaves the storage unchanged", async () => {
+      const { result } = setup();
+
+      seedThreads(threadsToUpdate);
+
+      await expect(
+        result.current.updateThread({
+          ...threadUpdate,
+          id: "unknown-thread-id",
+        })
+      ).rejects.toThrow(THREAD_NOT_FOUND_ERROR);
+
+      expect(readStoredThreads()).toStrictEqual(threadsToUpdate);
+    });
+
+    it("rejects when localStorage.setItem fails and leaves the storage unchanged", async () => {
+      const { result } = setup();
+
+      seedThreads(threadsToUpdate);
+
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new Error("Storage quota exceeded");
+      });
+
+      await expect(result.current.updateThread(threadUpdate)).rejects.toThrow(
+        "Storage quota exceeded"
+      );
+
+      expect(readStoredThreads()).toStrictEqual(threadsToUpdate);
+    });
+
+    it("rejects when the stored value is not a list of threads", async () => {
+      const { result } = setup();
+
+      localStorage.setItem(
+        THREADS_STORAGE_KEY,
+        JSON.stringify({ id: "thread-1" })
+      );
+
+      await expect(result.current.updateThread(threadUpdate)).rejects.toThrow(
+        INVALID_THREADS_DATA_ERROR
+      );
     });
   });
 

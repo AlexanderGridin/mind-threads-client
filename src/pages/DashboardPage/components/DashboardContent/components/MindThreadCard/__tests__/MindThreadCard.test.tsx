@@ -9,6 +9,7 @@ import { MindThreadCardTestId } from "../MindThreadCard.constants";
 import { mindThreadFixture } from "@/__test-fixtures__";
 
 const mockOnClick = vi.fn();
+const mockOnEdit = vi.fn();
 const mockOnDelete = vi.fn();
 
 const setup = (
@@ -22,6 +23,7 @@ const setup = (
       thread={thread}
       forMode={forMode}
       onClick={mockOnClick}
+      onEdit={mockOnEdit}
       onDelete={mockOnDelete}
     />
   );
@@ -90,11 +92,23 @@ describe("MindThreadCard", () => {
     expect(mockOnClick).not.toHaveBeenCalled();
   };
 
+  const handlesEditProperly = async (user: UserEvent) => {
+    await user.click(getActionsButton());
+
+    const [editMenuItem] = await screen.findAllByRole("menuitem");
+    await user.click(editMenuItem);
+
+    expect(mockOnEdit).toHaveBeenCalledOnce();
+    expect(mockOnEdit).toHaveBeenCalledWith(mindThreadFixture);
+
+    expect(mockOnClick).not.toHaveBeenCalled();
+  };
+
   const handlesDeleteProperly = async (user: UserEvent) => {
     await user.click(getActionsButton());
 
-    const menuItems = await screen.findAllByRole("menuitem");
-    await user.click(menuItems[0]);
+    const [, deleteMenuItem] = await screen.findAllByRole("menuitem");
+    await user.click(deleteMenuItem);
 
     expect(mockOnDelete).toHaveBeenCalledOnce();
     expect(mockOnDelete).toHaveBeenCalledWith(mindThreadFixture);
@@ -173,6 +187,11 @@ describe("MindThreadCard", () => {
       await doesNotTriggerCardClickOnActions(user);
     });
 
+    it("calls onEdit with the thread and not onClick when Edit is chosen", async () => {
+      const { user } = setup();
+      await handlesEditProperly(user);
+    });
+
     it("calls onDelete with the thread and not onClick when Delete is chosen", async () => {
       const { user } = setup();
       await handlesDeleteProperly(user);
@@ -225,6 +244,11 @@ describe("MindThreadCard", () => {
     it("does not call onClick when the actions button is clicked", async () => {
       const { user } = setup(mindThreadFixture, ThreadListMode.List);
       await doesNotTriggerCardClickOnActions(user);
+    });
+
+    it("calls onEdit with the thread and not onClick when Edit is chosen", async () => {
+      const { user } = setup(mindThreadFixture, ThreadListMode.List);
+      await handlesEditProperly(user);
     });
 
     it("calls onDelete with the thread and not onClick when Delete is chosen", async () => {

@@ -11,8 +11,8 @@ import { SAVE_THREAD_ERROR_MESSAGE } from "@/pages/DashboardPage/components/Dash
 import { getThreadCreatedMessage } from "@/pages/DashboardPage/components/DashboardPageLoader/DashboardPageLoader.utils";
 import { AddNewThreadModalContainer } from "../AddNewThreadModalContainer";
 import { ADD_NEW_THREAD_MODAL_TITLE } from "../components/AddNewThreadModal/AddNewThreadModal.constants";
-import { ThreadFormTestId } from "../components/AddNewThreadModal/components/ThreadForm/ThreadForm.constants";
-import { AddNewThreadModalActionsTestId } from "../components/AddNewThreadModal/components/AddNewThreadModalActions/AddNewThreadModalActions.constants";
+import { ThreadFormTestId } from "@/components/shared/ThreadForm/ThreadForm.constants";
+import { ThreadFormModalActionsTestId } from "@/components/shared/ThreadFormModalActions/ThreadFormModalActions.constants";
 
 const OPEN_MODAL_BUTTON_TEST_ID = "open-modal-button";
 const THREAD_TITLE = "Kept name";
@@ -74,7 +74,7 @@ const selectSwatch = async ({ user }: SetupResult, swatchIndex: number) => {
 
 const clickAdd = async ({ user }: SetupResult) => {
   await user.click(
-    screen.getByTestId(AddNewThreadModalActionsTestId.addButton)
+    screen.getByTestId(ThreadFormModalActionsTestId.submitButton)
   );
 };
 
@@ -109,7 +109,7 @@ describe("AddNewThreadModalContainer", () => {
     expect(modalTitle).toBeInTheDocument();
 
     const cancelButton = screen.getByTestId(
-      AddNewThreadModalActionsTestId.cancelButton
+      ThreadFormModalActionsTestId.cancelButton
     );
 
     await context.user.click(cancelButton);

@@ -8,20 +8,23 @@ import {
 import { ThreadForm } from "../ThreadForm";
 import { ThreadFormTestId } from "../ThreadForm.constants";
 import { vi } from "vitest";
-import type { ThreadFormValue } from "../../../AddNewThreadModal.types";
+import type { ThreadFormValue } from "../ThreadForm.types";
 import { parseColor } from "@chakra-ui/react";
 
 const mockColor = NORD_AURORA_SWATCHES[0];
 const mockOnChange = vi.fn();
 
-const setup = (value?: ThreadFormValue) => {
+const setup = ({
+  value = { color: mockColor, title: "" },
+  disabled = false,
+}: {
+  value?: ThreadFormValue;
+  disabled?: boolean;
+} = {}) => {
   const user = userEvent.setup();
 
   renderWithUIProvider(
-    <ThreadForm
-      value={value ?? { color: mockColor, title: "" }}
-      onChange={mockOnChange}
-    />
+    <ThreadForm value={value} disabled={disabled} onChange={mockOnChange} />
   );
 
   return { user };
@@ -33,13 +36,12 @@ beforeEach(() => {
 
 describe("ThreadForm", () => {
   it("renders properly", () => {
-    setup({ title: "Test Thread", color: mockColor });
+    setup({ value: { title: "Test Thread", color: mockColor } });
 
     const titleInput = screen.getByTestId(ThreadFormTestId.titleInput);
     expect(titleInput).toHaveValue("Test Thread");
 
     const colorTrigger = screen.getByTestId(ColorPickerTestId.trigger);
-
     expect(colorTrigger).toBeInTheDocument();
 
     expect(colorTrigger.firstChild).toHaveAttribute(
@@ -49,7 +51,7 @@ describe("ThreadForm", () => {
   });
 
   it("calls onChange with updated title when typing in title input", async () => {
-    const { user } = setup({ title: "", color: mockColor });
+    const { user } = setup({ value: { title: "", color: mockColor } });
 
     const titleInput = screen.getByTestId(ThreadFormTestId.titleInput);
     await user.type(titleInput, "N");
@@ -61,7 +63,7 @@ describe("ThreadForm", () => {
   });
 
   it("calls onChange with updated color when color is changed", async () => {
-    const { user } = setup({ title: "", color: mockColor });
+    const { user } = setup({ value: { title: "", color: mockColor } });
 
     const colorTrigger = screen.getByTestId(ColorPickerTestId.trigger);
     await user.click(colorTrigger);
@@ -76,5 +78,37 @@ describe("ThreadForm", () => {
       title: "",
       color: parseColor(NORD_AURORA_SWATCHES[1]).toString("hex"),
     });
+  });
+
+  it("disables the name input and the color trigger when disabled", () => {
+    setup({ disabled: true });
+
+    const titleInput = screen.getByTestId(ThreadFormTestId.titleInput);
+    expect(titleInput).toBeDisabled();
+
+    const colorTrigger = screen.getByTestId(ColorPickerTestId.trigger);
+    expect(colorTrigger).toBeDisabled();
+  });
+
+  it("does not call onChange when the disabled name input is typed in or the disabled color trigger is clicked", async () => {
+    const { user } = setup({ disabled: true });
+
+    const titleInput = screen.getByTestId(ThreadFormTestId.titleInput);
+    await user.type(titleInput, "N");
+
+    const colorTrigger = screen.getByTestId(ColorPickerTestId.trigger);
+    await user.click(colorTrigger);
+
+    expect(mockOnChange).not.toHaveBeenCalled();
+  });
+
+  it("enables the name input and the color trigger by default", () => {
+    setup();
+
+    const titleInput = screen.getByTestId(ThreadFormTestId.titleInput);
+    expect(titleInput).toBeEnabled();
+
+    const colorTrigger = screen.getByTestId(ColorPickerTestId.trigger);
+    expect(colorTrigger).toBeEnabled();
   });
 });

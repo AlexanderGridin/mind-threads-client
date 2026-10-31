@@ -3,8 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib";
 import { NORD_AURORA_SWATCHES } from "@/components/lib/ColorPicker/ColorPicker.constants";
 import { AddNewThreadModal } from "../AddNewThreadModal";
-import { ThreadFormTestId } from "../components/ThreadForm/ThreadForm.constants";
-import { AddNewThreadModalActionsTestId } from "../components/AddNewThreadModalActions/AddNewThreadModalActions.constants";
+import { ThreadFormTestId } from "@/components/shared/ThreadForm/ThreadForm.constants";
+import { ThreadFormModalActionsTestId } from "@/components/shared/ThreadFormModalActions/ThreadFormModalActions.constants";
 import { vi } from "vitest";
 import { ADD_NEW_THREAD_MODAL_TITLE } from "../AddNewThreadModal.constants";
 
@@ -37,7 +37,7 @@ describe("AddNewThreadModal", () => {
     await user.type(titleInput, "My New Thread");
 
     const addButton = screen.getByTestId(
-      AddNewThreadModalActionsTestId.addButton
+      ThreadFormModalActionsTestId.submitButton
     );
 
     await user.click(addButton);
@@ -55,7 +55,7 @@ describe("AddNewThreadModal", () => {
     await user.type(titleInput, "   ");
 
     expect(
-      screen.getByTestId(AddNewThreadModalActionsTestId.addButton)
+      screen.getByTestId(ThreadFormModalActionsTestId.submitButton)
     ).toBeDisabled();
   });
 
@@ -66,7 +66,7 @@ describe("AddNewThreadModal", () => {
     await user.type(titleInput, "  a  ");
 
     expect(
-      screen.getByTestId(AddNewThreadModalActionsTestId.addButton)
+      screen.getByTestId(ThreadFormModalActionsTestId.submitButton)
     ).toBeEnabled();
   });
 
@@ -74,7 +74,7 @@ describe("AddNewThreadModal", () => {
     const { user } = setup();
 
     const cancelButton = screen.getByTestId(
-      AddNewThreadModalActionsTestId.cancelButton
+      ThreadFormModalActionsTestId.cancelButton
     );
 
     await user.click(cancelButton);

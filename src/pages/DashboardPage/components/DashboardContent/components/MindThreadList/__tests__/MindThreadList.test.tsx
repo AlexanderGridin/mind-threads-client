@@ -16,6 +16,7 @@ import type { MindThread } from "@/types";
 let mockThreadListMode: ThreadListModeType = ThreadListMode.Grid;
 let mockThreads: MindThread[] = mindThreadFixtures;
 
+const mockOpenEditThreadModal = vi.fn();
 const mockOpenDeleteThreadModal = vi.fn();
 
 vi.mock(
@@ -26,6 +27,7 @@ vi.mock(
       threadListMode: mockThreadListMode,
     }),
     useDashboardPageAction: () => ({
+      openEditThreadModal: mockOpenEditThreadModal,
       openDeleteThreadModal: mockOpenDeleteThreadModal,
     }),
   })
@@ -122,7 +124,7 @@ describe("MindThreadList", () => {
 
     await user.click(firstActionsButton);
 
-    const [deleteMenuItem] = await screen.findAllByRole("menuitem");
+    const [, deleteMenuItem] = await screen.findAllByRole("menuitem");
     await user.click(deleteMenuItem);
 
     expect(mockOpenDeleteThreadModal).toHaveBeenCalledOnce();
@@ -130,6 +132,25 @@ describe("MindThreadList", () => {
     expect(mockOpenDeleteThreadModal).toHaveBeenCalledWith(
       mindThreadFixtures[0]
     );
+  });
+
+  it("calls openEditThreadModal with the thread when Edit is chosen from a card's menu", async () => {
+    const { user } = setup();
+
+    const [firstActionsButton] = screen.getAllByRole("button", {
+      name: /^Thread actions for/,
+    });
+
+    await user.click(firstActionsButton);
+
+    const [editMenuItem] = await screen.findAllByRole("menuitem");
+    await user.click(editMenuItem);
+
+    expect(mockOpenEditThreadModal).toHaveBeenCalledOnce();
+
+    expect(mockOpenEditThreadModal).toHaveBeenCalledWith(mindThreadFixtures[0]);
+
+    expect(mockOpenDeleteThreadModal).not.toHaveBeenCalled();
   });
 
   it("calls console.log with the thread when a card is clicked", async () => {
