@@ -8,6 +8,8 @@ export { IconButton, type IconButtonProps } from "./IconButton";
 export { Input, type InputProps } from "./Input";
 export { ColorPicker, type ColorPickerProps } from "./ColorPicker";
 export { Dialog, type DialogProps } from "./Dialog";
+export { LinkOverlay, type LinkOverlayProps } from "./LinkOverlay";
+export { FullScreenLoader } from "./FullScreenLoader";
 export { Menu, type MenuProps, type MenuItem } from "./Menu";
 export { Notifications, notify } from "./Notifications";
 export * from "./utils";

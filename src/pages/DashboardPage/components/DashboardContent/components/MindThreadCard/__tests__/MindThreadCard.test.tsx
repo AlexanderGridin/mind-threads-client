@@ -22,7 +22,6 @@ const setup = (
     <MindThreadCard
       thread={thread}
       forMode={forMode}
-      onClick={mockOnClick}
       onEdit={mockOnEdit}
       onDelete={mockOnDelete}
     />

@@ -15,6 +15,7 @@ export type HStackProps = {
   "data-testid"?: string;
   fontSize?: string;
   color?: string;
+  minWidth?: string;
 };
 
 export const HStack = ({ children, ...props }: HStackProps) => (

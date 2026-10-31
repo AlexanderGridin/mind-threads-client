@@ -18,7 +18,7 @@ import {
   ColorModeButton,
 } from "@/components/lib";
 import { DemoCard } from "./DemoCard";
-import { AppLogo } from "../DashboardPage/components/DashboardHeader/components";
+import { AppLogo } from "@/components/shared";
 import { Link as RouterLink } from "react-router";
 
 export const ColorsDemoPage = () => {

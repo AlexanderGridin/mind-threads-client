@@ -1,7 +1,7 @@
 import { Box } from "@chakra-ui/react";
 import { LuBrainCircuit } from "react-icons/lu";
 import { HStack, Text } from "@/components/lib";
-import { AppLogoTestId } from "./AppLogo.constants";
+import { APP_NAME, AppLogoTestId } from "./AppLogo.constants";
 
 export const AppLogo = () => {
   return (
@@ -26,7 +26,7 @@ export const AppLogo = () => {
         fontWeight="semibold"
         color="fg"
       >
-        Mind Threads
+        {APP_NAME}
       </Text>
     </HStack>
   );
