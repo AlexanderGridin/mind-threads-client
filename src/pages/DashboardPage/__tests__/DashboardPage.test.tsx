@@ -1,11 +1,13 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderWithUIProvider } from "@/components/lib";
 import {
+  LOCATION_MARKER_TEST_ID,
   MALFORMED_JSON,
   mindThreadFixture,
   mindThreadFixtures,
+  mindThreadFixturesWithSameTitle,
+  renderWithRouter,
   seedThreads,
 } from "@/__test-fixtures__";
 import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsService.constants";
@@ -45,7 +47,7 @@ vi.mock("@/components/lib/color-mode/color-mode.hooks", () => ({
 const setup = () => {
   const user = userEvent.setup();
 
-  const renderResult = renderWithUIProvider(<DashboardPage />);
+  const renderResult = renderWithRouter({ ui: <DashboardPage /> });
 
   return { user, unmount: renderResult.unmount };
 };
@@ -235,6 +237,49 @@ describe("DashboardPage", () => {
     expect(button).toBeDisabled();
   });
 
+  describe("open thread", () => {
+    const FIRST_SAME_TITLE_PATH = "/threads/same-title-1";
+    const SAME_TITLE = "Testing Strategy";
+
+    const getThreadLinks = () => {
+      return screen.getAllByRole("link", { name: SAME_TITLE });
+    };
+
+    it("opens the thread page when a card is clicked in grid and in list view", async () => {
+      seedThreads(mindThreadFixturesWithSameTitle);
+
+      const gridRender = setup();
+
+      await findThreadTitles();
+
+      const [gridThreadLink] = getThreadLinks();
+      await gridRender.user.click(gridThreadLink);
+
+      const gridLocation = screen.getByTestId(LOCATION_MARKER_TEST_ID);
+      expect(gridLocation.textContent).toBe(FIRST_SAME_TITLE_PATH);
+
+      gridRender.unmount();
+
+      const listRender = setup();
+
+      await findThreadTitles();
+
+      const listModeButton = screen.getByTestId(
+        ThreadListModeButtonTestId.container
+      );
+      await listRender.user.click(listModeButton);
+
+      const listContainer = screen.getByTestId(MindThreadListTestId.container);
+      expect(listContainer).toHaveStyle({ display: "flex" });
+
+      const [listThreadLink] = getThreadLinks();
+      await listRender.user.click(listThreadLink);
+
+      const listLocation = screen.getByTestId(LOCATION_MARKER_TEST_ID);
+      expect(listLocation.textContent).toBe(FIRST_SAME_TITLE_PATH);
+    });
+  });
+
   describe("delete thread", () => {
     const seedThreeThreads = () => {
       seedThreads([
@@ -387,9 +432,7 @@ describe("DashboardPage", () => {
       expect(emptyState).toBeInTheDocument();
     });
 
-    it("does not open the thread when Delete is chosen from a card's menu", async () => {
-      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
+    it("opens the delete modal without opening the thread when Delete is chosen from a card's menu", async () => {
       seedThreeThreads();
 
       const { user } = setup();
@@ -400,7 +443,8 @@ describe("DashboardPage", () => {
       const modalTitle = await screen.findByText(DELETE_THREAD_MODAL_TITLE);
       expect(modalTitle).toBeInTheDocument();
 
-      expect(consoleSpy).not.toHaveBeenCalled();
+      const locationMarker = screen.queryByTestId(LOCATION_MARKER_TEST_ID);
+      expect(locationMarker).not.toBeInTheDocument();
     });
   });
 
@@ -567,9 +611,7 @@ describe("DashboardPage", () => {
       ]);
     });
 
-    it("does not open the thread when Edit is chosen from a card's menu", async () => {
-      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
+    it("opens the edit modal without opening the thread when Edit is chosen from a card's menu", async () => {
       seedThreeThreads();
 
       const { user } = setup();
@@ -580,7 +622,8 @@ describe("DashboardPage", () => {
       const modalTitle = await screen.findByText(EDIT_THREAD_MODAL_TITLE);
       expect(modalTitle).toBeInTheDocument();
 
-      expect(consoleSpy).not.toHaveBeenCalled();
+      const locationMarker = screen.queryByTestId(LOCATION_MARKER_TEST_ID);
+      expect(locationMarker).not.toBeInTheDocument();
     });
   });
 });

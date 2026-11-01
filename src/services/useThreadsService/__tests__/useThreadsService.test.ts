@@ -85,6 +85,59 @@ describe("useThreadsService", () => {
     });
   });
 
+  describe("getThread", () => {
+    it("resolves the stored thread with the given id", async () => {
+      const { result } = setup();
+      const expectedThread = mindThreadFixtures[1];
+
+      seedThreads(mindThreadFixtures);
+
+      const thread = await result.current.getThread(expectedThread.id);
+      expect(thread).toStrictEqual(expectedThread);
+    });
+
+    it("resolves null for an unknown id", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixtures);
+
+      const thread = await result.current.getThread("unknown-thread-id");
+      expect(thread).toBeNull();
+    });
+
+    it("resolves null when nothing is stored", async () => {
+      const { result } = setup();
+
+      const thread = await result.current.getThread("thread-1");
+      expect(thread).toBeNull();
+    });
+
+    it("rejects when the stored value is malformed JSON", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const { result } = setup();
+
+      localStorage.setItem(THREADS_STORAGE_KEY, MALFORMED_JSON);
+
+      await expect(result.current.getThread("thread-1")).rejects.toThrow(
+        SyntaxError
+      );
+    });
+
+    it("rejects when the stored value is not a list of threads", async () => {
+      const { result } = setup();
+
+      localStorage.setItem(
+        THREADS_STORAGE_KEY,
+        JSON.stringify({ id: "thread-1" })
+      );
+
+      await expect(result.current.getThread("thread-1")).rejects.toThrow(
+        INVALID_THREADS_DATA_ERROR
+      );
+    });
+  });
+
   describe("createThread", () => {
     it("resolves the created thread with a trimmed title and zero counts", async () => {
       const { result } = setup();

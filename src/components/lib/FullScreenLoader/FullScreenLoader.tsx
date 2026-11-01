@@ -1,7 +1,7 @@
 import { Center, Spinner } from "@chakra-ui/react";
 import { FullScreenLoaderTestId } from "./FullScreenLoader.constants";
 
-type FullScreenLoaderProps = {
+export type FullScreenLoaderProps = {
   shown: boolean;
   label: string;
 };
