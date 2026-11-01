@@ -31,7 +31,7 @@ Key technical choices:
 - **Prettier** is configured via `.prettierrc.json` and formats only files in the `src/` folder.
 - **Testing** uses Vitest with React Testing Library. Component tests live co-located with components in `__tests__/` folders (e.g., `src/components/lib/Button/__tests__/Button.test.tsx`). Vitest configuration is in `vitest.config.ts` and the setup file is `vitest.setup.ts` at the project root.
 - **Path aliases**: The project uses path alias `@/` (configured in `tsconfig.app.json` and `vite.config.ts`) to import from `src/`. Example: `import { Button } from "@/components/lib"`.
-- **React Router**: Client-side routing is handled by `react-router` (v8). Routes are defined in `src/routing/AppRoutes.tsx` using `Routes`/`Route` and wrapped with `BrowserRouter` in `src/main.tsx`. For testing, use `MemoryRouter` (see Code Conventions → Routing).
+- **React Router**: Client-side routing is handled by `react-router` (v8). Routes are defined in `src/routing/AppRoutes.tsx` using `Routes`/`Route` and wrapped with `BrowserRouter` in `src/main.tsx`. For testing, use `MemoryRouter` (see Code Conventions → Routing). Route paths are defined in `src/routing/routing.constants.ts` (`AppPath`), and thread links are built with `getThreadPath(threadId)` from `src/routing/routing.utils.ts`. Import both by file path, not through the `@/routing` barrel: the barrel exports `AppRoutes`, which imports `@/pages`, so pages importing the barrel would create an import cycle.
 - **Folder structure**:
   - `src/pages/` — Page components (e.g., `DashboardPage`, `ThreadPage`), each in its own folder with an `index.ts` barrel export. Pages are co-located with their tests in `__tests__/` folders.
   - `src/routing/` — Routing configuration, including `AppRoutes.tsx` which defines all routes.
@@ -63,6 +63,7 @@ Key technical choices:
     </MemoryRouter>
   );
   ```
+- **Routing in tests**: Components that render links or use routing hooks are tested with `renderWithRouter` from `@/__test-fixtures__` instead of `renderWithUIProvider`. It renders the component on a route, shows the current path in a location marker (`LOCATION_MARKER_TEST_ID`) on every other route, and returns the router.
 
 ## Third-party Libraries
 
@@ -78,4 +79,4 @@ Key technical choices:
 
   App-wide notifications are rendered by `Notifications`, which is mounted inside `ChakraUIProvider`, and triggered with `notify.success(message)` or `notify.error(message)` from `@/components/lib`. They appear bottom-right, close automatically after 5 s, and follow the color mode. Tests rendered with `renderWithUIProvider` see them, and `vitest.setup.ts` clears them after each test.
 
-  Adapter props worth knowing: `Menu` takes a `triggerLabel`, a `triggerIcon` and an `items` array (`{ value, label, color?, onSelect }`); `Dialog` accepts `closeDisabled` (blocks Esc, outside click and the × button) and `initialFocusRef`; `Button` accepts `loading` and forwards a ref; `ColorPicker` accepts `disabled`.
+  Adapter props worth knowing: `Menu` takes a `triggerLabel`, a `triggerIcon` and an `items` array (`{ value, label, color?, onSelect }`); `Dialog` accepts `closeDisabled` (blocks Esc, outside click and the × button) and `initialFocusRef`; `Button` accepts `loading` and forwards a ref; `ColorPicker` accepts `disabled`. `LinkOverlay` takes `asChild` and expects a child that renders a link, such as react-router's `Link`; the adapter itself does not import react-router. The whole overlaid area becomes clickable while the child stays a real link. Other interactive elements inside such a card need `zIndex="1"` to stay clickable above the overlay. `FullScreenLoader` takes `shown` and `label`: while `shown` is true it covers the page with a `role="status"` element named by `label`, and it renders nothing otherwise.

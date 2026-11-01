@@ -61,6 +61,7 @@ src/
 │   └── ColorsDemoPage/    #   Theme/color demo (/colors-demo)
 ├── routing/              # Route definitions (AppRoutes.tsx)
 ├── components/lib/       # Reusable UI adapters wrapping Chakra UI components
+├── components/shared/    # Components shared between pages (e.g. AppLogo)
 ├── hooks/                # Shared hooks (e.g. useLocalStorage, useFetch)
 ├── services/             # Data-access hooks (e.g. useThreadsService)
 ├── types/                # Shared domain types
@@ -72,7 +73,7 @@ src/
 | Path | Page |
 | --- | --- |
 | `/` | Dashboard |
-| `/threads/:threadId` | Thread detail |
+| `/threads/:threadId` | Thread page (opened from a dashboard card) |
 | `/colors-demo` | Color theme demo |
 
 ## Conventions
