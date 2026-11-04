@@ -1,5 +1,4 @@
 import { Box } from "@/components/lib";
-import type { MindThread } from "@/types";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import {
   useDashboardPageAction,
@@ -22,10 +21,6 @@ export const MindThreadList = () => {
     ? undefined
     : "repeat(auto-fill, minmax(320px, 1fr))";
 
-  const handleThreadClick = (thread: MindThread) => {
-    console.log(thread);
-  };
-
   return (
     <Box
       data-testid={MindThreadListTestId.container}
@@ -44,7 +39,6 @@ export const MindThreadList = () => {
           <MindThreadCard
             thread={thread}
             forMode={threadListMode}
-            onClick={handleThreadClick}
             onEdit={openEditThreadModal}
             onDelete={openDeleteThreadModal}
           />

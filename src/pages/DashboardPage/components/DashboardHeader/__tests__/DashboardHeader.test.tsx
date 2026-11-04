@@ -5,7 +5,8 @@ import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import { DashboardHeader } from "../DashboardHeader";
 import { DashboardHeaderTestId } from "../DashboardHeader.constants";
 import { ColorModeButtonTestId } from "@/components/lib/color-mode/components/ColorModeButton/ColorModeButton.constants";
-import { AppLogoTestId, AddNewThreadTestId } from "../components";
+import { AppLogoTestId } from "@/components/shared";
+import { AddNewThreadTestId } from "../components";
 
 const mockUseColorModeReturn = { toggleColorMode: vi.fn() };
 

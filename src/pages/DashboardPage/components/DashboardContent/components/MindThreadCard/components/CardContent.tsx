@@ -1,7 +1,9 @@
-import { HStack, VStack, Text } from "@/components/lib";
+import { Link as RouterLink } from "react-router";
+import { HStack, VStack, Text, LinkOverlay } from "@/components/lib";
 import type { MindThread } from "@/types";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import type { ThreadListModeType } from "@/pages/DashboardPage/DashboardPage.types";
+import { getThreadPath } from "@/routing/routing.utils";
 import { MindThreadCardTestId } from "../MindThreadCard.constants";
 import { formatLastUpdated } from "../utils";
 
@@ -30,7 +32,9 @@ export const CardContent = ({ thread, forMode }: CardContentProps) => {
         fontSize="lg"
         as="h3"
       >
-        {thread.title}
+        <LinkOverlay asChild>
+          <RouterLink to={getThreadPath(thread.id)}>{thread.title}</RouterLink>
+        </LinkOverlay>
       </Text>
 
       <HStack gap="4" fontSize="md" color="fg.muted">

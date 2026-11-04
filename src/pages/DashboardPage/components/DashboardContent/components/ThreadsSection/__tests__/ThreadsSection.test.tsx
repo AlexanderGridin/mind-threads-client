@@ -1,10 +1,10 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { screen } from "@testing-library/react";
-import { renderWithUIProvider } from "@/components/lib";
 import { NotificationsTestId } from "@/components/lib/Notifications/Notifications.constants";
 import {
   MALFORMED_JSON,
   mindThreadFixtures,
+  renderWithRouter,
   seedThreads,
 } from "@/__test-fixtures__";
 import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsService.constants";
@@ -15,11 +15,13 @@ import { ThreadsLoadErrorTestId } from "../../ThreadsLoadError/ThreadsLoadError.
 import { ThreadsSection } from "../ThreadsSection";
 
 const setup = () => {
-  renderWithUIProvider(
-    <DashboardPageLoader>
-      <ThreadsSection />
-    </DashboardPageLoader>
-  );
+  renderWithRouter({
+    ui: (
+      <DashboardPageLoader>
+        <ThreadsSection />
+      </DashboardPageLoader>
+    ),
+  });
 };
 
 describe("ThreadsSection", () => {

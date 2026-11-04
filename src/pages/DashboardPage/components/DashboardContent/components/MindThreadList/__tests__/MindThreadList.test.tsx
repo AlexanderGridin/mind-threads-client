@@ -1,17 +1,21 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderWithUIProvider } from "@/components/lib";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import type { ThreadListModeType } from "@/pages/DashboardPage/DashboardPage.types";
 import { MindThreadList } from "../MindThreadList";
 import { MindThreadListTestId } from "../MindThreadList.constants";
 import { MindThreadCardTestId } from "../../MindThreadCard/MindThreadCard.constants";
 import {
+  LOCATION_MARKER_TEST_ID,
   mindThreadFixtures,
   mindThreadFixturesWithSameTitle,
+  renderWithRouter,
 } from "@/__test-fixtures__";
 import type { MindThread } from "@/types";
+
+const FIRST_THREAD_TITLE = "Thread One";
+const FIRST_THREAD_PATH = "/threads/thread-1";
 
 let mockThreadListMode: ThreadListModeType = ThreadListMode.Grid;
 let mockThreads: MindThread[] = mindThreadFixtures;
@@ -35,7 +39,7 @@ vi.mock(
 
 const setup = () => {
   const user = userEvent.setup();
-  renderWithUIProvider(<MindThreadList />);
+  renderWithRouter({ ui: <MindThreadList /> });
   return { user };
 };
 
@@ -147,21 +151,20 @@ describe("MindThreadList", () => {
     await user.click(editMenuItem);
 
     expect(mockOpenEditThreadModal).toHaveBeenCalledOnce();
-
     expect(mockOpenEditThreadModal).toHaveBeenCalledWith(mindThreadFixtures[0]);
-
     expect(mockOpenDeleteThreadModal).not.toHaveBeenCalled();
   });
 
-  it("calls console.log with the thread when a card is clicked", async () => {
-    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
+  it("opens the clicked thread", async () => {
     const { user } = setup();
 
-    const cards = screen.getAllByTestId(MindThreadCardTestId.container);
-    await user.click(cards[0]);
+    const firstThreadLink = screen.getByRole("link", {
+      name: FIRST_THREAD_TITLE,
+    });
 
-    expect(consoleSpy).toHaveBeenCalledOnce();
-    expect(consoleSpy).toHaveBeenCalledWith(mindThreadFixtures[0]);
+    await user.click(firstThreadLink);
+
+    const location = screen.getByTestId(LOCATION_MARKER_TEST_ID);
+    expect(location.textContent).toBe(FIRST_THREAD_PATH);
   });
 });

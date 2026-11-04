@@ -31,6 +31,16 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     return storedThreads;
   };
 
+  const getThread = async (threadId: string): Promise<MindThread | null> => {
+    const storedThreads = await getThreads();
+
+    const storedThread = storedThreads.find((thread) => {
+      return thread.id === threadId;
+    });
+
+    return storedThread ?? null;
+  };
+
   const createThread = async (
     newThread: NewMindThread
   ): Promise<MindThread> => {
@@ -75,5 +85,5 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     );
   };
 
-  return { getThreads, createThread, updateThread, deleteThread };
+  return { getThreads, getThread, createThread, updateThread, deleteThread };
 };

@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { screen, within } from "@testing-library/react";
-import { renderWithUIProvider } from "@/components/lib";
 import {
   mindThreadFixturesWithSingleItem,
+  renderWithRouter,
   seedThreads,
 } from "@/__test-fixtures__";
 import { DashboardPageLoader } from "@/pages/DashboardPage/components/DashboardPageLoader";
@@ -11,11 +11,13 @@ import { DashboardContentTestId } from "../DashboardContent.constants";
 import { MindThreadListTestId } from "../components/MindThreadList/MindThreadList.constants";
 
 const setup = () => {
-  renderWithUIProvider(
-    <DashboardPageLoader>
-      <DashboardContent />
-    </DashboardPageLoader>
-  );
+  renderWithRouter({
+    ui: (
+      <DashboardPageLoader>
+        <DashboardContent />
+      </DashboardPageLoader>
+    ),
+  });
 };
 
 describe("DashboardContent", () => {

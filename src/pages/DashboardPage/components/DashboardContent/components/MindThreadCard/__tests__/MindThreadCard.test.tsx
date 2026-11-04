@@ -1,14 +1,20 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
-import { renderWithUIProvider } from "@/components/lib";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import type { ThreadListModeType } from "@/pages/DashboardPage/DashboardPage.types";
 import { MindThreadCard } from "../MindThreadCard";
 import { MindThreadCardTestId } from "../MindThreadCard.constants";
-import { mindThreadFixture } from "@/__test-fixtures__";
+import {
+  LOCATION_MARKER_TEST_ID,
+  mindThreadFixture,
+  renderWithRouter,
+} from "@/__test-fixtures__";
 
-const mockOnClick = vi.fn();
+const CARD_TITLE = "Test Thread";
+const THREAD_PATH = "/threads/test-thread";
+const OVERLAY_CLASS_NAME = "chakra-linkbox__overlay";
+
 const mockOnEdit = vi.fn();
 const mockOnDelete = vi.fn();
 
@@ -18,17 +24,26 @@ const setup = (
 ) => {
   const user = userEvent.setup();
 
-  renderWithUIProvider(
-    <MindThreadCard
-      thread={thread}
-      forMode={forMode}
-      onClick={mockOnClick}
-      onEdit={mockOnEdit}
-      onDelete={mockOnDelete}
-    />
-  );
+  renderWithRouter({
+    ui: (
+      <MindThreadCard
+        thread={thread}
+        forMode={forMode}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+      />
+    ),
+  });
 
   return { user };
+};
+
+const getCardLink = () => {
+  return screen.getByRole("link", { name: CARD_TITLE });
+};
+
+const getLocation = () => {
+  return screen.queryByTestId(LOCATION_MARKER_TEST_ID)?.textContent ?? null;
 };
 
 beforeEach(() => {
@@ -47,7 +62,7 @@ describe("MindThreadCard", () => {
 
     const title = screen.getByTestId(MindThreadCardTestId.title);
     expect(title).toBeInTheDocument();
-    expect(title.textContent).toBe("Test Thread");
+    expect(title.textContent).toBe(CARD_TITLE);
 
     const sections = screen.getByTestId(MindThreadCardTestId.sections);
     expect(sections).toBeInTheDocument();
@@ -69,12 +84,60 @@ describe("MindThreadCard", () => {
     expect(lastUpdated.textContent).toBe("Updated: N/A");
   };
 
-  const handlesClickProperly = async (user: UserEvent) => {
-    const container = screen.getByTestId(MindThreadCardTestId.container);
-    await user.click(container);
+  const rendersThreadLink = () => {
+    const threadLink = getCardLink();
 
-    expect(mockOnClick).toHaveBeenCalledOnce();
-    expect(mockOnClick).toHaveBeenCalledWith(mindThreadFixture);
+    expect(threadLink).toBeInTheDocument();
+    expect(threadLink).toHaveAttribute("href", THREAD_PATH);
+  };
+
+  const coversWholeCard = () => {
+    const container = screen.getByTestId(MindThreadCardTestId.container);
+    const threadLink = getCardLink();
+
+    expect(container).toContainElement(threadLink);
+    expect(threadLink).toHaveClass(OVERLAY_CLASS_NAME);
+  };
+
+  const navigatesOnEnterAfterTab = async (user: UserEvent) => {
+    await user.tab();
+
+    const threadLink = getCardLink();
+    expect(threadLink).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+
+    expect(getLocation()).toBe(THREAD_PATH);
+  };
+
+  const doesNotNavigateOnModifiedClick = async (user: UserEvent) => {
+    const threadLink = getCardLink();
+
+    await user.keyboard("{Control>}");
+    await user.click(threadLink);
+    await user.keyboard("{/Control}");
+
+    expect(getLocation()).toBeNull();
+
+    await user.keyboard("{Meta>}");
+    await user.click(threadLink);
+    await user.keyboard("{/Meta}");
+
+    expect(getLocation()).toBeNull();
+    expect(
+      screen.getByTestId(MindThreadCardTestId.container)
+    ).toBeInTheDocument();
+  };
+
+  const doesNotNavigateOnMiddleClick = async (user: UserEvent) => {
+    const threadLink = getCardLink();
+
+    await user.pointer({ keys: "[MouseMiddle]", target: threadLink });
+
+    expect(getLocation()).toBeNull();
+    expect(
+      screen.getByTestId(MindThreadCardTestId.container)
+    ).toBeInTheDocument();
   };
 
   const getActionsButton = () => {
@@ -87,9 +150,10 @@ describe("MindThreadCard", () => {
     expect(getActionsButton()).toBeInTheDocument();
   };
 
-  const doesNotTriggerCardClickOnActions = async (user: UserEvent) => {
+  const doesNotNavigateOnActions = async (user: UserEvent) => {
     await user.click(getActionsButton());
-    expect(mockOnClick).not.toHaveBeenCalled();
+
+    expect(getLocation()).toBeNull();
   };
 
   const handlesEditProperly = async (user: UserEvent) => {
@@ -101,7 +165,7 @@ describe("MindThreadCard", () => {
     expect(mockOnEdit).toHaveBeenCalledOnce();
     expect(mockOnEdit).toHaveBeenCalledWith(mindThreadFixture);
 
-    expect(mockOnClick).not.toHaveBeenCalled();
+    expect(getLocation()).toBeNull();
   };
 
   const handlesDeleteProperly = async (user: UserEvent) => {
@@ -113,7 +177,7 @@ describe("MindThreadCard", () => {
     expect(mockOnDelete).toHaveBeenCalledOnce();
     expect(mockOnDelete).toHaveBeenCalledWith(mindThreadFixture);
 
-    expect(mockOnClick).not.toHaveBeenCalled();
+    expect(getLocation()).toBeNull();
   };
 
   describe("grid layout", () => {
@@ -172,9 +236,29 @@ describe("MindThreadCard", () => {
       expect(colorBorderTop).toHaveStyle({ backgroundColor: "#FF6B6B" });
     });
 
-    it("calls onClick with thread when clicked", async () => {
+    it("renders a link named after the thread title to the thread page", () => {
+      setup();
+      rendersThreadLink();
+    });
+
+    it("covers the whole card with the thread link", () => {
+      setup();
+      coversWholeCard();
+    });
+
+    it("navigates to the thread page when Enter is pressed on the focused card", async () => {
       const { user } = setup();
-      await handlesClickProperly(user);
+      await navigatesOnEnterAfterTab(user);
+    });
+
+    it("does not navigate in place on Ctrl+click or Cmd+click", async () => {
+      const { user } = setup();
+      await doesNotNavigateOnModifiedClick(user);
+    });
+
+    it("does not navigate in place on middle-click", async () => {
+      const { user } = setup();
+      await doesNotNavigateOnMiddleClick(user);
     });
 
     it("renders the thread actions button", () => {
@@ -182,17 +266,17 @@ describe("MindThreadCard", () => {
       rendersActionsButton();
     });
 
-    it("does not call onClick when the actions button is clicked", async () => {
+    it("does not navigate when the actions button is clicked", async () => {
       const { user } = setup();
-      await doesNotTriggerCardClickOnActions(user);
+      await doesNotNavigateOnActions(user);
     });
 
-    it("calls onEdit with the thread and not onClick when Edit is chosen", async () => {
+    it("calls onEdit with the thread and does not navigate when Edit is chosen", async () => {
       const { user } = setup();
       await handlesEditProperly(user);
     });
 
-    it("calls onDelete with the thread and not onClick when Delete is chosen", async () => {
+    it("calls onDelete with the thread and does not navigate when Delete is chosen", async () => {
       const { user } = setup();
       await handlesDeleteProperly(user);
     });
@@ -231,9 +315,29 @@ describe("MindThreadCard", () => {
       expect(colorBorderLeft).toHaveStyle({ backgroundColor: "#FF6B6B" });
     });
 
-    it("calls onClick with thread when clicked", async () => {
+    it("renders a link named after the thread title to the thread page", () => {
+      setup(mindThreadFixture, ThreadListMode.List);
+      rendersThreadLink();
+    });
+
+    it("covers the whole card with the thread link", () => {
+      setup(mindThreadFixture, ThreadListMode.List);
+      coversWholeCard();
+    });
+
+    it("navigates to the thread page when Enter is pressed on the focused card", async () => {
       const { user } = setup(mindThreadFixture, ThreadListMode.List);
-      await handlesClickProperly(user);
+      await navigatesOnEnterAfterTab(user);
+    });
+
+    it("does not navigate in place on Ctrl+click or Cmd+click", async () => {
+      const { user } = setup(mindThreadFixture, ThreadListMode.List);
+      await doesNotNavigateOnModifiedClick(user);
+    });
+
+    it("does not navigate in place on middle-click", async () => {
+      const { user } = setup(mindThreadFixture, ThreadListMode.List);
+      await doesNotNavigateOnMiddleClick(user);
     });
 
     it("renders the thread actions button", () => {
@@ -241,17 +345,17 @@ describe("MindThreadCard", () => {
       rendersActionsButton();
     });
 
-    it("does not call onClick when the actions button is clicked", async () => {
+    it("does not navigate when the actions button is clicked", async () => {
       const { user } = setup(mindThreadFixture, ThreadListMode.List);
-      await doesNotTriggerCardClickOnActions(user);
+      await doesNotNavigateOnActions(user);
     });
 
-    it("calls onEdit with the thread and not onClick when Edit is chosen", async () => {
+    it("calls onEdit with the thread and does not navigate when Edit is chosen", async () => {
       const { user } = setup(mindThreadFixture, ThreadListMode.List);
       await handlesEditProperly(user);
     });
 
-    it("calls onDelete with the thread and not onClick when Delete is chosen", async () => {
+    it("calls onDelete with the thread and does not navigate when Delete is chosen", async () => {
       const { user } = setup(mindThreadFixture, ThreadListMode.List);
       await handlesDeleteProperly(user);
     });

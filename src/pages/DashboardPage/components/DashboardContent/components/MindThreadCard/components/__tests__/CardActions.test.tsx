@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib";
 import { mindThreadFixture } from "@/__test-fixtures__";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
+import { MindThreadCardTestId } from "../../MindThreadCard.constants";
 import { CardActions } from "../CardActions";
 
 const ACTIONS_LABEL = `Thread actions for ${mindThreadFixture.title}`;
@@ -12,22 +13,19 @@ const DELETE_ITEM_LABEL = "Delete";
 
 const setup = () => {
   const user = userEvent.setup();
-  const onParentClick = vi.fn();
   const onEdit = vi.fn();
   const onDelete = vi.fn();
 
   renderWithUIProvider(
-    <div onClick={onParentClick}>
-      <CardActions
-        thread={mindThreadFixture}
-        forMode={ThreadListMode.Grid}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
-    </div>
+    <CardActions
+      thread={mindThreadFixture}
+      forMode={ThreadListMode.Grid}
+      onEdit={onEdit}
+      onDelete={onDelete}
+    />
   );
 
-  return { user, onParentClick, onEdit, onDelete };
+  return { user, onEdit, onDelete };
 };
 
 const getActionsButton = () => {
@@ -56,20 +54,15 @@ describe("CardActions", () => {
     expect(currentItems).toStrictEqual([EDIT_ITEM_LABEL, DELETE_ITEM_LABEL]);
   });
 
-  it("does not call the parent's onClick when the actions button or Delete is clicked", async () => {
-    const { user, onParentClick } = setup();
+  it("keeps the actions container above the link overlay with z-index 1", () => {
+    setup();
 
-    const [, deleteMenuItem] = await openMenu(user);
-
-    expect(onParentClick).not.toHaveBeenCalled();
-
-    await user.click(deleteMenuItem);
-
-    expect(onParentClick).not.toHaveBeenCalled();
+    const actionsContainer = screen.getByTestId(MindThreadCardTestId.actions);
+    expect(actionsContainer).toHaveStyle({ zIndex: "1" });
   });
 
   it("calls onDelete with the thread and closes the menu when Delete is clicked", async () => {
-    const { user, onDelete } = setup();
+    const { user, onDelete, onEdit } = setup();
 
     const [, deleteMenuItem] = await openMenu(user);
 
@@ -78,13 +71,15 @@ describe("CardActions", () => {
     expect(onDelete).toHaveBeenCalledOnce();
     expect(onDelete).toHaveBeenCalledWith(mindThreadFixture);
 
+    expect(onEdit).not.toHaveBeenCalled();
+
     await waitFor(() =>
       expect(screen.queryAllByRole("menuitem")).toHaveLength(0)
     );
   });
 
-  it("calls onEdit with the thread, not onDelete or the parent's onClick, and closes the menu when Edit is clicked", async () => {
-    const { user, onParentClick, onEdit, onDelete } = setup();
+  it("calls onEdit with the thread, not onDelete, and closes the menu when Edit is clicked", async () => {
+    const { user, onEdit, onDelete } = setup();
 
     const [editMenuItem] = await openMenu(user);
 
@@ -92,8 +87,8 @@ describe("CardActions", () => {
 
     expect(onEdit).toHaveBeenCalledOnce();
     expect(onEdit).toHaveBeenCalledWith(mindThreadFixture);
+
     expect(onDelete).not.toHaveBeenCalled();
-    expect(onParentClick).not.toHaveBeenCalled();
 
     await waitFor(() =>
       expect(screen.queryAllByRole("menuitem")).toHaveLength(0)
@@ -108,6 +103,7 @@ describe("CardActions", () => {
 
     const [editMenuItem, deleteMenuItem] =
       await screen.findAllByRole("menuitem");
+
     const menu = screen.getByRole("menu");
 
     // Zag keeps DOM focus on the menu and marks the highlighted item with aria-activedescendant.

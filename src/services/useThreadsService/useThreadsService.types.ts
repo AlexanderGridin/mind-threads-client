@@ -2,6 +2,7 @@ import type { MindThread, MindThreadUpdate, NewMindThread } from "@/types";
 
 export type UseThreadsServiceReturn = {
   getThreads: () => Promise<MindThread[]>;
+  getThread: (threadId: string) => Promise<MindThread | null>;
   createThread: (newThread: NewMindThread) => Promise<MindThread>;
   updateThread: (threadUpdate: MindThreadUpdate) => Promise<MindThread>;
   deleteThread: (threadId: string) => Promise<void>;

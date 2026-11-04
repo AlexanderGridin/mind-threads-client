@@ -1,4 +1,3 @@
-import type { MouseEvent } from "react";
 import { LuEllipsisVertical } from "react-icons/lu";
 import { Box, Menu, type MenuItem } from "@/components/lib";
 import type { MindThread } from "@/types";
@@ -27,10 +26,6 @@ export const CardActions = ({
   const forListMode = forMode === ThreadListMode.List;
   const top = forListMode ? "2" : "4";
 
-  const handleContainerClick = (event: MouseEvent) => {
-    event.stopPropagation();
-  };
-
   const handleEdit = () => {
     onEdit(thread);
   };
@@ -50,7 +45,7 @@ export const CardActions = ({
       position="absolute"
       top={top}
       right="2"
-      onClick={handleContainerClick}
+      zIndex="1"
     >
       <Menu
         triggerLabel={getThreadActionsLabel(thread.title)}

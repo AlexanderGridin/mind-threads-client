@@ -29,6 +29,13 @@ export type BoxProps = {
   backgroundColor?: string;
   flexShrink?: number;
   flexGrow?: number;
+  zIndex?: string;
+  alignItems?: string;
+  justifyContent?: string;
+  minWidth?: string;
+  divideX?: string;
+  divideColor?: string;
+  borderBottomWidth?: string;
 };
 
 export const Box = ({ children, ...props }: BoxProps) => (

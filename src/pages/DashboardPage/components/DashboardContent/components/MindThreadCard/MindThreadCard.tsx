@@ -8,7 +8,6 @@ import { MindThreadCardTestId } from "./MindThreadCard.constants";
 type MindThreadCardProps = {
   thread: MindThread;
   forMode?: ThreadListModeType;
-  onClick: (thread: MindThread) => void;
   onEdit: (thread: MindThread) => void;
   onDelete: (thread: MindThread) => void;
 };
@@ -16,7 +15,6 @@ type MindThreadCardProps = {
 export const MindThreadCard = ({
   thread,
   forMode = ThreadListMode.Grid,
-  onClick,
   onEdit,
   onDelete,
 }: MindThreadCardProps) => {
@@ -24,8 +22,6 @@ export const MindThreadCard = ({
 
   const flexDirection = forListMode ? "row" : "column";
   const gap = forListMode ? "3" : "0";
-
-  const handleClick = () => onClick(thread);
 
   return (
     <Box
@@ -47,7 +43,6 @@ export const MindThreadCard = ({
       width="100%"
       textAlign="left"
       cursor="pointer"
-      onClick={handleClick}
     >
       <CardColorIndicator color={thread.color} forMode={forMode} />
       <CardContent thread={thread} forMode={forMode} />
