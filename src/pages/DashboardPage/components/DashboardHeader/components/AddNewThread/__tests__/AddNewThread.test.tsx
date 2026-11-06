@@ -1,7 +1,7 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { MALFORMED_JSON } from "@/__test-fixtures__";
 import { DashboardPageLoader } from "@/pages/DashboardPage/components/DashboardPageLoader";
 import { AddNewThreadModalContainer } from "@/pages/DashboardPage/components/AddNewThreadModalContainer";

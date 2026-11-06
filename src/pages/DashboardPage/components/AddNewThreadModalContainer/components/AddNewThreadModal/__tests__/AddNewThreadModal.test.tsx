@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { NORD_AURORA_SWATCHES } from "@/components/lib/ColorPicker/ColorPicker.constants";
 import { AddNewThreadModal } from "../AddNewThreadModal";
 import { ThreadFormTestId } from "@/components/shared/ThreadForm/ThreadForm.constants";

@@ -7,7 +7,7 @@ import {
 import userEvent, {
   PointerEventsCheckLevel,
 } from "@testing-library/user-event";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { ColorPickerTestId } from "@/components/lib/ColorPicker/ColorPicker.constants";
 import { ThreadFormTestId } from "@/components/shared/ThreadForm/ThreadForm.constants";
 import { ThreadFormModalActionsTestId } from "@/components/shared/ThreadFormModalActions/ThreadFormModalActions.constants";

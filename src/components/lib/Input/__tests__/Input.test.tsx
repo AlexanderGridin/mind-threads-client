@@ -3,7 +3,7 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { Input, type InputProps } from "../Input";
-import { renderWithUIProvider } from "../../utils";
+import { renderWithUIProvider } from "../../__test-fixtures__";
 import {
   INPUT_LABEL_TEST_ID,
   INPUT_REQUIRED_INDICATOR_TEST_ID,

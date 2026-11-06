@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { screen } from "@testing-library/react";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { ThreadColumn } from "../ThreadColumn";
 
 const COLUMN_TEST_ID = "ThreadColumn__test";

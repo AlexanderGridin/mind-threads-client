@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import type { ThreadListModeType } from "@/pages/DashboardPage/DashboardPage.types";
 import { ThreadListModeButton } from "../ThreadListModeButton";

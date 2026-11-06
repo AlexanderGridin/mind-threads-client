@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { createRef, type Ref } from "react";
 
 import { Button, type ButtonProps } from "../Button";
-import { renderWithUIProvider } from "../../utils";
+import { renderWithUIProvider } from "../../__test-fixtures__";
 
 const setup = ({
   onClick = vi.fn(),

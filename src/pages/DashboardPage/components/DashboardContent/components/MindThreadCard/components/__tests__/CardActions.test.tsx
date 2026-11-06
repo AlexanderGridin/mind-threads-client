@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { mindThreadFixture } from "@/__test-fixtures__";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import { MindThreadCardTestId } from "../../MindThreadCard.constants";

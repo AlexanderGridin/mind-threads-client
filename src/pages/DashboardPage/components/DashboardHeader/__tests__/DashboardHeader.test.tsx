@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/react";
 import { vi } from "vitest";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import { DashboardHeader } from "../DashboardHeader";
 import { DashboardHeaderTestId } from "../DashboardHeader.constants";

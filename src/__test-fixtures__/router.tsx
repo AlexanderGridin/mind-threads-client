@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { AppPath } from "@/routing/routing.constants";
 import { LocationMarker } from "./LocationMarker";
 

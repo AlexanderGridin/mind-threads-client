@@ -3,7 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent, {
   PointerEventsCheckLevel,
 } from "@testing-library/user-event";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import {
   clickOutside,
   stubLayout,

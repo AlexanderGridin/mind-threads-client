@@ -4,7 +4,7 @@ import {
   FullScreenLoader,
   type FullScreenLoaderProps,
 } from "../FullScreenLoader";
-import { renderWithUIProvider } from "../../utils";
+import { renderWithUIProvider } from "../../__test-fixtures__";
 
 const LOADER_LABEL = "Loading thread";
 

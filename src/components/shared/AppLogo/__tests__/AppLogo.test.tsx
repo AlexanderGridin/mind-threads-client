@@ -1,5 +1,5 @@
 import { screen } from "@testing-library/react";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { AppLogo } from "../AppLogo";
 import { APP_NAME, AppLogoTestId } from "../AppLogo.constants";
 

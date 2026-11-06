@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { screen } from "@testing-library/react";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { ThreadsLoadError } from "../ThreadsLoadError";
 import {
   THREADS_LOAD_ERROR_MESSAGE,

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { screen, within } from "@testing-library/react";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { ThreadColumns } from "../ThreadColumns";
 import {
   CONTENT_COLUMN_MESSAGE,

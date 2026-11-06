@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { createRef } from "react";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { DeleteThreadModalActions } from "../DeleteThreadModalActions";
 import { DeleteThreadModalActionsTestId } from "../DeleteThreadModalActions.constants";
 import type { DeleteThreadModalActionsProps } from "../DeleteThreadModalActions.types";

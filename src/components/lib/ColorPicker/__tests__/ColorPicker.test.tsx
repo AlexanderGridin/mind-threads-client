@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { ColorPicker, type ColorPickerProps } from "../ColorPicker";
-import { renderWithUIProvider } from "../../utils";
+import { renderWithUIProvider } from "../../__test-fixtures__";
 import {
   ColorPickerTestId,
   NORD_AURORA_SWATCHES,

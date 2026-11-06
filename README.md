@@ -76,6 +76,8 @@ src/
 | `/threads/:threadId` | Thread page (opened from a dashboard card) |
 | `/colors-demo` | Color theme demo |
 
+The published site serves these paths under `/mind-threads-client/` (for example, `https://alexandergridin.github.io/mind-threads-client/threads/<threadId>`). The local dev server serves them from the root.
+
 ## Conventions
 
 - **Path alias**: import from `src/` using the `@/` alias (e.g. `import { Button } from "@/components/lib"`).
@@ -87,9 +89,33 @@ See [`CLAUDE.md`](./CLAUDE.md) for the full set of code conventions and architec
 
 ## Testing
 
-Tests are co-located with the code they cover in `__tests__/` folders and run with Vitest and React Testing Library. Components that rely on Chakra UI should be rendered with `renderWithUIProvider` from `@/components/lib`; components using routing hooks should be wrapped in a `MemoryRouter`.
+Tests are co-located with the code they cover in `__tests__/` folders and run with Vitest and React Testing Library. Components that rely on Chakra UI should be rendered with `renderWithUIProvider` from `@/components/lib/__test-fixtures__`, which stays outside the `@/components/lib` barrel so the production bundle does not include testing libraries; components using routing hooks should be wrapped in a `MemoryRouter`.
 
 ```bash
 npm run test          # single run
 npm run test:watch    # watch mode
 ```
+
+## CI and Publishing
+
+The published site is at <https://alexandergridin.github.io/mind-threads-client/>. It is built and deployed by the GitHub Actions workflow in [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
+
+Every pull request and every merge into `main` runs four jobs, in this order. Each job runs only if the previous one passed.
+
+| Job | Command | Fails when |
+| --- | --- | --- |
+| `Audit` | `npm audit --audit-level=high` | A high or critical advisory exists. Low and moderate advisories do not fail it. |
+| `Tests` | `npm run test:coverage -- --bail=1` | A test fails, or coverage is below the thresholds in `vitest.config.ts`. |
+| `Build` | `npm run build` | There is a TypeScript error, the build fails, or test code (`__tests__`, `__mocks__`, `__test-fixtures__`, or test libraries) ends up in the bundle. |
+| `Publish` | `actions/deploy-pages` | Runs only after a merge into `main`, never on a pull request. A failed run leaves the previously published site in place. |
+
+### Rules for `main`
+
+- Direct pushes to `main` are rejected, including from repo admins.
+- Changes arrive through pull requests.
+- `Audit`, `Tests`, and `Build` must pass before a pull request can be merged.
+- No reviewer approval is required.
+
+### Rollback
+
+To roll back a bad release, open a pull request that reverts the change, and merge it. The pipeline then republishes the earlier code. This is not instant: it takes one run on the pull request and one run after the merge. A revert cannot merge while `Audit`, `Tests`, or `Build` fails on it, so fix the failing step first.
