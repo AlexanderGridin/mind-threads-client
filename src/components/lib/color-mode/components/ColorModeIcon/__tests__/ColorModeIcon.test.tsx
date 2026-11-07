@@ -1,6 +1,6 @@
 import { screen } from "@testing-library/react";
 import { ColorModeIcon } from "../ColorModeIcon";
-import { renderWithUIProvider } from "../../../../utils";
+import { renderWithUIProvider } from "../../../../__test-fixtures__";
 import { ColorModeIconTestId } from "../ColorModeIcon.constants";
 
 const mockUseColorModeReturn = {

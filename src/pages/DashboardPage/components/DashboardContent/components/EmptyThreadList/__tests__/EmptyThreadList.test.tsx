@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { DashboardPageLoader } from "@/pages/DashboardPage/components/DashboardPageLoader";
 import { AddNewThreadModalContainer } from "@/pages/DashboardPage/components/AddNewThreadModalContainer";
 import { ADD_NEW_THREAD_MODAL_TITLE } from "@/pages/DashboardPage/components/AddNewThreadModalContainer/components/AddNewThreadModal/AddNewThreadModal.constants";

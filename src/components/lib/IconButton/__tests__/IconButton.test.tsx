@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { IconButton, type IconButtonProps } from "../IconButton";
-import { renderWithUIProvider } from "../../utils";
+import { renderWithUIProvider } from "../../__test-fixtures__";
 
 const mockOnClick = vi.fn();
 

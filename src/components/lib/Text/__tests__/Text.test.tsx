@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { screen } from "@testing-library/react";
 
 import { Text, type TextProps } from "../Text";
-import { renderWithUIProvider } from "../../utils";
+import { renderWithUIProvider } from "../../__test-fixtures__";
 
 const setup = (props: Partial<TextProps> = {}) => {
   const defaultProps: TextProps = {

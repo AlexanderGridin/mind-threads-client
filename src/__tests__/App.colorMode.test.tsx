@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { screen, waitForElementToBeRemoved } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { ColorModeButtonTestId } from "@/components/lib/color-mode/components/ColorModeButton/ColorModeButton.constants";
 import { mindThreadFixtures, seedThreads } from "@/__test-fixtures__";
 import { App } from "../App";

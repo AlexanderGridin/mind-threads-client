@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import { LinkOverlay, type LinkOverlayProps } from "../LinkOverlay";
-import { renderWithUIProvider } from "../../utils";
+import { renderWithUIProvider } from "../../__test-fixtures__";
 
 const LINK_OVERLAY_CLASS_NAME = "chakra-linkbox__overlay";
 

@@ -11,7 +11,7 @@ import {
   waitForDismissListeners,
 } from "@/__test-fixtures__";
 import { Dialog, type DialogProps } from "../Dialog";
-import { renderWithUIProvider } from "../../utils";
+import { renderWithUIProvider } from "../../__test-fixtures__";
 
 const setup = ({
   open = true,

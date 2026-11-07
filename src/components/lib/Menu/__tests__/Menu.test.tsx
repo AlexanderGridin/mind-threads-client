@@ -7,7 +7,7 @@ import userEvent, {
 import { clickOutside, waitForDismissListeners } from "@/__test-fixtures__";
 import { Menu } from "../Menu";
 import type { MenuItem, MenuProps } from "../Menu.types";
-import { renderWithUIProvider } from "../../utils";
+import { renderWithUIProvider } from "../../__test-fixtures__";
 
 const TRIGGER_LABEL = "Thread actions";
 const TRIGGER_ICON = <span>⋮</span>;

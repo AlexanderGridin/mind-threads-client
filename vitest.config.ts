@@ -16,7 +16,7 @@ export default defineConfig({
         "*.types.ts",
         "src/pages/ColorsDemoPage/**",
         "src/__mocks__/**",
-        "src/__test-fixtures__/**",
+        "**/__test-fixtures__/**",
         "*.module.css",
       ],
       thresholds: {

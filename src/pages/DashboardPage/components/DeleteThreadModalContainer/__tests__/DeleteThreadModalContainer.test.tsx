@@ -7,7 +7,7 @@ import {
 import userEvent, {
   PointerEventsCheckLevel,
 } from "@testing-library/user-event";
-import { renderWithUIProvider } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import {
   createDeferred,
   mindThreadFixture,

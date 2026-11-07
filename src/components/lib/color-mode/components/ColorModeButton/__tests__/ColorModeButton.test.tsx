@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { ColorModeButton } from "../ColorModeButton";
-import { renderWithUIProvider } from "../../../../utils";
+import { renderWithUIProvider } from "../../../../__test-fixtures__";
 import { ColorModeButtonTestId } from "../ColorModeButton.constants";
 
 const mockUseColorModeReturn = {

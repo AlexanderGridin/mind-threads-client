@@ -31,7 +31,7 @@ Key technical choices:
 - **Prettier** is configured via `.prettierrc.json` and formats only files in the `src/` folder.
 - **Testing** uses Vitest with React Testing Library. Component tests live co-located with components in `__tests__/` folders (e.g., `src/components/lib/Button/__tests__/Button.test.tsx`). Vitest configuration is in `vitest.config.ts` and the setup file is `vitest.setup.ts` at the project root.
 - **Path aliases**: The project uses path alias `@/` (configured in `tsconfig.app.json` and `vite.config.ts`) to import from `src/`. Example: `import { Button } from "@/components/lib"`.
-- **React Router**: Client-side routing is handled by `react-router` (v8). Routes are defined in `src/routing/AppRoutes.tsx` using `Routes`/`Route` and wrapped with `BrowserRouter` in `src/main.tsx`. For testing, use `MemoryRouter` (see Code Conventions → Routing). Route paths are defined in `src/routing/routing.constants.ts` (`AppPath`), and thread links are built with `getThreadPath(threadId)` from `src/routing/routing.utils.ts`. Import both by file path, not through the `@/routing` barrel: the barrel exports `AppRoutes`, which imports `@/pages`, so pages importing the barrel would create an import cycle.
+- **React Router**: Client-side routing is handled by `react-router` (v8). Routes are defined in `src/routing/AppRoutes.tsx` using `Routes`/`Route` and wrapped with `BrowserRouter` in `src/main.tsx`. `BrowserRouter` gets `basename={import.meta.env.BASE_URL}`, and `base` is set in `vite.config.ts` for `build` and `preview` only, so the published site serves under `/mind-threads-client/` while the dev server stays at `/`. For testing, use `MemoryRouter` (see Code Conventions → Routing). Route paths are defined in `src/routing/routing.constants.ts` (`AppPath`), and thread links are built with `getThreadPath(threadId)` from `src/routing/routing.utils.ts`. Import both by file path, not through the `@/routing` barrel: the barrel exports `AppRoutes`, which imports `@/pages`, so pages importing the barrel would create an import cycle.
 - **Folder structure**:
   - `src/pages/` — Page components (e.g., `DashboardPage`, `ThreadPage`), each in its own folder with an `index.ts` barrel export. Pages are co-located with their tests in `__tests__/` folders.
   - `src/routing/` — Routing configuration, including `AppRoutes.tsx` which defines all routes.
@@ -41,16 +41,18 @@ Key technical choices:
   - `src/services/` — Data-access hooks that return async methods (e.g., `useThreadsService`, which exposes `getThreads`, `createThread`, `updateThread` and `deleteThread`), organized as a folder per service. Threads are currently persisted in `localStorage` under the `threads` key.
   - `src/types/` — Shared TypeScript types, re-exported via a barrel `index.ts`.
   - `src/utils/` — Standalone utility functions, co-located with their tests in `__tests__/`.
-  - `src/__mocks__/`, `src/__test-fixtures__/` — Shared test mocks and fixtures.
+  - `src/__mocks__/`, `src/__test-fixtures__/`, `src/components/lib/__test-fixtures__/` — Shared test mocks and fixtures. The lib's fixtures are kept outside its barrel.
 - **File-naming conventions**: Within a feature folder, split concerns into co-located files by suffix — e.g. `local-storage.hooks.ts` (hooks), `local-storage.types.ts` (types) — and expose them through the folder's `index.ts`.
 - Entry point: `src/main.tsx` wraps the app with `StrictMode` → `ChakraUIProvider` → `BrowserRouter` → `src/App.tsx`.
+- **Build guard**: `vite-plugins/forbid-test-code.plugin.ts` fails `vite build` when a chunk contains test code. Production code must not import from `__tests__`, `__mocks__`, `__test-fixtures__`, or test libraries.
+- **CI pipeline**: `.github/workflows/ci.yml` defines the Audit, Tests, Build, and Publish jobs. Branch protection requires the first three by job name, so job names must not change without updating it.
 
 ## Code Conventions
 
 - **Conditional rendering**: Use ternary operators instead of `&&` operator for clarity and consistency.
 - **Event handlers**: Create internal `handle[EventName]()` functions for event handlers (e.g., `handleToggleVisibility()`) instead of inline arrow functions in JSX.
 - **Variable names**: Avoid single-letter variable names. Use descriptive names like `value`, `item`, `count` instead of `v`, `i`, `c`.
-- **Test setup**: Create a reusable `setup()` function within test files that calls a render function with the component under test and `userEvent.setup()`. For components using Chakra UI, use `renderWithUIProvider` from `@/components/lib` (which wraps the component with `ChakraUIProvider`). The function should return the user object and render result only when the render result is used within the tests.
+- **Test setup**: Create a reusable `setup()` function within test files that calls a render function with the component under test and `userEvent.setup()`. For components using Chakra UI, use `renderWithUIProvider` from `@/components/lib/__test-fixtures__` (which wraps the component with `ChakraUIProvider`). Inside the lib, import it relatively; it is never re-exported from the lib's barrel. The function should return the user object and render result only when the render result is used within the tests.
 - **Types vs Interfaces**: Prefer `type` over `interface`. Only use `interface` when you need its specific features (declaration merging, built-in object compatibility).
 - **Type-only imports**: Use `import type` for importing types (e.g., `import type { ReactNode } from "react"`). Required by `verbatimModuleSyntax` compiler option.
 - **Component functions**: Use arrow functions for components instead of function declarations (e.g., `export const MyComponent = () => {}`).
@@ -75,7 +77,7 @@ Key technical choices:
     <ChakraButton onClick={onClick}>{children}</ChakraButton>
   );
   ```
-  This structure allows for easier future extraction into a separate design system package. For testing components that use Chakra UI, always use `renderWithUIProvider` from `@/components/lib`.
+  This structure allows for easier future extraction into a separate design system package. For testing components that use Chakra UI, always use `renderWithUIProvider` from `@/components/lib/__test-fixtures__`.
 
   App-wide notifications are rendered by `Notifications`, which is mounted inside `ChakraUIProvider`, and triggered with `notify.success(message)` or `notify.error(message)` from `@/components/lib`. They appear bottom-right, close automatically after 5 s, and follow the color mode. Tests rendered with `renderWithUIProvider` see them, and `vitest.setup.ts` clears them after each test.
 

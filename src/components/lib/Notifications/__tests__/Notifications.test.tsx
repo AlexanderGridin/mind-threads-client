@@ -1,7 +1,8 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { act, screen, waitForElementToBeRemoved } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { notify, renderWithUIProvider } from "@/components/lib";
+import { notify } from "@/components/lib";
+import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import {
   NOTIFICATION_DURATION_MS,
   NotificationsTestId,
