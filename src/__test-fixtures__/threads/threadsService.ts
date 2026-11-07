@@ -3,7 +3,10 @@ import type { UseThreadsServiceReturn } from "@/services";
 type ServicesModule = typeof import("@/services");
 
 type ThreadsServiceOverrides = Partial<
-  Pick<UseThreadsServiceReturn, "getThread" | "updateThread" | "deleteThread">
+  Pick<
+    UseThreadsServiceReturn,
+    "getThread" | "updateThread" | "deleteThread" | "addThreadSection"
+  >
 >;
 
 export const threadsServiceOverrides: ThreadsServiceOverrides = {};
@@ -12,6 +15,7 @@ export const resetThreadsServiceOverrides = () => {
   delete threadsServiceOverrides.getThread;
   delete threadsServiceOverrides.updateThread;
   delete threadsServiceOverrides.deleteThread;
+  delete threadsServiceOverrides.addThreadSection;
 };
 
 export const createServicesMock = (
@@ -35,6 +39,11 @@ export const createServicesMock = (
         (threadsServiceOverrides.deleteThread ?? threadsService.deleteThread)(
           threadId
         ),
+      addThreadSection: (newSection) =>
+        (
+          threadsServiceOverrides.addThreadSection ??
+          threadsService.addThreadSection
+        )(newSection),
     };
   },
 });

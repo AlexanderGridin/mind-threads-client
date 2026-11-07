@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { LOCATION_MARKER_TEST_ID, renderWithRouter } from "@/__test-fixtures__";
 import { AppPath } from "@/routing/routing.constants";
 import { BACK_TO_DASHBOARD_LABEL } from "@/pages/ThreadPage/ThreadPage.constants";
-import { LocationMarker } from "@/__test-fixtures__/LocationMarker";
+import { LocationMarker } from "@/__test-fixtures__/router/LocationMarker";
 import { ThreadMessage } from "../ThreadMessage";
 import { ThreadMessageTestId } from "../ThreadMessage.constants";
 

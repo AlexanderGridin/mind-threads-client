@@ -1,6 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { screen, within } from "@testing-library/react";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
+import { mindThreadFixtures, seedThreads } from "@/__test-fixtures__";
+import { ThreadPageLoader } from "@/pages/ThreadPage/components/ThreadPageLoader";
 import { ThreadColumns } from "../ThreadColumns";
 import {
   CONTENT_COLUMN_MESSAGE,
@@ -12,9 +14,19 @@ import {
   ThreadColumnsTestId,
 } from "../ThreadColumns.constants";
 
+const STORED_THREAD = mindThreadFixtures[0];
+
 const setup = () => {
-  renderWithUIProvider(<ThreadColumns />);
+  renderWithUIProvider(
+    <ThreadPageLoader threadId={STORED_THREAD.id}>
+      <ThreadColumns />
+    </ThreadPageLoader>
+  );
 };
+
+beforeEach(() => {
+  seedThreads(mindThreadFixtures);
+});
 
 describe("ThreadColumns", () => {
   it("lays the columns out with the column template", () => {
@@ -71,7 +83,9 @@ describe("ThreadColumns", () => {
     expect(heading).not.toBeInTheDocument();
     expect(message).toBeInTheDocument();
 
-    expect(contentColumn).toHaveStyle({
+    const body = message.parentElement;
+
+    expect(body).toHaveStyle({
       alignItems: "center",
       justifyContent: "center",
     });

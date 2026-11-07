@@ -145,6 +145,62 @@ describe("useLocalStorage", () => {
     consoleErrorSpy.mockRestore();
   });
 
+  describe("cache invalidation", () => {
+    const dispatchStorageEvent = (key: string | null) => {
+      window.dispatchEvent(new StorageEvent("storage", { key }));
+    };
+
+    it("read() returns the new value after a storage event for its key", () => {
+      const { result } = setup();
+
+      localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(TEST_VALUE_1));
+      expect(result.current.read()).toBe(TEST_VALUE_1);
+
+      localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(TEST_VALUE_2));
+      dispatchStorageEvent(TEST_STORAGE_KEY);
+
+      expect(result.current.read()).toBe(TEST_VALUE_2);
+    });
+
+    it("read() returns the new value after a storage event with a null key", () => {
+      const { result } = setup();
+
+      localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(TEST_VALUE_1));
+      expect(result.current.read()).toBe(TEST_VALUE_1);
+
+      localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(TEST_VALUE_2));
+      dispatchStorageEvent(null);
+
+      expect(result.current.read()).toBe(TEST_VALUE_2);
+    });
+
+    it("read() keeps the cached value after a storage event for another key", () => {
+      const { result } = setup();
+
+      localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(TEST_VALUE_1));
+      expect(result.current.read()).toBe(TEST_VALUE_1);
+
+      localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(TEST_VALUE_2));
+      dispatchStorageEvent("other-key");
+
+      expect(result.current.read()).toBe(TEST_VALUE_1);
+    });
+
+    it("read() keeps the cached value after unmount, once the storage listener is removed", () => {
+      const { result, unmount } = setup();
+
+      localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(TEST_VALUE_1));
+      expect(result.current.read()).toBe(TEST_VALUE_1);
+
+      unmount();
+
+      localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(TEST_VALUE_2));
+      dispatchStorageEvent(TEST_STORAGE_KEY);
+
+      expect(result.current.read()).toBe(TEST_VALUE_1);
+    });
+  });
+
   describe("with throwOnError", () => {
     it("read() throws a malformed stored value and still logs via console.error", () => {
       const { result } = setup({ throwOnError: true });

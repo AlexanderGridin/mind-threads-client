@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createRef, type Ref } from "react";
 
 import { Input, type InputProps } from "../Input";
 import { renderWithUIProvider } from "../../__test-fixtures__";
@@ -16,11 +17,14 @@ const mockOnChange = vi.fn();
 const setup = ({
   value = "",
   onChange = mockOnChange,
+  ref,
   ...props
-}: Partial<InputProps> = {}) => {
+}: Partial<InputProps> & { ref?: Ref<HTMLInputElement> } = {}) => {
   const user = userEvent.setup();
 
-  renderWithUIProvider(<Input value={value} onChange={onChange} {...props} />);
+  renderWithUIProvider(
+    <Input ref={ref} value={value} onChange={onChange} {...props} />
+  );
 
   return { user };
 };
@@ -105,5 +109,14 @@ describe("Input", () => {
     expect(mockOnChange).toHaveBeenCalledWith("l");
     expect(mockOnChange).toHaveBeenCalledWith("l");
     expect(mockOnChange).toHaveBeenCalledWith("o");
+  });
+
+  it("forwards the ref to the input element", () => {
+    const ref = createRef<HTMLInputElement>();
+
+    setup({ ref });
+
+    const input = screen.getByRole("textbox");
+    expect(ref.current).toBe(input);
   });
 });

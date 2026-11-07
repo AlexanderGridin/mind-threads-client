@@ -7,7 +7,9 @@ import {
   mindThreadFixturesWithSingleItem,
   seedThreads,
 } from "@/__test-fixtures__";
-import type { MindThread } from "@/types";
+import { seedSections, threadSectionFixtures } from "@/__test-fixtures__";
+import { SECTIONS_STORAGE_KEY } from "@/services/useThreadSectionsService/useThreadSectionsService.constants";
+import type { MindThread, ThreadSection } from "@/types";
 import { useThreadsService } from "../useThreadsService";
 import {
   INVALID_THREADS_DATA_ERROR,
@@ -17,6 +19,7 @@ import {
 
 const TEST_COLOR = "#A8E6CF";
 const FIXED_NOW = new Date("2026-06-20T12:00:00Z");
+const LATER_NOW = new Date("2026-06-21T09:30:00Z");
 
 const setup = () => {
   return renderHook(() => useThreadsService());
@@ -24,6 +27,14 @@ const setup = () => {
 
 const readStoredThreads = (): MindThread[] => {
   return JSON.parse(localStorage.getItem(THREADS_STORAGE_KEY) ?? "[]");
+};
+
+const readStoredSections = (): ThreadSection[] => {
+  return JSON.parse(localStorage.getItem(SECTIONS_STORAGE_KEY) ?? "[]");
+};
+
+const buildNewSection = (threadId: string) => {
+  return { threadId, name: "  Ideas  ", color: TEST_COLOR };
 };
 
 describe("useThreadsService", () => {
@@ -303,6 +314,99 @@ describe("useThreadsService", () => {
     });
   });
 
+  describe("addThreadSection", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("stores the trimmed section in the sections key and returns it", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixtures);
+
+      const createdSection = await result.current.addThreadSection(
+        buildNewSection(mindThreadFixtures[0].id)
+      );
+
+      const expectedSections = [createdSection];
+
+      expect(createdSection.name).toBe("Ideas");
+      expect(readStoredSections()).toStrictEqual(expectedSections);
+    });
+
+    it("sets the thread's totalSections to 1, then 2, and its lastUpdated to each section's createdAt", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(FIXED_NOW);
+
+      const { result } = setup();
+      const emptyThread = { ...mindThreadFixtures[0], totalSections: 0 };
+
+      seedThreads([emptyThread]);
+
+      await result.current.addThreadSection(buildNewSection(emptyThread.id));
+
+      const threadAfterFirstSection = readStoredThreads()[0];
+
+      expect(threadAfterFirstSection.totalSections).toBe(1);
+      expect(threadAfterFirstSection.lastUpdated).toBe(FIXED_NOW.toISOString());
+
+      vi.setSystemTime(LATER_NOW);
+
+      await result.current.addThreadSection(buildNewSection(emptyThread.id));
+
+      const threadAfterSecondSection = readStoredThreads()[0];
+
+      expect(threadAfterSecondSection.totalSections).toBe(2);
+
+      expect(threadAfterSecondSection.lastUpdated).toBe(
+        LATER_NOW.toISOString()
+      );
+    });
+
+    it("leaves the other threads unchanged", async () => {
+      const { result } = setup();
+      const emptyThread = { ...mindThreadFixtures[0], totalSections: 0 };
+
+      seedThreads([emptyThread, mindThreadFixtures[1]]);
+
+      await result.current.addThreadSection(buildNewSection(emptyThread.id));
+
+      expect(readStoredThreads()[1]).toStrictEqual(mindThreadFixtures[1]);
+    });
+
+    it("rejects with the not-found error for an unknown threadId and stores no section", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixtures);
+
+      await expect(
+        result.current.addThreadSection(buildNewSection("unknown-thread"))
+      ).rejects.toThrow(THREAD_NOT_FOUND_ERROR);
+
+      expect(readStoredSections()).toStrictEqual([]);
+    });
+
+    it("rejects with the not-found error when another tab removed the thread after it was read", async () => {
+      const { result } = setup();
+      const removedThread = mindThreadFixtures[0];
+
+      seedThreads(mindThreadFixtures);
+      await result.current.getThreads();
+
+      seedThreads([mindThreadFixtures[1]]);
+
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: THREADS_STORAGE_KEY })
+      );
+
+      await expect(
+        result.current.addThreadSection(buildNewSection(removedThread.id))
+      ).rejects.toThrow(THREAD_NOT_FOUND_ERROR);
+
+      expect(readStoredSections()).toStrictEqual([]);
+    });
+  });
+
   describe("deleteThread", () => {
     const threadsToDelete: MindThread[] = [
       mindThreadFixtures[0],
@@ -371,6 +475,34 @@ describe("useThreadsService", () => {
       await expect(
         result.current.deleteThread(mindThreadFixtures[0].id)
       ).rejects.toThrow(INVALID_THREADS_DATA_ERROR);
+    });
+
+    it("removes the thread's sections from the sections key and keeps the other sections", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+
+      await result.current.deleteThread(mindThreadFixtures[0].id);
+
+      const expectedSections = threadSectionFixtures.filter((section) => {
+        return section.threadId === mindThreadFixtures[1].id;
+      });
+
+      expect(readStoredSections()).toStrictEqual(expectedSections);
+    });
+
+    it("rejects and leaves the threads unchanged when the stored sections are malformed", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixtures);
+      localStorage.setItem(SECTIONS_STORAGE_KEY, MALFORMED_JSON);
+
+      await expect(
+        result.current.deleteThread(mindThreadFixtures[0].id)
+      ).rejects.toThrow(SyntaxError);
+
+      expect(readStoredThreads()).toStrictEqual(mindThreadFixtures);
     });
   });
 });

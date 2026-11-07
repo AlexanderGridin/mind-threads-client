@@ -1,8 +1,10 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { mindThreadFixtures } from "@/__test-fixtures__";
 import {
+  applyNewSection,
   applyThreadUpdate,
   buildThread,
+  findThread,
   isMindThreadList,
 } from "../useThreadsService.utils";
 
@@ -92,6 +94,65 @@ describe("useThreadsService.utils", () => {
       });
 
       expect(updatedThread).not.toBe(originalThread);
+    });
+  });
+
+  describe("applyNewSection", () => {
+    it("increments totalSections from 0 to 1", () => {
+      const thread = { ...mindThreadFixtures[0], totalSections: 0 };
+
+      const updatedThread = applyNewSection({
+        thread,
+        createdAt: FIXED_NOW.toISOString(),
+      });
+
+      expect(updatedThread.totalSections).toBe(1);
+    });
+
+    it("increments totalSections from 1 to 2", () => {
+      const thread = { ...mindThreadFixtures[0], totalSections: 1 };
+
+      const updatedThread = applyNewSection({
+        thread,
+        createdAt: FIXED_NOW.toISOString(),
+      });
+
+      expect(updatedThread.totalSections).toBe(2);
+    });
+
+    it("sets lastUpdated to createdAt and keeps the other fields", () => {
+      const thread = mindThreadFixtures[0];
+      const createdAt = FIXED_NOW.toISOString();
+
+      const updatedThread = applyNewSection({ thread, createdAt });
+
+      expect(updatedThread).toStrictEqual({
+        ...thread,
+        totalSections: thread.totalSections + 1,
+        lastUpdated: createdAt,
+      });
+    });
+  });
+
+  describe("findThread", () => {
+    it("returns the thread with the given id", () => {
+      const expectedThread = mindThreadFixtures[1];
+
+      const thread = findThread({
+        threads: mindThreadFixtures,
+        threadId: expectedThread.id,
+      });
+
+      expect(thread).toStrictEqual(expectedThread);
+    });
+
+    it("returns undefined when no thread has the given id", () => {
+      const thread = findThread({
+        threads: mindThreadFixtures,
+        threadId: "unknown-thread",
+      });
+
+      expect(thread).toBeUndefined();
     });
   });
 

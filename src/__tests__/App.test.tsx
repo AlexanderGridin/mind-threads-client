@@ -1,9 +1,22 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { act, screen, within } from "@testing-library/react";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
-import { mindThreadFixtures, seedThreads } from "@/__test-fixtures__";
+import {
+  mindThreadFixtures,
+  seedSections,
+  seedThreads,
+  threadSectionFixtures,
+} from "@/__test-fixtures__";
+import type { MindThread, ThreadSection } from "@/types";
+import { SECTIONS_STORAGE_KEY } from "@/services/useThreadSectionsService/useThreadSectionsService.constants";
+import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsService.constants";
+import { ThreadColumnsTestId } from "@/pages/ThreadPage/components/ThreadContent/components/ThreadColumns/ThreadColumns.constants";
+import { SectionFormTestId } from "@/pages/ThreadPage/components/AddSectionModalContainer/components/AddSectionModal/components/SectionForm/SectionForm.constants";
+import { ADD_SECTION_MODAL_TITLE } from "@/pages/ThreadPage/components/AddSectionModalContainer/components/AddSectionModal/AddSectionModal.constants";
+import { ThreadFormModalActionsTestId } from "@/components/shared/ThreadFormModalActions/ThreadFormModalActions.constants";
+import { DeleteThreadModalActionsTestId } from "@/pages/DashboardPage/components/DeleteThreadModalContainer/components/DeleteThreadModal/components/DeleteThreadModalActions/DeleteThreadModalActions.constants";
 import { App } from "../App";
 import { DashboardHeaderTestId } from "@/pages/DashboardPage/components/DashboardHeader/DashboardHeader.constants";
 import { ThreadListModeButtonTestId } from "@/pages/DashboardPage/components/DashboardHeader/components/ThreadListModeButton/ThreadListModeButton.constants";
@@ -194,5 +207,163 @@ describe("App", () => {
     }
 
     expect(focusedTitles).toStrictEqual(dashboardTitles);
+  });
+
+  describe("creating and deleting sections", () => {
+    type User = ReturnType<typeof userEvent.setup>;
+
+    const SECTION_THREAD = { ...mindThreadFixtures[0], totalSections: 0 };
+    const OTHER_THREAD = mindThreadFixtures[1];
+    const OTHER_THREAD_SECTION = threadSectionFixtures[2];
+    const FIRST_SECTION_NAME = "Ideas";
+    const SECOND_SECTION_NAME = "Research";
+    const FIRST_SECTION_TIME = "2026-11-08T10:00:00.000Z";
+    const SECOND_SECTION_TIME = "2026-11-08T11:30:00.000Z";
+    const JUST_NOW_TEXT = "Updated: just now";
+
+    const getThreadLink = (threadTitle: string) => {
+      return screen.getByRole("link", { name: threadTitle });
+    };
+
+    const openThreadFromDashboard = async (user: User, threadTitle: string) => {
+      const threadLink = getThreadLink(threadTitle);
+      await user.click(threadLink);
+
+      await screen.findByTestId(ThreadHeaderTestId.title);
+    };
+
+    const addSection = async (user: User, sectionName: string) => {
+      const addSectionButton = screen.getByTestId(
+        ThreadColumnsTestId.addSectionButton
+      );
+
+      await user.click(addSectionButton);
+
+      const modalTitle = await screen.findByText(ADD_SECTION_MODAL_TITLE);
+      const nameInput = screen.getByTestId(SectionFormTestId.nameInput);
+
+      await user.type(nameInput, sectionName);
+
+      const submitButton = screen.getByTestId(
+        ThreadFormModalActionsTestId.submitButton
+      );
+
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(modalTitle).not.toBeInTheDocument();
+      });
+    };
+
+    const returnToDashboard = async (user: User) => {
+      const backButton = screen.getByRole("button", {
+        name: BACK_TO_DASHBOARD_LABEL,
+      });
+
+      await user.click(backButton);
+      await findThreadTitles();
+    };
+
+    const getStoredSections = (): ThreadSection[] => {
+      const storedSections = localStorage.getItem(SECTIONS_STORAGE_KEY);
+      return storedSections ? JSON.parse(storedSections) : [];
+    };
+
+    const getStoredThread = (threadId: string): MindThread | undefined => {
+      const storedThreads: MindThread[] = JSON.parse(
+        localStorage.getItem(THREADS_STORAGE_KEY) ?? "[]"
+      );
+
+      return storedThreads.find((thread) => {
+        return thread.id === threadId;
+      });
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date(FIRST_SECTION_TIME));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("counts the sections on the card as they are created, and shows the creation time", async () => {
+      seedThreads([SECTION_THREAD]);
+
+      const { user } = setup("/");
+
+      await findThreadTitles();
+      await openThreadFromDashboard(user, SECTION_THREAD.title);
+      await addSection(user, FIRST_SECTION_NAME);
+      await returnToDashboard(user);
+
+      const [firstSectionsText] = screen.getAllByTestId(
+        MindThreadCardTestId.sections
+      );
+
+      const [firstLastUpdated] = screen.getAllByTestId(
+        MindThreadCardTestId.lastUpdated
+      );
+
+      expect(firstSectionsText.textContent).toBe("1 section");
+      expect(firstLastUpdated.textContent).toBe(JUST_NOW_TEXT);
+
+      expect(getStoredThread(SECTION_THREAD.id)?.lastUpdated).toBe(
+        FIRST_SECTION_TIME
+      );
+
+      vi.setSystemTime(new Date(SECOND_SECTION_TIME));
+
+      await openThreadFromDashboard(user, SECTION_THREAD.title);
+      await addSection(user, SECOND_SECTION_NAME);
+      await returnToDashboard(user);
+
+      const [secondSectionsText] = screen.getAllByTestId(
+        MindThreadCardTestId.sections
+      );
+
+      expect(secondSectionsText.textContent).toBe("2 sections");
+
+      expect(getStoredThread(SECTION_THREAD.id)?.lastUpdated).toBe(
+        SECOND_SECTION_TIME
+      );
+    });
+
+    it("removes the deleted thread's sections and keeps the other thread's sections", async () => {
+      seedThreads([SECTION_THREAD, OTHER_THREAD]);
+      seedSections([OTHER_THREAD_SECTION]);
+
+      const { user } = setup("/");
+
+      await findThreadTitles();
+      await openThreadFromDashboard(user, SECTION_THREAD.title);
+      await addSection(user, FIRST_SECTION_NAME);
+      await returnToDashboard(user);
+
+      const deletedThreadLink = getThreadLink(SECTION_THREAD.title);
+
+      const menuButton = screen.getByRole("button", {
+        name: `Thread actions for ${SECTION_THREAD.title}`,
+      });
+
+      await user.click(menuButton);
+
+      const [, deleteMenuItem] = await screen.findAllByRole("menuitem");
+      await user.click(deleteMenuItem);
+
+      const confirmButton = screen.getByTestId(
+        DeleteThreadModalActionsTestId.deleteButton
+      );
+
+      await user.click(confirmButton);
+
+      await waitFor(() => {
+        expect(deletedThreadLink).not.toBeInTheDocument();
+      });
+
+      const remainingSections = getStoredSections();
+      expect(remainingSections).toStrictEqual([OTHER_THREAD_SECTION]);
+    });
   });
 });

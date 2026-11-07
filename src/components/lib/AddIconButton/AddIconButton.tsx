@@ -1,6 +1,7 @@
 import { LuPlus } from "react-icons/lu";
 import { IconButton } from "../IconButton";
 import { Tooltip } from "../Tooltip";
+import { AddIconButtonTestId } from "./AddIconButton.constants";
 
 export type AddIconButtonProps = {
   tooltipLabel: string;
@@ -22,7 +23,7 @@ export const AddIconButton = ({
         size="xs"
         onClick={onClick}
       >
-        <LuPlus />
+        <LuPlus data-testid={AddIconButtonTestId.icon} />
       </IconButton>
     </Tooltip>
   );

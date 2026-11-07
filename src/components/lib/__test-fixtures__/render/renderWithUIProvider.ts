@@ -1,6 +1,6 @@
 import { render, type RenderOptions } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { ChakraUIProvider } from "../ChakraUIProvider";
+import { ChakraUIProvider } from "../../ChakraUIProvider";
 
 export const renderWithUIProvider = (
   ui: ReactElement,
