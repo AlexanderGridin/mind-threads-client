@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Box as ChakraBox } from "@chakra-ui/react";
 import type { ReactNode, ElementType, MouseEvent } from "react";
 
@@ -36,8 +37,21 @@ export type BoxProps = {
   divideX?: string;
   divideColor?: string;
   borderBottomWidth?: string;
+  minHeight?: string;
+  overflowY?: string;
+  gridTemplateRows?: string;
+  borderLeftWidth?: string;
+  borderLeftColor?: string;
 };
 
-export const Box = ({ children, ...props }: BoxProps) => (
-  <ChakraBox {...props}>{children}</ChakraBox>
+export const Box = forwardRef<HTMLDivElement, BoxProps>(
+  ({ children, ...props }, ref) => {
+    return (
+      <ChakraBox ref={ref} {...props}>
+        {children}
+      </ChakraBox>
+    );
+  }
 );
+
+Box.displayName = "Box";

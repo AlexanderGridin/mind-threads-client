@@ -15,6 +15,7 @@ export const ThreadContent = ({ threadStatus }: ThreadContentProps) => {
       display="flex"
       flexDirection="column"
       flexGrow={1}
+      minHeight="0"
       backgroundColor="bg"
     >
       <ThreadView threadStatus={threadStatus} />

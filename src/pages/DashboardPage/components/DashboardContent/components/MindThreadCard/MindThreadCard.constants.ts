@@ -15,6 +15,13 @@ export const MindThreadCardTestId = {
   actionsMenu: createTestId("actions-menu"),
 } as const;
 
+export const SECTION_COUNT_NOUNS = {
+  singular: "section",
+  plural: "sections",
+} as const;
+
+export const PAGE_COUNT_NOUNS = { singular: "page", plural: "pages" } as const;
+
 export const EDIT_THREAD_MENU_ITEM = {
   value: "edit",
   label: "Edit",

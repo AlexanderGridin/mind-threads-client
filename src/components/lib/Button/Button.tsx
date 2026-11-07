@@ -4,11 +4,14 @@ import type { ReactNode } from "react";
 
 export type ButtonProps = {
   children: ReactNode;
-  onClick: () => void;
+  onClick?: () => void;
   "data-testid"?: string;
   background?: string;
   disabled?: boolean;
   loading?: boolean;
+  size?: "xs" | "sm" | "md";
+  type?: "button" | "submit";
+  form?: string;
   variant?:
     | "solid"
     | "subtle"
@@ -20,24 +23,29 @@ export type ButtonProps = {
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
+  (props, ref) => {
+    const {
       "data-testid": dataTestId,
       variant = "solid",
       children,
       background,
       disabled = false,
       loading = false,
+      size,
+      type = "button",
+      form,
       onClick,
-    },
-    ref
-  ) => {
+    } = props;
+
     return (
       <ChakraButton
         ref={ref}
         data-testid={dataTestId}
         background={background}
         variant={variant}
+        size={size}
+        type={type}
+        form={form}
         disabled={disabled}
         loading={loading}
         onClick={onClick}

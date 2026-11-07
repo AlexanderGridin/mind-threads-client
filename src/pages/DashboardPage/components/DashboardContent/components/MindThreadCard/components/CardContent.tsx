@@ -4,8 +4,12 @@ import type { MindThread } from "@/types";
 import { ThreadListMode } from "@/pages/DashboardPage/DashboardPage.constants";
 import type { ThreadListModeType } from "@/pages/DashboardPage/DashboardPage.types";
 import { getThreadPath } from "@/routing/routing.utils";
-import { MindThreadCardTestId } from "../MindThreadCard.constants";
-import { formatLastUpdated } from "../utils";
+import {
+  MindThreadCardTestId,
+  PAGE_COUNT_NOUNS,
+  SECTION_COUNT_NOUNS,
+} from "../MindThreadCard.constants";
+import { formatCount, formatLastUpdated } from "../utils";
 
 type CardContentProps = {
   thread: MindThread;
@@ -39,11 +43,14 @@ export const CardContent = ({ thread, forMode }: CardContentProps) => {
 
       <HStack gap="4" fontSize="md" color="fg.muted">
         <Text data-testid={MindThreadCardTestId.sections}>
-          {thread.totalSections} sections
+          {formatCount({
+            count: thread.totalSections,
+            ...SECTION_COUNT_NOUNS,
+          })}
         </Text>
 
         <Text data-testid={MindThreadCardTestId.pages}>
-          {thread.totalPages} pages
+          {formatCount({ count: thread.totalPages, ...PAGE_COUNT_NOUNS })}
         </Text>
       </HStack>
 

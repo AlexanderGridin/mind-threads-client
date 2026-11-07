@@ -9,9 +9,12 @@ export const ThreadFormModalActions = ({
   submitLabel,
   submitDisabled,
   isSubmitting = false,
+  formId,
   onSubmit,
   onCancel,
 }: ThreadFormModalActionsProps) => {
+  const submitType = formId ? "submit" : "button";
+
   return (
     <HStack gap="2" data-testid={ThreadFormModalActionsTestId.container}>
       <Button
@@ -26,6 +29,8 @@ export const ThreadFormModalActions = ({
       <Button
         data-testid={ThreadFormModalActionsTestId.submitButton}
         background="accent"
+        type={submitType}
+        form={formId}
         loading={isSubmitting}
         disabled={submitDisabled || isSubmitting}
         onClick={onSubmit}
