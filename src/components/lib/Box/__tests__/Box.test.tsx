@@ -1,15 +1,19 @@
 import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createRef, type Ref } from "react";
 
 import { Box, type BoxProps } from "../Box";
 import { renderWithUIProvider } from "../../__test-fixtures__";
 
 const mockOnClick = vi.fn();
 
-const setup = (props: Omit<Partial<BoxProps>, "onClick"> = {}) => {
+const setup = ({
+  ref,
+  ...props
+}: Omit<Partial<BoxProps>, "onClick"> & { ref?: Ref<HTMLDivElement> } = {}) => {
   const user = userEvent.setup();
-  renderWithUIProvider(<Box {...props} onClick={mockOnClick} />);
+  renderWithUIProvider(<Box {...props} ref={ref} onClick={mockOnClick} />);
   return { user };
 };
 
@@ -33,5 +37,14 @@ describe("Box", () => {
     await user.click(box);
 
     expect(mockOnClick).toHaveBeenCalledOnce();
+  });
+
+  it("forwards the ref to the rendered element", () => {
+    const ref = createRef<HTMLDivElement>();
+
+    setup({ ref, children: "Ref box", "data-testid": "ref-box" });
+
+    const box = screen.getByTestId("ref-box");
+    expect(ref.current).toBe(box);
   });
 });

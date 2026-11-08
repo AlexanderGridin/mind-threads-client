@@ -1,7 +1,19 @@
-export type ThreadFormModalActionsProps = {
+type ThreadFormModalActionsBaseProps = {
   submitLabel: string;
   submitDisabled: boolean;
   isSubmitting?: boolean;
-  onSubmit: () => void;
   onCancel: () => void;
 };
+
+type SubmitOnClickProps = {
+  onSubmit: () => void;
+  formId?: never;
+};
+
+type SubmitFormProps = {
+  formId: string;
+  onSubmit?: never;
+};
+
+export type ThreadFormModalActionsProps = ThreadFormModalActionsBaseProps &
+  (SubmitOnClickProps | SubmitFormProps);

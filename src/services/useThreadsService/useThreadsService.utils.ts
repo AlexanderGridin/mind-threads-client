@@ -1,5 +1,9 @@
 import type { MindThread, NewMindThread } from "@/types";
-import type { ApplyThreadUpdateParams } from "./useThreadsService.types";
+import type {
+  ApplyNewSectionParams,
+  ApplyThreadUpdateParams,
+  FindThreadParams,
+} from "./useThreadsService.types";
 
 export const buildThread = ({ title, color }: NewMindThread): MindThread => ({
   id: crypto.randomUUID(),
@@ -9,6 +13,23 @@ export const buildThread = ({ title, color }: NewMindThread): MindThread => ({
   totalPages: 0,
   lastUpdated: new Date().toISOString(),
 });
+
+export const applyNewSection = ({
+  thread,
+  createdAt,
+}: ApplyNewSectionParams): MindThread => {
+  return {
+    ...thread,
+    totalSections: thread.totalSections + 1,
+    lastUpdated: createdAt,
+  };
+};
+
+export const findThread = ({ threads, threadId }: FindThreadParams) => {
+  return threads.find((thread) => {
+    return thread.id === threadId;
+  });
+};
 
 export const applyThreadUpdate = ({
   thread,

@@ -1,6 +1,13 @@
 import { useLocalStorage } from "@/hooks";
 import { replaceThread } from "@/utils";
-import type { MindThread, MindThreadUpdate, NewMindThread } from "@/types";
+import type {
+  MindThread,
+  MindThreadUpdate,
+  NewMindThread,
+  NewThreadSection,
+  ThreadSection,
+} from "@/types";
+import { useThreadSectionsService } from "../useThreadSectionsService";
 import {
   INVALID_THREADS_DATA_ERROR,
   THREAD_NOT_FOUND_ERROR,
@@ -8,8 +15,10 @@ import {
 } from "./useThreadsService.constants";
 import type { UseThreadsServiceReturn } from "./useThreadsService.types";
 import {
+  applyNewSection,
   applyThreadUpdate,
   buildThread,
+  findThread,
   isMindThreadList,
 } from "./useThreadsService.utils";
 
@@ -18,6 +27,8 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     key: THREADS_STORAGE_KEY,
     throwOnError: true,
   });
+
+  const threadSectionsService = useThreadSectionsService();
 
   const getThreads = async (): Promise<MindThread[]> => {
     const storedThreads = threadsStorage.read();
@@ -34,9 +45,7 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
   const getThread = async (threadId: string): Promise<MindThread | null> => {
     const storedThreads = await getThreads();
 
-    const storedThread = storedThreads.find((thread) => {
-      return thread.id === threadId;
-    });
+    const storedThread = findThread({ threads: storedThreads, threadId });
 
     return storedThread ?? null;
   };
@@ -57,9 +66,10 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
   ): Promise<MindThread> => {
     const storedThreads = await getThreads();
 
-    const storedThread = storedThreads.find(
-      (thread) => thread.id === threadUpdate.id
-    );
+    const storedThread = findThread({
+      threads: storedThreads,
+      threadId: threadUpdate.id,
+    });
 
     if (!storedThread) {
       throw new Error(THREAD_NOT_FOUND_ERROR);
@@ -77,13 +87,54 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     return updatedThread;
   };
 
+  const addThreadSection = async (
+    newSection: NewThreadSection
+  ): Promise<ThreadSection> => {
+    const storedThreads = await getThreads();
+
+    const storedThread = findThread({
+      threads: storedThreads,
+      threadId: newSection.threadId,
+    });
+
+    if (!storedThread) {
+      throw new Error(THREAD_NOT_FOUND_ERROR);
+    }
+
+    const createdSection =
+      await threadSectionsService.createThreadSection(newSection);
+
+    threadsStorage.set(
+      replaceThread({
+        threads: storedThreads,
+        updatedThread: applyNewSection({
+          thread: storedThread,
+          createdAt: createdSection.createdAt,
+        }),
+      })
+    );
+
+    return createdSection;
+  };
+
   const deleteThread = async (threadId: string): Promise<void> => {
     const storedThreads = await getThreads();
 
-    threadsStorage.set(
-      storedThreads.filter((thread) => thread.id !== threadId)
+    await threadSectionsService.deleteThreadSections(threadId);
+
+    const filteredThreads = storedThreads.filter(
+      (thread) => thread.id !== threadId
     );
+
+    threadsStorage.set(filteredThreads);
   };
 
-  return { getThreads, getThread, createThread, updateThread, deleteThread };
+  return {
+    getThreads,
+    getThread,
+    createThread,
+    updateThread,
+    deleteThread,
+    addThreadSection,
+  };
 };

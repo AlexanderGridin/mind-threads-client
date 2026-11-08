@@ -8,6 +8,8 @@ export const NORD_AURORA_SWATCHES = [
   "#b48ead",
 ];
 
+export const DEFAULT_SWATCH_COLOR = NORD_AURORA_SWATCHES[3];
+
 const createTestId = initTestIdCreator("ColorPicker__");
 
 export const ColorPickerTestId = {

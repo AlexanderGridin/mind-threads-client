@@ -1,19 +1,23 @@
-import { Box, Text } from "@/components/lib";
+import type { ReactNode } from "react";
+import { Box, HStack, Text } from "@/components/lib";
 
 type ThreadColumnProps = {
   "data-testid"?: string;
   heading?: string;
-  message: string;
+  headerAction?: ReactNode;
+  children: ReactNode;
   isCentered?: boolean;
 };
 
 export const ThreadColumn = ({
   "data-testid": dataTestId,
   heading,
-  message,
+  headerAction,
+  children,
   isCentered = false,
 }: ThreadColumnProps) => {
-  const alignment = isCentered ? "center" : "flex-start";
+  const alignItems = isCentered ? "center" : "stretch";
+  const justifyContent = isCentered ? "center" : "flex-start";
 
   return (
     <Box
@@ -21,19 +25,32 @@ export const ThreadColumn = ({
       data-testid={dataTestId}
       display="flex"
       flexDirection="column"
-      alignItems={alignment}
-      justifyContent={alignment}
       gap="3"
       p="4"
       minWidth="0"
+      minHeight="0"
     >
       {heading ? (
-        <Text as="h3" fontSize="md" fontWeight="semibold" color="fg">
-          {heading}
-        </Text>
+        <HStack justifyContent="space-between" gap="2">
+          <Text as="h3" fontSize="md" fontWeight="semibold" color="fg">
+            {heading}
+          </Text>
+
+          {headerAction}
+        </HStack>
       ) : null}
 
-      <Text color="fg.muted">{message}</Text>
+      <Box
+        display="flex"
+        flexDirection="column"
+        alignItems={alignItems}
+        justifyContent={justifyContent}
+        flexGrow={1}
+        minHeight="0"
+        overflowY="auto"
+      >
+        {children}
+      </Box>
     </Box>
   );
 };

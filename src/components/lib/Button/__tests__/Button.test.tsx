@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createRef, type Ref } from "react";
+import { createRef, type FormEvent, type Ref } from "react";
 
 import { Button, type ButtonProps } from "../Button";
 import { renderWithUIProvider } from "../../__test-fixtures__";
@@ -12,6 +12,9 @@ const setup = ({
   "data-testid": dataTestId,
   disabled = false,
   loading = false,
+  size,
+  type,
+  form,
   ref,
 }: Partial<ButtonProps> & { ref?: Ref<HTMLButtonElement> } = {}) => {
   const user = userEvent.setup();
@@ -23,6 +26,9 @@ const setup = ({
       loading={loading}
       onClick={onClick}
       data-testid={dataTestId}
+      size={size}
+      type={type}
+      form={form}
     >
       {children}
     </Button>
@@ -108,5 +114,79 @@ describe("Button", () => {
 
     const button = getButton();
     expect(ref.current).toBe(button);
+  });
+
+  it("has type button by default", () => {
+    setup();
+
+    const button = getButton();
+    expect(button).toHaveAttribute("type", "button");
+  });
+
+  it("applies the given size and still calls onClick", async () => {
+    const mockOnClick = vi.fn();
+    const { user, unmount } = setup();
+
+    const defaultClassName = getButton().className;
+    unmount();
+
+    setup({ size: "xs", onClick: mockOnClick });
+
+    const button = getButton();
+    expect(button.className).not.toBe(defaultClassName);
+
+    await user.click(button);
+
+    expect(mockOnClick).toHaveBeenCalledOnce();
+  });
+
+  describe("when attached to a form", () => {
+    const FORM_ID = "section-form";
+    const SUBMIT_LABEL = "Save";
+
+    const setupAttachedToForm = () => {
+      const user = userEvent.setup();
+      const handleFormSubmit = vi.fn((event: FormEvent) => {
+        event.preventDefault();
+      });
+
+      renderWithUIProvider(
+        <>
+          <form
+            id={FORM_ID}
+            data-testid="attached-form"
+            onSubmit={handleFormSubmit}
+          >
+            <span>Form content</span>
+          </form>
+
+          <Button type="submit" form={FORM_ID}>
+            {SUBMIT_LABEL}
+          </Button>
+        </>
+      );
+
+      return { user, handleFormSubmit };
+    };
+
+    it("is attached to the form with the given id", () => {
+      setupAttachedToForm();
+
+      const form = screen.getByTestId("attached-form");
+      const button = screen.getByRole("button", {
+        name: SUBMIT_LABEL,
+      }) as HTMLButtonElement;
+
+      expect(button.form).toBe(form);
+    });
+
+    it("submits the form when clicked, even though it sits outside the form", async () => {
+      const { user, handleFormSubmit } = setupAttachedToForm();
+
+      const button = screen.getByRole("button", { name: SUBMIT_LABEL });
+      await user.click(button);
+
+      expect(handleFormSubmit).toHaveBeenCalledOnce();
+    });
   });
 });

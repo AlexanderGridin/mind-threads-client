@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Input as ChakraInput, Field } from "@chakra-ui/react";
 import type { ChangeEvent } from "react";
 import {
@@ -20,13 +21,15 @@ export type InputProps = {
   "data-testid"?: string;
 };
 
-export const Input = ({
-  label = "",
-  required = false,
-  "data-testid": testId,
-  onChange,
-  ...restProps
-}: InputProps) => {
+export const Input = forwardRef<HTMLInputElement, InputProps>((props, ref) => {
+  const {
+    label = "",
+    required = false,
+    "data-testid": testId,
+    onChange,
+    ...restProps
+  } = props;
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     onChange(e.target.value);
   };
@@ -53,6 +56,7 @@ export const Input = ({
       ) : null}
 
       <ChakraInput
+        ref={ref}
         data-testid={testId}
         onChange={handleChange}
         _hover={{ borderColor: "accent" }}
@@ -61,4 +65,6 @@ export const Input = ({
       />
     </Field.Root>
   );
-};
+});
+
+Input.displayName = "Input";

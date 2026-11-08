@@ -1,6 +1,8 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import {
+  fireEvent,
   screen,
+  waitFor,
   waitForElementToBeRemoved,
   within,
 } from "@testing-library/react";
@@ -9,18 +11,22 @@ import { notify } from "@/components/lib";
 import {
   MALFORMED_JSON,
   createDeferred,
+  getRenderedSectionNames,
   createServicesMock,
   mindThreadFixtures,
   mindThreadFixturesWithSameTitle,
   renderWithRouter,
   resetThreadsServiceOverrides,
+  seedSections,
   seedThreads,
+  threadSectionFixtures,
   threadsServiceOverrides,
+  waitForDismissListeners,
 } from "@/__test-fixtures__";
 import { AppPath } from "@/routing/routing.constants";
 import { getThreadPath } from "@/routing/routing.utils";
 import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsService.constants";
-import type { MindThread } from "@/types";
+import type { MindThread, ThreadSection } from "@/types";
 import { ThreadPage } from "../ThreadPage";
 import {
   BACK_TO_DASHBOARD_LABEL,
@@ -29,8 +35,20 @@ import {
   THREAD_LOAD_ERROR_MESSAGE,
   THREAD_NOT_FOUND_MESSAGE,
 } from "../ThreadPage.constants";
-import { ThreadColumnsTestId } from "../components/ThreadContent/components/ThreadColumns/ThreadColumns.constants";
+import {
+  PAGES_COLUMN_MESSAGE,
+  SECTIONS_COLUMN_MESSAGE,
+  ThreadColumnsTestId,
+} from "../components/ThreadContent/components/ThreadColumns/ThreadColumns.constants";
 import { ThreadHeaderTestId } from "../components/ThreadHeader/ThreadHeader.constants";
+import { SectionCardTestId } from "../components/ThreadContent/components/ThreadColumns/components/SectionsColumn/components/SectionCard/SectionCard.constants";
+import { SectionFormTestId } from "../components/AddSectionModalContainer/components/AddSectionModal/components/SectionForm/SectionForm.constants";
+import { ADD_SECTION_MODAL_TITLE } from "../components/AddSectionModalContainer/components/AddSectionModal/AddSectionModal.constants";
+import {
+  SAVE_SECTION_ERROR_MESSAGE,
+  getSectionCreatedMessage,
+} from "../components/ThreadPageLoader";
+import { ThreadFormModalActionsTestId } from "@/components/shared/ThreadFormModalActions/ThreadFormModalActions.constants";
 import { APP_NAME } from "@/components/shared";
 
 const mockUseColorModeReturn = { toggleColorMode: vi.fn() };
@@ -221,5 +239,280 @@ describe("ThreadPage", () => {
     unmount();
 
     expect(document.title).toBe(DASHBOARD_TITLE);
+  });
+
+  describe("creating a section", () => {
+    type User = ReturnType<typeof userEvent.setup>;
+
+    const SECTION_THREAD = mindThreadFixtures[0];
+    const OTHER_THREAD = mindThreadFixtures[1];
+    const TYPED_SECTION_NAME = "  Ideas  ";
+    const SECTION_NAME = "Ideas";
+    const SAVE_FAILED_REASON = "Save failed";
+    const DELETED_THREAD_ID = SECTION_THREAD.id;
+
+    const STORED_SECTION_NAMES = threadSectionFixtures
+      .filter((section) => {
+        return section.threadId === SECTION_THREAD.id;
+      })
+      .map((section) => {
+        return section.name;
+      });
+
+    const getAddSectionButton = () => {
+      return screen.getByTestId(ThreadColumnsTestId.addSectionButton);
+    };
+
+    const getSubmitButton = () => {
+      return screen.getByTestId(ThreadFormModalActionsTestId.submitButton);
+    };
+
+    const waitForLoadedThread = async () => {
+      await screen.findByTestId(ThreadHeaderTestId.title);
+    };
+
+    const openAddSectionModal = async (user: User) => {
+      const addSectionButton = getAddSectionButton();
+      await user.click(addSectionButton);
+
+      return screen.findByText(ADD_SECTION_MODAL_TITLE);
+    };
+
+    const typeSectionName = async (user: User, name: string) => {
+      const nameInput = screen.getByTestId(SectionFormTestId.nameInput);
+      await user.type(nameInput, name);
+    };
+
+    const waitForModalToClose = async (modalTitle: HTMLElement) => {
+      await waitFor(() => {
+        expect(modalTitle).not.toBeInTheDocument();
+      });
+    };
+
+    beforeEach(() => {
+      seedThreads(mindThreadFixtures);
+    });
+
+    it("shows Add section for a loaded thread without sections", async () => {
+      setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+
+      const addSectionButton = getAddSectionButton();
+      expect(addSectionButton).toBeInTheDocument();
+      expect(addSectionButton).toBeEnabled();
+    });
+
+    it("shows Add section for a loaded thread with sections", async () => {
+      seedSections(threadSectionFixtures);
+
+      setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+
+      const addSectionButton = getAddSectionButton();
+      expect(addSectionButton).toBeInTheDocument();
+      expect(addSectionButton).toBeEnabled();
+    });
+
+    it("hides Add section on the not-found page", async () => {
+      setup({ threadId: UNKNOWN_THREAD_ID });
+
+      await screen.findByText(THREAD_NOT_FOUND_MESSAGE);
+
+      const addSectionButton = screen.queryByTestId(
+        ThreadColumnsTestId.addSectionButton
+      );
+
+      expect(addSectionButton).not.toBeInTheDocument();
+    });
+
+    it("hides Add section on the load error page", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      localStorage.setItem(THREADS_STORAGE_KEY, MALFORMED_JSON);
+
+      setup({ threadId: SECTION_THREAD.id });
+
+      await screen.findByText(THREAD_LOAD_ERROR_MESSAGE);
+
+      const addSectionButton = screen.queryByTestId(
+        ThreadColumnsTestId.addSectionButton
+      );
+
+      expect(addSectionButton).not.toBeInTheDocument();
+    });
+
+    it("creates a trimmed section that closes the modal, shows the success notification, and is listed last", async () => {
+      const { user } = setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+
+      const modalTitle = await openAddSectionModal(user);
+      await typeSectionName(user, TYPED_SECTION_NAME);
+      const submitButton = getSubmitButton();
+      await user.click(submitButton);
+
+      await waitForModalToClose(modalTitle);
+
+      const successNotification = await screen.findByText(
+        getSectionCreatedMessage(SECTION_NAME)
+      );
+
+      expect(successNotification).toBeInTheDocument();
+      expect(getRenderedSectionNames()).toStrictEqual([SECTION_NAME]);
+
+      const emptyMessage = screen.queryByText(SECTIONS_COLUMN_MESSAGE);
+      expect(emptyMessage).not.toBeInTheDocument();
+
+      const pagesMessage = screen.getByText(PAGES_COLUMN_MESSAGE);
+      expect(pagesMessage).toBeInTheDocument();
+
+      const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView);
+      const [newCard] = screen.getAllByTestId(SectionCardTestId.container);
+
+      expect(scrollIntoView.mock.contexts).toContain(newCard);
+      expect(scrollIntoView).toHaveBeenCalledOnce();
+    });
+
+    it("creates a section by submitting the form, after the stored sections", async () => {
+      seedSections(threadSectionFixtures);
+
+      const { user } = setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+
+      const modalTitle = await openAddSectionModal(user);
+      await typeSectionName(user, SECTION_NAME);
+
+      const form = screen.getByTestId(SectionFormTestId.form);
+      fireEvent.submit(form);
+
+      await waitForModalToClose(modalTitle);
+
+      expect(getRenderedSectionNames()).toStrictEqual([
+        ...STORED_SECTION_NAMES,
+        SECTION_NAME,
+      ]);
+    });
+
+    it("lists two sections when two sections share a name", async () => {
+      const { user } = setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+
+      const firstModalTitle = await openAddSectionModal(user);
+      await typeSectionName(user, SECTION_NAME);
+      const firstSubmitButton = getSubmitButton();
+      await user.click(firstSubmitButton);
+      await waitForModalToClose(firstModalTitle);
+
+      const secondModalTitle = await openAddSectionModal(user);
+      await typeSectionName(user, SECTION_NAME);
+      const secondSubmitButton = getSubmitButton();
+      await user.click(secondSubmitButton);
+      await waitForModalToClose(secondModalTitle);
+
+      expect(getRenderedSectionNames()).toStrictEqual([
+        SECTION_NAME,
+        SECTION_NAME,
+      ]);
+    });
+
+    it("keeps the created section after a reload, and does not list it for another thread", async () => {
+      const { user, unmount } = setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+
+      const modalTitle = await openAddSectionModal(user);
+      await typeSectionName(user, SECTION_NAME);
+      const submitButton = getSubmitButton();
+      await user.click(submitButton);
+      await waitForModalToClose(modalTitle);
+
+      unmount();
+
+      const reloaded = setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+
+      expect(getRenderedSectionNames()).toStrictEqual([SECTION_NAME]);
+
+      reloaded.unmount();
+
+      setup({ threadId: OTHER_THREAD.id });
+
+      await waitForLoadedThread();
+
+      expect(getRenderedSectionNames()).toStrictEqual([]);
+    });
+
+    it("keeps the modal open with Add loading while the save is pending, and keeps the typed name after a failed save", async () => {
+      const pendingSection = createDeferred<ThreadSection>();
+
+      threadsServiceOverrides.addThreadSection = () => {
+        return pendingSection.promise;
+      };
+
+      const { user } = setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+
+      const modalTitle = await openAddSectionModal(user);
+      await typeSectionName(user, SECTION_NAME);
+      const submitButton = getSubmitButton();
+      await user.click(submitButton);
+
+      const pendingSubmitButton = getSubmitButton();
+      expect(pendingSubmitButton).toHaveAttribute("data-loading");
+      expect(pendingSubmitButton).toBeDisabled();
+
+      await waitForDismissListeners();
+      await user.keyboard("{Escape}");
+
+      expect(modalTitle).toBeInTheDocument();
+
+      pendingSection.reject(new Error(SAVE_FAILED_REASON));
+
+      const errorNotification = await screen.findByText(
+        SAVE_SECTION_ERROR_MESSAGE
+      );
+
+      expect(errorNotification).toBeInTheDocument();
+
+      const nameInput = screen.getByTestId(SectionFormTestId.nameInput);
+      expect(nameInput).toHaveValue(SECTION_NAME);
+
+      const retriedSubmitButton = getSubmitButton();
+      expect(retriedSubmitButton).toBeEnabled();
+    });
+
+    it("shows the error notification and keeps the modal open when the thread was deleted in another tab", async () => {
+      const { user } = setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+
+      const modalTitle = await openAddSectionModal(user);
+      await typeSectionName(user, SECTION_NAME);
+
+      const remainingThreads = mindThreadFixtures.filter((thread) => {
+        return thread.id !== DELETED_THREAD_ID;
+      });
+
+      seedThreads(remainingThreads);
+
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: THREADS_STORAGE_KEY })
+      );
+
+      const submitButton = getSubmitButton();
+      await user.click(submitButton);
+
+      const errorNotification = await screen.findByText(
+        SAVE_SECTION_ERROR_MESSAGE
+      );
+
+      expect(errorNotification).toBeInTheDocument();
+      expect(modalTitle).toBeInTheDocument();
+    });
   });
 });

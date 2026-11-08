@@ -46,6 +46,7 @@ export const MindThreadCard = ({
     >
       <CardColorIndicator color={thread.color} forMode={forMode} />
       <CardContent thread={thread} forMode={forMode} />
+
       <CardActions
         thread={thread}
         forMode={forMode}

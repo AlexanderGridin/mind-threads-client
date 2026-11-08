@@ -219,6 +219,24 @@ describe("MindThreadCard", () => {
       expect(lastUpdated.textContent).toBe("Updated: just now");
     });
 
+    it("renders '1 section' for a thread with one section", () => {
+      const oneSectionThread = { ...mindThreadFixture, totalSections: 1 };
+
+      setup(oneSectionThread);
+
+      const sections = screen.getByTestId(MindThreadCardTestId.sections);
+      expect(sections.textContent).toBe("1 section");
+    });
+
+    it("renders '2 sections' for a thread with two sections", () => {
+      const twoSectionsThread = { ...mindThreadFixture, totalSections: 2 };
+
+      setup(twoSectionsThread);
+
+      const sections = screen.getByTestId(MindThreadCardTestId.sections);
+      expect(sections.textContent).toBe("2 sections");
+    });
+
     it("renders color border top", () => {
       setup();
 

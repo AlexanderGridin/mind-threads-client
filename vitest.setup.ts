@@ -26,3 +26,5 @@ globalThis.ResizeObserver = class {
   unobserve = vi.fn();
   disconnect = vi.fn();
 };
+
+Element.prototype.scrollIntoView = vi.fn();

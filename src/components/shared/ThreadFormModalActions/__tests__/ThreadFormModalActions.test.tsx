@@ -7,29 +7,44 @@ import {
   ThreadFormModalActionsTestId,
 } from "../ThreadFormModalActions.constants";
 import { vi } from "vitest";
+import type { FormEvent } from "react";
 
 const SUBMIT_LABEL = "Add";
+const FORM_ID = "test-form";
 
 const mockOnSubmit = vi.fn();
 const mockOnCancel = vi.fn();
+const mockOnFormSubmit = vi.fn((event: FormEvent) => {
+  event.preventDefault();
+});
 
 const setup = ({
   submitDisabled = false,
   isSubmitting = false,
+  formId,
 }: {
   submitDisabled?: boolean;
   isSubmitting?: boolean;
+  formId?: string;
 } = {}) => {
   const user = userEvent.setup();
 
+  const actionsProps = {
+    submitLabel: SUBMIT_LABEL,
+    submitDisabled,
+    isSubmitting,
+    onCancel: mockOnCancel,
+  };
+
   renderWithUIProvider(
-    <ThreadFormModalActions
-      submitLabel={SUBMIT_LABEL}
-      submitDisabled={submitDisabled}
-      isSubmitting={isSubmitting}
-      onSubmit={mockOnSubmit}
-      onCancel={mockOnCancel}
-    />
+    formId ? (
+      <>
+        <form id={formId} onSubmit={mockOnFormSubmit} />
+        <ThreadFormModalActions {...actionsProps} formId={formId} />
+      </>
+    ) : (
+      <ThreadFormModalActions {...actionsProps} onSubmit={mockOnSubmit} />
+    )
   );
 
   return { user };
@@ -46,11 +61,13 @@ describe("ThreadFormModalActions", () => {
     const cancelButton = screen.getByTestId(
       ThreadFormModalActionsTestId.cancelButton
     );
+
     expect(cancelButton.textContent).toBe(CANCEL_BUTTON_LABEL);
 
     const submitButton = screen.getByTestId(
       ThreadFormModalActionsTestId.submitButton
     );
+
     expect(submitButton.textContent).toBe(SUBMIT_LABEL);
   });
 
@@ -84,11 +101,13 @@ describe("ThreadFormModalActions", () => {
     const cancelButton = screen.getByTestId(
       ThreadFormModalActionsTestId.cancelButton
     );
+
     expect(cancelButton).toBeEnabled();
 
     const submitButton = screen.getByTestId(
       ThreadFormModalActionsTestId.submitButton
     );
+
     expect(submitButton).toBeDisabled();
   });
 
@@ -98,11 +117,13 @@ describe("ThreadFormModalActions", () => {
     const cancelButton = screen.getByTestId(
       ThreadFormModalActionsTestId.cancelButton
     );
+
     expect(cancelButton).toBeDisabled();
 
     const submitButton = screen.getByTestId(
       ThreadFormModalActionsTestId.submitButton
     );
+
     expect(submitButton).toBeDisabled();
     expect(submitButton).toHaveAttribute("data-loading");
   });
@@ -113,6 +134,7 @@ describe("ThreadFormModalActions", () => {
     const cancelButton = screen.getByTestId(
       ThreadFormModalActionsTestId.cancelButton
     );
+
     const submitButton = screen.getByTestId(
       ThreadFormModalActionsTestId.submitButton
     );
@@ -130,12 +152,79 @@ describe("ThreadFormModalActions", () => {
     const cancelButton = screen.getByTestId(
       ThreadFormModalActionsTestId.cancelButton
     );
+
     expect(cancelButton).toBeEnabled();
 
     const submitButton = screen.getByTestId(
       ThreadFormModalActionsTestId.submitButton
     );
+
     expect(submitButton).toBeEnabled();
     expect(submitButton).not.toHaveAttribute("data-loading");
+  });
+
+  it("renders the submit button as type button when no formId is given", () => {
+    setup();
+
+    const submitButton = screen.getByTestId(
+      ThreadFormModalActionsTestId.submitButton
+    );
+
+    expect(submitButton).toHaveAttribute("type", "button");
+  });
+
+  describe("with formId", () => {
+    it("renders the submit button as type submit attached to the form", () => {
+      setup({ formId: FORM_ID });
+
+      const submitButton = screen.getByTestId(
+        ThreadFormModalActionsTestId.submitButton
+      ) as HTMLButtonElement;
+
+      const form = document.getElementById(FORM_ID);
+
+      expect(submitButton.type).toBe("submit");
+      expect(submitButton.form).toBe(form);
+    });
+
+    it("submits the form when the submit button is clicked", async () => {
+      const { user } = setup({ formId: FORM_ID });
+
+      const submitButton = screen.getByTestId(
+        ThreadFormModalActionsTestId.submitButton
+      );
+
+      await user.click(submitButton);
+
+      expect(mockOnFormSubmit).toHaveBeenCalledOnce();
+    });
+
+    it("does not submit the form when the submit button is disabled", async () => {
+      const { user } = setup({ formId: FORM_ID, submitDisabled: true });
+
+      const submitButton = screen.getByTestId(
+        ThreadFormModalActionsTestId.submitButton
+      );
+
+      expect(submitButton).toBeDisabled();
+
+      await user.click(submitButton);
+
+      expect(mockOnFormSubmit).not.toHaveBeenCalled();
+    });
+
+    it("does not submit the form when clicked while submitting", async () => {
+      const { user } = setup({ formId: FORM_ID, isSubmitting: true });
+
+      const submitButton = screen.getByTestId(
+        ThreadFormModalActionsTestId.submitButton
+      );
+
+      expect(submitButton).toBeDisabled();
+
+      await user.click(submitButton);
+
+      expect(mockOnFormSubmit).not.toHaveBeenCalled();
+    });
   });
 });

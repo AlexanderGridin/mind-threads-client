@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 
 import { VStack, type VStackProps } from "../VStack";
 import { renderWithUIProvider } from "../../__test-fixtures__";
@@ -38,5 +38,26 @@ describe("VStack", () => {
 
     expect(screen.getByText("Item 1")).toBeInTheDocument();
     expect(screen.getByText("Item 2")).toBeInTheDocument();
+  });
+
+  it("renders as a form with the given id and calls onSubmit when submitted", () => {
+    const mockOnSubmit = vi.fn();
+    const FORM_ID = "section-form";
+
+    setup({
+      as: "form",
+      id: FORM_ID,
+      "data-testid": "test-vstack",
+      onSubmit: mockOnSubmit,
+    });
+
+    const form = screen.getByTestId("test-vstack");
+
+    expect(form.tagName).toBe("FORM");
+    expect(form.id).toBe(FORM_ID);
+
+    fireEvent.submit(form);
+
+    expect(mockOnSubmit).toHaveBeenCalledOnce();
   });
 });

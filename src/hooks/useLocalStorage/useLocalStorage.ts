@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type {
   LocalStorageUpdater,
   UseLocalStorageParams,
@@ -10,6 +10,20 @@ export const useLocalStorage = <ValueType>({
   throwOnError = false,
 }: UseLocalStorageParams): UseLocalStorageReturn<ValueType> => {
   const cacheRef = useRef<ValueType | null>(null);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (!event.key || event.key === key) {
+        cacheRef.current = null;
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [key]);
 
   const read = (): ValueType | null => {
     if (cacheRef.current !== null) return cacheRef.current;
