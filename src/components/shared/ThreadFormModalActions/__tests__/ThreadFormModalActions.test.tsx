@@ -206,6 +206,8 @@ describe("ThreadFormModalActions", () => {
         ThreadFormModalActionsTestId.submitButton
       );
 
+      expect(submitButton).toBeDisabled();
+
       await user.click(submitButton);
 
       expect(mockOnFormSubmit).not.toHaveBeenCalled();
@@ -217,6 +219,8 @@ describe("ThreadFormModalActions", () => {
       const submitButton = screen.getByTestId(
         ThreadFormModalActionsTestId.submitButton
       );
+
+      expect(submitButton).toBeDisabled();
 
       await user.click(submitButton);
 

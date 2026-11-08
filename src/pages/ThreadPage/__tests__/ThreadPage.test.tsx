@@ -371,6 +371,7 @@ describe("ThreadPage", () => {
       const [newCard] = screen.getAllByTestId(SectionCardTestId.container);
 
       expect(scrollIntoView.mock.contexts).toContain(newCard);
+      expect(scrollIntoView).toHaveBeenCalledOnce();
     });
 
     it("creates a section by submitting the form, after the stored sections", async () => {
@@ -463,6 +464,7 @@ describe("ThreadPage", () => {
 
       const pendingSubmitButton = getSubmitButton();
       expect(pendingSubmitButton).toHaveAttribute("data-loading");
+      expect(pendingSubmitButton).toBeDisabled();
 
       await waitForDismissListeners();
       await user.keyboard("{Escape}");

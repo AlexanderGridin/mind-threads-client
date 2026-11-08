@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createRef } from "react";
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import type { ThreadSectionValue } from "@/types";
@@ -9,6 +9,7 @@ import {
   SectionFormTestId,
   SECTION_NAME_LABEL,
 } from "../SectionForm.constants";
+import { ColorPickerTestId } from "@/components/lib/ColorPicker/ColorPicker.constants";
 
 const FORM_ID = "section-form";
 const SECTION_COLOR = "#5E81AC";
@@ -64,9 +65,11 @@ describe("SectionForm", () => {
     expect(nameInput).toBeRequired();
 
     expect(nameLabel).toBeInTheDocument();
-
     expect(colorPicker).toBeInTheDocument();
-    expect(colorPicker).toBeEnabled();
+
+    const trigger = within(colorPicker).getByTestId(ColorPickerTestId.trigger);
+    expect(trigger).toBeInTheDocument();
+    expect(trigger).toBeEnabled();
   });
 
   it("calls onChange with the typed name and keeps the color", async () => {
@@ -101,6 +104,10 @@ describe("SectionForm", () => {
 
     const nameInput = screen.getByTestId(SectionFormTestId.nameInput);
     expect(nameInput).toBeDisabled();
+
+    const colorPicker = screen.getByTestId(SectionFormTestId.colorPicker);
+    const trigger = within(colorPicker).getByTestId(ColorPickerTestId.trigger);
+    expect(trigger).toBeDisabled();
   });
 
   it("passes the name input ref to the name input element", () => {
