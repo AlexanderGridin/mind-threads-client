@@ -6,11 +6,13 @@ import { SectionListTestId } from "./SectionList.constants";
 type SectionListProps = {
   sections: ThreadSection[];
   lastCreatedSectionId: string | null;
+  onDeleteSection: (section: ThreadSection) => void;
 };
 
 export const SectionList = ({
   sections,
   lastCreatedSectionId,
+  onDeleteSection,
 }: SectionListProps) => {
   return (
     <VStack
@@ -24,6 +26,7 @@ export const SectionList = ({
             key={section.id}
             section={section}
             isLastCreated={section.id === lastCreatedSectionId}
+            onDelete={onDeleteSection}
           />
         );
       })}

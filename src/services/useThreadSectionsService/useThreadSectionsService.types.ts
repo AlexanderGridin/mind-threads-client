@@ -4,4 +4,5 @@ export type UseThreadSectionsServiceReturn = {
   getThreadSections: (threadId: string) => Promise<ThreadSection[]>;
   createThreadSection: (newSection: NewThreadSection) => Promise<ThreadSection>;
   deleteThreadSections: (threadId: string) => Promise<void>;
+  deleteSection: (sectionId: string) => Promise<boolean>;
 };

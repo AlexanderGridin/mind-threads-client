@@ -1,5 +1,6 @@
 import type { MindThread, NewMindThread } from "@/types";
 import type {
+  ApplyDeletedSectionParams,
   ApplyNewSectionParams,
   ApplyThreadUpdateParams,
   FindThreadParams,
@@ -22,6 +23,17 @@ export const applyNewSection = ({
     ...thread,
     totalSections: thread.totalSections + 1,
     lastUpdated: createdAt,
+  };
+};
+
+export const applyDeletedSection = ({
+  thread,
+  deletedAt,
+}: ApplyDeletedSectionParams): MindThread => {
+  return {
+    ...thread,
+    totalSections: thread.totalSections - 1,
+    lastUpdated: deletedAt,
   };
 };
 

@@ -3,7 +3,11 @@ import {
   ThreadPageActionContext,
   ThreadPageValueContext,
 } from "./ThreadPageLoader.context";
-import { useAddSection, useThreadState } from "./ThreadPageLoader.hooks";
+import {
+  useAddSection,
+  useDeleteSection,
+  useThreadState,
+} from "./ThreadPageLoader.hooks";
 
 type ThreadPageLoaderProps = {
   threadId: string;
@@ -14,7 +18,7 @@ export const ThreadPageLoader = ({
   threadId,
   children,
 }: ThreadPageLoaderProps) => {
-  const { thread, sections, threadStatus, addSection } =
+  const { thread, sections, threadStatus, addSection, removeSection } =
     useThreadState(threadId);
 
   const {
@@ -26,9 +30,24 @@ export const ThreadPageLoader = ({
     submitNewSection,
   } = useAddSection({ addSection });
 
+  const {
+    sectionToDelete,
+    isDeletingSection,
+    openDeleteSectionModal,
+    closeDeleteSectionModal,
+    confirmDeleteSection,
+  } = useDeleteSection({ removeSection });
+
   return (
     <ThreadPageActionContext.Provider
-      value={{ openAddSectionModal, closeAddSectionModal, submitNewSection }}
+      value={{
+        openAddSectionModal,
+        closeAddSectionModal,
+        submitNewSection,
+        openDeleteSectionModal,
+        closeDeleteSectionModal,
+        confirmDeleteSection,
+      }}
     >
       <ThreadPageValueContext.Provider
         value={{
@@ -38,6 +57,8 @@ export const ThreadPageLoader = ({
           isAddSectionModalOpen,
           isSavingSection,
           lastCreatedSectionId,
+          sectionToDelete,
+          isDeletingSection,
         }}
       >
         {children}

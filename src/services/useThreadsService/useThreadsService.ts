@@ -13,8 +13,12 @@ import {
   THREAD_NOT_FOUND_ERROR,
   THREADS_STORAGE_KEY,
 } from "./useThreadsService.constants";
-import type { UseThreadsServiceReturn } from "./useThreadsService.types";
+import type {
+  RemoveThreadSectionParams,
+  UseThreadsServiceReturn,
+} from "./useThreadsService.types";
 import {
+  applyDeletedSection,
   applyNewSection,
   applyThreadUpdate,
   buildThread,
@@ -117,6 +121,31 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     return createdSection;
   };
 
+  const removeThreadSection = async ({
+    threadId,
+    sectionId,
+  }: RemoveThreadSectionParams): Promise<void> => {
+    const storedThreads = await getThreads();
+    const storedThread = findThread({ threads: storedThreads, threadId });
+
+    const isSectionDeleted =
+      await threadSectionsService.deleteSection(sectionId);
+
+    if (!isSectionDeleted || !storedThread) {
+      return;
+    }
+
+    threadsStorage.set(
+      replaceThread({
+        threads: storedThreads,
+        updatedThread: applyDeletedSection({
+          thread: storedThread,
+          deletedAt: new Date().toISOString(),
+        }),
+      })
+    );
+  };
+
   const deleteThread = async (threadId: string): Promise<void> => {
     const storedThreads = await getThreads();
 
@@ -136,5 +165,6 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     updateThread,
     deleteThread,
     addThreadSection,
+    removeThreadSection,
   };
 };
