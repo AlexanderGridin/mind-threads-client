@@ -1,6 +1,7 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import {
+  dispatchStorageChange,
   MALFORMED_JSON,
   mindThreadFixtures,
   seedSections,
@@ -134,6 +135,94 @@ describe("useThreadSectionsService", () => {
       });
 
       expect(readStoredSections()).toStrictEqual(expectedSections);
+    });
+  });
+
+  describe("deleteSection", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it("removes only the section with the given id, resolves true, and keeps the rest in order", async () => {
+      const { result } = setupHook();
+
+      seedSections(threadSectionFixtures);
+
+      const isDeleted = await result.current.deleteSection("section-2");
+
+      const expectedSections = [
+        threadSectionFixtures[0],
+        threadSectionFixtures[2],
+      ];
+
+      expect(isDeleted).toBe(true);
+      expect(readStoredSections()).toStrictEqual(expectedSections);
+    });
+
+    it("removes only the targeted section when two sections have the same name", async () => {
+      const { result } = setupHook();
+
+      const firstSection = {
+        ...threadSectionFixtures[0],
+        id: "section-a",
+      };
+
+      const secondSection = {
+        ...threadSectionFixtures[0],
+        id: "section-b",
+      };
+
+      seedSections([firstSection, secondSection]);
+
+      await result.current.deleteSection("section-b");
+
+      expect(readStoredSections()).toStrictEqual([firstSection]);
+    });
+
+    it("resolves false and does not write when the id is unknown", async () => {
+      const { result } = setupHook();
+
+      seedSections(threadSectionFixtures);
+
+      const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+
+      const isDeleted = await result.current.deleteSection("unknown-id");
+
+      expect(isDeleted).toBe(false);
+      expect(setItemSpy).not.toHaveBeenCalled();
+    });
+
+    it("resolves false when another tab already removed the section", async () => {
+      const { result } = setupHook();
+
+      seedSections(threadSectionFixtures);
+
+      await result.current.getThreadSections(FIRST_THREAD_ID);
+
+      const sectionsWithoutTarget = threadSectionFixtures.filter((section) => {
+        return section.id !== "section-2";
+      });
+
+      seedSections(sectionsWithoutTarget);
+      dispatchStorageChange(SECTIONS_STORAGE_KEY);
+
+      const isDeleted = await result.current.deleteSection("section-2");
+
+      expect(isDeleted).toBe(false);
+      expect(readStoredSections()).toStrictEqual(sectionsWithoutTarget);
+    });
+
+    it("rejects and writes nothing when the stored data is invalid", async () => {
+      const { result } = setupHook();
+
+      const invalidData = JSON.stringify([{ id: "section-1" }]);
+      localStorage.setItem(SECTIONS_STORAGE_KEY, invalidData);
+
+      await expect(result.current.deleteSection("section-1")).rejects.toThrow(
+        INVALID_SECTIONS_DATA_ERROR
+      );
+
+      expect(localStorage.getItem(SECTIONS_STORAGE_KEY)).toBe(invalidData);
     });
   });
 });

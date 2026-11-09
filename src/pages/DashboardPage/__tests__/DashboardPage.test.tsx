@@ -34,7 +34,7 @@ import {
 import { EDIT_THREAD_MODAL_TITLE } from "../components/EditThreadModalContainer/components/EditThreadModal/EditThreadModal.constants";
 import { DELETE_THREAD_MODAL_TITLE } from "../components/DeleteThreadModalContainer/components/DeleteThreadModal/DeleteThreadModal.constants";
 import { getDeleteThreadModalText } from "../components/DeleteThreadModalContainer/components/DeleteThreadModal/DeleteThreadModal.utils";
-import { DeleteThreadModalActionsTestId } from "../components/DeleteThreadModalContainer/components/DeleteThreadModal/components/DeleteThreadModalActions/DeleteThreadModalActions.constants";
+import { DeleteConfirmationModalActionsTestId } from "@/components/shared/DeleteConfirmationModal/components/DeleteConfirmationModalActions/DeleteConfirmationModalActions.constants";
 
 const DEFAULT_THREAD_TITLE = "My thread";
 
@@ -305,7 +305,7 @@ describe("DashboardPage", () => {
 
     const confirmDelete = async (user: SetupResult["user"]) => {
       const confirmButton = screen.getByTestId(
-        DeleteThreadModalActionsTestId.deleteButton
+        DeleteConfirmationModalActionsTestId.deleteButton
       );
 
       await user.click(confirmButton);

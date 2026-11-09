@@ -11,7 +11,7 @@ import {
 } from "@/__test-fixtures__";
 import { DeleteThreadModal } from "../DeleteThreadModal";
 import { DELETE_THREAD_MODAL_TITLE } from "../DeleteThreadModal.constants";
-import { DeleteThreadModalActionsTestId } from "../components/DeleteThreadModalActions/DeleteThreadModalActions.constants";
+import { DeleteConfirmationModalActionsTestId } from "@/components/shared/DeleteConfirmationModal/components/DeleteConfirmationModalActions/DeleteConfirmationModalActions.constants";
 import { getDeleteThreadModalText } from "../DeleteThreadModal.utils";
 import type { DeleteThreadModalProps } from "../DeleteThreadModal.types";
 
@@ -49,7 +49,7 @@ const getCancelButton = () => {
 
 // While deleting, the loading spinner replaces the label, so the button is found by test id.
 const getDeleteButton = () => {
-  return screen.getByTestId(DeleteThreadModalActionsTestId.deleteButton);
+  return screen.getByTestId(DeleteConfirmationModalActionsTestId.deleteButton);
 };
 
 describe("DeleteThreadModal", () => {

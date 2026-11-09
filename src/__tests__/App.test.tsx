@@ -4,7 +4,10 @@ import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import {
+  confirmSectionDelete,
+  dispatchStorageChange,
   mindThreadFixtures,
+  openSectionDeleteMenu,
   seedSections,
   seedThreads,
   threadSectionFixtures,
@@ -16,7 +19,7 @@ import { ThreadColumnsTestId } from "@/pages/ThreadPage/components/ThreadContent
 import { SectionFormTestId } from "@/pages/ThreadPage/components/AddSectionModalContainer/components/AddSectionModal/components/SectionForm/SectionForm.constants";
 import { ADD_SECTION_MODAL_TITLE } from "@/pages/ThreadPage/components/AddSectionModalContainer/components/AddSectionModal/AddSectionModal.constants";
 import { ThreadFormModalActionsTestId } from "@/components/shared/ThreadFormModalActions/ThreadFormModalActions.constants";
-import { DeleteThreadModalActionsTestId } from "@/pages/DashboardPage/components/DeleteThreadModalContainer/components/DeleteThreadModal/components/DeleteThreadModalActions/DeleteThreadModalActions.constants";
+import { DeleteConfirmationModalActionsTestId } from "@/components/shared/DeleteConfirmationModal/components/DeleteConfirmationModalActions/DeleteConfirmationModalActions.constants";
 import { App } from "../App";
 import { DashboardHeaderTestId } from "@/pages/DashboardPage/components/DashboardHeader/DashboardHeader.constants";
 import { ThreadListModeButtonTestId } from "@/pages/DashboardPage/components/DashboardHeader/components/ThreadListModeButton/ThreadListModeButton.constants";
@@ -24,6 +27,8 @@ import { MindThreadCardTestId } from "@/pages/DashboardPage/components/Dashboard
 import { MindThreadListTestId } from "@/pages/DashboardPage/components/DashboardContent/components/MindThreadList/MindThreadList.constants";
 import { BACK_TO_DASHBOARD_LABEL } from "@/pages/ThreadPage/ThreadPage.constants";
 import { ThreadHeaderTestId } from "@/pages/ThreadPage/components/ThreadHeader/ThreadHeader.constants";
+import { DELETE_SECTION_ERROR_MESSAGE } from "@/pages/ThreadPage/components/ThreadPageLoader/ThreadPageLoader.constants";
+import { getSectionDeletedMessage } from "@/pages/ThreadPage/components/ThreadPageLoader/ThreadPageLoader.utils";
 import { APP_NAME } from "@/components/shared";
 
 const mockUseColorModeReturn = { toggleColorMode: vi.fn() };
@@ -264,6 +269,11 @@ describe("App", () => {
       await findThreadTitles();
     };
 
+    const deleteSection = async (user: User, sectionName: string) => {
+      await openSectionDeleteMenu({ user, sectionName });
+      await confirmSectionDelete(user);
+    };
+
     const getStoredSections = (): ThreadSection[] => {
       const storedSections = localStorage.getItem(SECTIONS_STORAGE_KEY);
       return storedSections ? JSON.parse(storedSections) : [];
@@ -286,6 +296,7 @@ describe("App", () => {
 
     afterEach(() => {
       vi.useRealTimers();
+      vi.restoreAllMocks();
     });
 
     it("counts the sections on the card as they are created, and shows the creation time", async () => {
@@ -353,7 +364,7 @@ describe("App", () => {
       await user.click(deleteMenuItem);
 
       const confirmButton = screen.getByTestId(
-        DeleteThreadModalActionsTestId.deleteButton
+        DeleteConfirmationModalActionsTestId.deleteButton
       );
 
       await user.click(confirmButton);
@@ -364,6 +375,159 @@ describe("App", () => {
 
       const remainingSections = getStoredSections();
       expect(remainingSections).toStrictEqual([OTHER_THREAD_SECTION]);
+    });
+
+    describe("deleting a section", () => {
+      const THIRD_SECTION_TIME = "2026-11-08T12:00:00.000Z";
+      const ARCHIVE_NAME = "Archive";
+
+      const ARCHIVE_SECTION: ThreadSection = {
+        ...threadSectionFixtures[0],
+        id: "archive-1",
+        name: ARCHIVE_NAME,
+      };
+
+      const THREE_SECTIONS = [
+        threadSectionFixtures[0],
+        threadSectionFixtures[1],
+        ARCHIVE_SECTION,
+      ];
+
+      const THREE_SECTION_THREAD = {
+        ...SECTION_THREAD,
+        totalSections: 3,
+        lastUpdated: FIRST_SECTION_TIME,
+      };
+
+      const DELETED_SECTION_NAME = SECOND_SECTION_NAME;
+
+      it("shows two sections and the just-now update time on the card after one of three sections is deleted", async () => {
+        seedThreads([THREE_SECTION_THREAD]);
+        seedSections(THREE_SECTIONS);
+
+        const { user } = setup("/");
+
+        await findThreadTitles();
+        await openThreadFromDashboard(user, SECTION_THREAD.title);
+
+        vi.setSystemTime(new Date(SECOND_SECTION_TIME));
+
+        await deleteSection(user, DELETED_SECTION_NAME);
+
+        const successNotification = await screen.findByText(
+          getSectionDeletedMessage(DELETED_SECTION_NAME)
+        );
+
+        expect(successNotification).toBeInTheDocument();
+
+        await returnToDashboard(user);
+
+        const [sectionsText] = screen.getAllByTestId(
+          MindThreadCardTestId.sections
+        );
+
+        const [lastUpdated] = screen.getAllByTestId(
+          MindThreadCardTestId.lastUpdated
+        );
+
+        expect(sectionsText.textContent).toBe("2 sections");
+        expect(lastUpdated.textContent).toBe(JUST_NOW_TEXT);
+
+        expect(getStoredThread(SECTION_THREAD.id)?.lastUpdated).toBe(
+          SECOND_SECTION_TIME
+        );
+      });
+
+      it("keeps the card's count and update time when the delete fails", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {});
+
+        seedThreads([THREE_SECTION_THREAD]);
+        seedSections(THREE_SECTIONS);
+
+        const { user } = setup("/");
+
+        await findThreadTitles();
+        await openThreadFromDashboard(user, SECTION_THREAD.title);
+
+        const setItemSpy = vi
+          .spyOn(Storage.prototype, "setItem")
+          .mockImplementation(() => {
+            throw new Error("Storage quota exceeded");
+          });
+
+        await deleteSection(user, DELETED_SECTION_NAME);
+
+        const errorNotification = await screen.findByText(
+          DELETE_SECTION_ERROR_MESSAGE
+        );
+
+        expect(errorNotification).toBeInTheDocument();
+
+        const cancelButton = screen.getByRole("button", { name: "Cancel" });
+        await user.click(cancelButton);
+
+        setItemSpy.mockRestore();
+
+        await returnToDashboard(user);
+
+        const [sectionsText] = screen.getAllByTestId(
+          MindThreadCardTestId.sections
+        );
+
+        expect(sectionsText.textContent).toBe("3 sections");
+
+        expect(getStoredThread(SECTION_THREAD.id)?.lastUpdated).toBe(
+          FIRST_SECTION_TIME
+        );
+      });
+
+      it("drops the count only once when the section was already deleted in another tab", async () => {
+        seedThreads([THREE_SECTION_THREAD]);
+        seedSections(THREE_SECTIONS);
+
+        const { user } = setup("/");
+
+        await findThreadTitles();
+        await openThreadFromDashboard(user, SECTION_THREAD.title);
+
+        const otherTabThread = {
+          ...THREE_SECTION_THREAD,
+          totalSections: 2,
+          lastUpdated: SECOND_SECTION_TIME,
+        };
+
+        seedThreads([otherTabThread]);
+        seedSections(
+          THREE_SECTIONS.filter((section) => {
+            return section.name !== DELETED_SECTION_NAME;
+          })
+        );
+
+        dispatchStorageChange(THREADS_STORAGE_KEY);
+        dispatchStorageChange(SECTIONS_STORAGE_KEY);
+
+        vi.setSystemTime(new Date(THIRD_SECTION_TIME));
+
+        await deleteSection(user, DELETED_SECTION_NAME);
+
+        const successNotification = await screen.findByText(
+          getSectionDeletedMessage(DELETED_SECTION_NAME)
+        );
+
+        expect(successNotification).toBeInTheDocument();
+
+        await returnToDashboard(user);
+
+        const [sectionsText] = screen.getAllByTestId(
+          MindThreadCardTestId.sections
+        );
+
+        expect(sectionsText.textContent).toBe("2 sections");
+
+        expect(getStoredThread(SECTION_THREAD.id)?.lastUpdated).toBe(
+          SECOND_SECTION_TIME
+        );
+      });
     });
   });
 });

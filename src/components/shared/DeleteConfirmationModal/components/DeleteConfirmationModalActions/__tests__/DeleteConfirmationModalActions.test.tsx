@@ -1,22 +1,21 @@
 import { describe, it, expect, vi } from "vitest";
-import { createRef } from "react";
+import { createRef, type ComponentProps } from "react";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
-import { DeleteThreadModalActions } from "../DeleteThreadModalActions";
-import { DeleteThreadModalActionsTestId } from "../DeleteThreadModalActions.constants";
-import type { DeleteThreadModalActionsProps } from "../DeleteThreadModalActions.types";
+import { DeleteConfirmationModalActions } from "../DeleteConfirmationModalActions";
+import { DeleteConfirmationModalActionsTestId } from "../DeleteConfirmationModalActions.constants";
 
 const setup = ({
   isDeleting = false,
   cancelButtonRef = createRef<HTMLButtonElement>(),
   onDelete = vi.fn(),
   onCancel = vi.fn(),
-}: Partial<DeleteThreadModalActionsProps> = {}) => {
+}: Partial<ComponentProps<typeof DeleteConfirmationModalActions>> = {}) => {
   const user = userEvent.setup();
 
   renderWithUIProvider(
-    <DeleteThreadModalActions
+    <DeleteConfirmationModalActions
       isDeleting={isDeleting}
       cancelButtonRef={cancelButtonRef}
       onDelete={onDelete}
@@ -28,14 +27,14 @@ const setup = ({
 };
 
 const getCancelButton = () => {
-  return screen.getByTestId(DeleteThreadModalActionsTestId.cancelButton);
+  return screen.getByTestId(DeleteConfirmationModalActionsTestId.cancelButton);
 };
 
 const getDeleteButton = () => {
-  return screen.getByTestId(DeleteThreadModalActionsTestId.deleteButton);
+  return screen.getByTestId(DeleteConfirmationModalActionsTestId.deleteButton);
 };
 
-describe("DeleteThreadModalActions", () => {
+describe("DeleteConfirmationModalActions", () => {
   it("renders the Cancel and Delete buttons", () => {
     setup();
 

@@ -10,10 +10,14 @@ import userEvent from "@testing-library/user-event";
 import { notify } from "@/components/lib";
 import {
   MALFORMED_JSON,
+  confirmSectionDelete,
   createDeferred,
+  dispatchStorageChange,
   getRenderedSectionNames,
   createServicesMock,
   mindThreadFixtures,
+  openSectionDeleteMenu,
+  readStoredSections,
   mindThreadFixturesWithSameTitle,
   renderWithRouter,
   resetThreadsServiceOverrides,
@@ -26,6 +30,7 @@ import {
 import { AppPath } from "@/routing/routing.constants";
 import { getThreadPath } from "@/routing/routing.utils";
 import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsService.constants";
+import { SECTIONS_STORAGE_KEY } from "@/services/useThreadSectionsService/useThreadSectionsService.constants";
 import type { MindThread, ThreadSection } from "@/types";
 import { ThreadPage } from "../ThreadPage";
 import {
@@ -47,7 +52,9 @@ import { ADD_SECTION_MODAL_TITLE } from "../components/AddSectionModalContainer/
 import {
   SAVE_SECTION_ERROR_MESSAGE,
   getSectionCreatedMessage,
+  getSectionDeletedMessage,
 } from "../components/ThreadPageLoader";
+import { DELETE_SECTION_MODAL_TITLE } from "../components/DeleteSectionModalContainer/DeleteSectionModalContainer.constants";
 import { ThreadFormModalActionsTestId } from "@/components/shared/ThreadFormModalActions/ThreadFormModalActions.constants";
 import { APP_NAME } from "@/components/shared";
 
@@ -132,7 +139,10 @@ describe("ThreadPage", () => {
     expect(headerTitle.textContent).toBe(THREAD_TITLE);
     expect(header).toHaveStyle({ backgroundColor: THREAD_COLOR });
     expect(columns).toBeInTheDocument();
-    expect(document.title).toBe(`${THREAD_TITLE} · ${APP_TITLE}`);
+
+    await waitFor(() => {
+      expect(document.title).toBe(`${THREAD_TITLE} · ${APP_TITLE}`);
+    });
   });
 
   it("shows the thread opened directly by its address, again after a remount", async () => {
@@ -513,6 +523,150 @@ describe("ThreadPage", () => {
 
       expect(errorNotification).toBeInTheDocument();
       expect(modalTitle).toBeInTheDocument();
+    });
+  });
+
+  describe("deleting a section", () => {
+    const SECTION_THREAD = mindThreadFixtures[0];
+    const RESEARCH_NAME = "Research";
+    const IDEAS_NAME = "Ideas";
+    const ARCHIVE_NAME = "Archive";
+
+    const buildSection = (id: string, name: string): ThreadSection => {
+      return {
+        id,
+        threadId: SECTION_THREAD.id,
+        name,
+        color: "#A3BE8C",
+        createdAt: "2026-06-20T12:00:00.000Z",
+      };
+    };
+
+    const THREE_SECTIONS = [
+      buildSection("research-1", RESEARCH_NAME),
+      buildSection("ideas-1", IDEAS_NAME),
+      buildSection("archive-1", ARCHIVE_NAME),
+    ];
+
+    const waitForLoadedThread = async () => {
+      await screen.findByTestId(ThreadHeaderTestId.title);
+    };
+
+    beforeEach(() => {
+      seedThreads(mindThreadFixtures);
+    });
+
+    it("leaves the other sections in order when one of three is deleted", async () => {
+      seedSections(THREE_SECTIONS);
+
+      const { user } = setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+      await openSectionDeleteMenu({ user, sectionName: IDEAS_NAME });
+      await confirmSectionDelete(user);
+
+      const sectionDeletedMessage = await screen.findByText(
+        getSectionDeletedMessage(IDEAS_NAME)
+      );
+      expect(sectionDeletedMessage).toBeInTheDocument();
+
+      expect(getRenderedSectionNames()).toStrictEqual([
+        RESEARCH_NAME,
+        ARCHIVE_NAME,
+      ]);
+    });
+
+    it("keeps the other section when two sections share a name and one is deleted", async () => {
+      const firstIdeas = buildSection("ideas-a", IDEAS_NAME);
+      const secondIdeas = buildSection("ideas-b", IDEAS_NAME);
+
+      seedSections([firstIdeas, secondIdeas]);
+
+      const { user } = setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+      await openSectionDeleteMenu({ user, sectionName: IDEAS_NAME, index: 1 });
+      await confirmSectionDelete(user);
+
+      const sectionDeletedMessage = await screen.findByText(
+        getSectionDeletedMessage(IDEAS_NAME)
+      );
+      expect(sectionDeletedMessage).toBeInTheDocument();
+
+      expect(getRenderedSectionNames()).toStrictEqual([IDEAS_NAME]);
+      expect(readStoredSections()).toStrictEqual([firstIdeas]);
+    });
+
+    it("does not list a deleted section after the page is remounted", async () => {
+      seedSections(THREE_SECTIONS);
+
+      const { user, unmount } = setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+      await openSectionDeleteMenu({ user, sectionName: IDEAS_NAME });
+      await confirmSectionDelete(user);
+
+      const sectionDeletedMessage = await screen.findByText(
+        getSectionDeletedMessage(IDEAS_NAME)
+      );
+      expect(sectionDeletedMessage).toBeInTheDocument();
+
+      unmount();
+
+      setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+
+      expect(getRenderedSectionNames()).toStrictEqual([
+        RESEARCH_NAME,
+        ARCHIVE_NAME,
+      ]);
+    });
+
+    it("shows the empty sections message after the only section is deleted", async () => {
+      seedSections([buildSection("research-1", RESEARCH_NAME)]);
+
+      const { user } = setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+      await openSectionDeleteMenu({ user, sectionName: RESEARCH_NAME });
+      await confirmSectionDelete(user);
+
+      const emptyMessage = await screen.findByText(SECTIONS_COLUMN_MESSAGE);
+      expect(emptyMessage).toBeInTheDocument();
+    });
+
+    it("removes the card, closes the dialog and shows the success notification when the section was already deleted in another tab", async () => {
+      seedSections(THREE_SECTIONS);
+
+      const { user } = setup({ threadId: SECTION_THREAD.id });
+
+      await waitForLoadedThread();
+
+      const remainingSections = THREE_SECTIONS.filter((section) => {
+        return section.name !== RESEARCH_NAME;
+      });
+
+      seedSections(remainingSections);
+      dispatchStorageChange(SECTIONS_STORAGE_KEY);
+
+      await openSectionDeleteMenu({ user, sectionName: RESEARCH_NAME });
+
+      const modalTitle = screen.getByText(DELETE_SECTION_MODAL_TITLE);
+      expect(modalTitle).toBeInTheDocument();
+
+      await confirmSectionDelete(user);
+
+      const successNotification = await screen.findByText(
+        getSectionDeletedMessage(RESEARCH_NAME)
+      );
+
+      expect(successNotification).toBeInTheDocument();
+      expect(modalTitle).not.toBeInTheDocument();
+      expect(getRenderedSectionNames()).toStrictEqual([
+        IDEAS_NAME,
+        ARCHIVE_NAME,
+      ]);
     });
   });
 });
