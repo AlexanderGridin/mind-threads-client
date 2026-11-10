@@ -9,6 +9,8 @@ export type BoxProps = {
   px?: string;
   py?: string;
   p?: string;
+  pl?: string;
+  pr?: string;
   display?: string;
   flexDirection?: string;
   gridTemplateColumns?: string;

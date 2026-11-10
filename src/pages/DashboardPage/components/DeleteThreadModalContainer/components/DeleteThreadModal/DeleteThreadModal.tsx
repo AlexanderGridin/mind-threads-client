@@ -1,6 +1,4 @@
-import { useRef } from "react";
-import { Dialog, Text } from "@/components/lib";
-import { DeleteThreadModalActions } from "./components";
+import { DeleteConfirmationModal } from "@/components/shared";
 import { DELETE_THREAD_MODAL_TITLE } from "./DeleteThreadModal.constants";
 import { getDeleteThreadModalText } from "./DeleteThreadModal.utils";
 import type { DeleteThreadModalProps } from "./DeleteThreadModal.types";
@@ -11,24 +9,13 @@ export const DeleteThreadModal = ({
   onClose,
   onDelete,
 }: DeleteThreadModalProps) => {
-  const cancelButtonRef = useRef<HTMLButtonElement>(null);
-
   return (
-    <Dialog
-      open
+    <DeleteConfirmationModal
       title={DELETE_THREAD_MODAL_TITLE}
-      closeDisabled={isDeleting}
-      initialFocusRef={cancelButtonRef}
+      message={getDeleteThreadModalText(threadTitle)}
+      isDeleting={isDeleting}
       onClose={onClose}
-      content={<Text>{getDeleteThreadModalText(threadTitle)}</Text>}
-      actions={
-        <DeleteThreadModalActions
-          isDeleting={isDeleting}
-          cancelButtonRef={cancelButtonRef}
-          onDelete={onDelete}
-          onCancel={onClose}
-        />
-      }
+      onDelete={onDelete}
     />
   );
 };

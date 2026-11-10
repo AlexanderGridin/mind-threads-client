@@ -15,7 +15,7 @@ import {
 
 export const SectionsColumn = () => {
   const { sections, lastCreatedSectionId } = useThreadPageValue();
-  const { openAddSectionModal } = useThreadPageAction();
+  const { openAddSectionModal, openDeleteSectionModal } = useThreadPageAction();
 
   return (
     <ThreadColumn
@@ -33,6 +33,7 @@ export const SectionsColumn = () => {
         <SectionList
           sections={sections}
           lastCreatedSectionId={lastCreatedSectionId}
+          onDeleteSection={openDeleteSectionModal}
         />
       ) : (
         <ThreadColumnMessage message={SECTIONS_COLUMN_MESSAGE} />

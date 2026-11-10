@@ -61,5 +61,26 @@ export const useThreadSectionsService = (): UseThreadSectionsServiceReturn => {
     sectionsStorage.set(filteredSections);
   };
 
-  return { getThreadSections, createThreadSection, deleteThreadSections };
+  const deleteSection = async (sectionId: string): Promise<boolean> => {
+    const storedSections = await getSections();
+
+    const remainingSections = storedSections.filter((section) => {
+      return section.id !== sectionId;
+    });
+
+    if (remainingSections.length === storedSections.length) {
+      return false;
+    }
+
+    sectionsStorage.set(remainingSections);
+
+    return true;
+  };
+
+  return {
+    getThreadSections,
+    createThreadSection,
+    deleteThreadSections,
+    deleteSection,
+  };
 };

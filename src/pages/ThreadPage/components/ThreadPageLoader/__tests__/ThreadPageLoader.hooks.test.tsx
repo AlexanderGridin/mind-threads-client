@@ -18,12 +18,19 @@ import { SECTIONS_STORAGE_KEY } from "@/services/useThreadSectionsService/useThr
 import { ThreadStatus } from "@/pages/ThreadPage/ThreadPage.constants";
 import {
   useAddSection,
+  useDeleteSection,
   useThreadPageAction,
   useThreadPageValue,
   useThreadState,
 } from "../ThreadPageLoader.hooks";
-import { SAVE_SECTION_ERROR_MESSAGE } from "../ThreadPageLoader.constants";
-import { getSectionCreatedMessage } from "../ThreadPageLoader.utils";
+import {
+  DELETE_SECTION_ERROR_MESSAGE,
+  SAVE_SECTION_ERROR_MESSAGE,
+} from "../ThreadPageLoader.constants";
+import {
+  getSectionCreatedMessage,
+  getSectionDeletedMessage,
+} from "../ThreadPageLoader.utils";
 
 vi.mock("@/services", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/services")>();
@@ -56,6 +63,14 @@ const setupAddSection = (
   addSection: (sectionValue: ThreadSectionValue) => Promise<ThreadSection>
 ) => {
   return renderHook(() => useAddSection({ addSection }), {
+    wrapper: ChakraUIProvider,
+  });
+};
+
+const setupDeleteSection = (
+  removeSection: (sectionId: string) => Promise<void>
+) => {
+  return renderHook(() => useDeleteSection({ removeSection }), {
     wrapper: ChakraUIProvider,
   });
 };
@@ -179,6 +194,69 @@ describe("ThreadPageLoader hooks", () => {
         createdSection,
       ]);
     });
+
+    it("removes only the targeted section by id and keeps the order of the rest", async () => {
+      const removedSection = threadSectionFixtures[0];
+      const expectedSections = [threadSectionFixtures[1]];
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+
+      const { result } = setupThreadState(STORED_THREAD_ID);
+
+      await waitFor(() => {
+        expect(result.current.threadStatus).toBe(ThreadStatus.Loaded);
+      });
+
+      await act(async () => {
+        await result.current.removeSection(removedSection.id);
+      });
+
+      expect(result.current.sections).toStrictEqual(expectedSections);
+    });
+
+    it("leaves an empty list when the only section is removed", async () => {
+      const onlySection = threadSectionFixtures[2];
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+
+      const { result } = setupThreadState(OTHER_THREAD_ID);
+
+      await waitFor(() => {
+        expect(result.current.threadStatus).toBe(ThreadStatus.Loaded);
+      });
+
+      await act(async () => {
+        await result.current.removeSection(onlySection.id);
+      });
+
+      expect(result.current.sections).toStrictEqual([]);
+    });
+
+    it("keeps the sections and rejects when the service fails to remove the section", async () => {
+      const expectedSections = getSectionsOfThread(STORED_THREAD_ID);
+      const removedSection = expectedSections[0];
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+
+      threadsServiceOverrides.removeThreadSection = async () => {
+        throw new Error("Remove failed");
+      };
+
+      const { result } = setupThreadState(STORED_THREAD_ID);
+
+      await waitFor(() => {
+        expect(result.current.threadStatus).toBe(ThreadStatus.Loaded);
+      });
+
+      await expect(
+        result.current.removeSection(removedSection.id)
+      ).rejects.toThrow("Remove failed");
+
+      expect(result.current.sections).toStrictEqual(expectedSections);
+    });
   });
 
   describe("useAddSection", () => {
@@ -272,6 +350,118 @@ describe("ThreadPageLoader hooks", () => {
 
       const errorNotification = await screen.findByText(
         SAVE_SECTION_ERROR_MESSAGE
+      );
+
+      expect(errorNotification).toBeInTheDocument();
+    });
+  });
+
+  describe("useDeleteSection", () => {
+    const SECTION_TO_DELETE = threadSectionFixtures[1];
+
+    it("sets the section to delete when opened and clears it when closed", () => {
+      const removeSection = vi.fn();
+      const { result } = setupDeleteSection(removeSection);
+
+      expect(result.current.sectionToDelete).toBeNull();
+
+      act(() => {
+        result.current.openDeleteSectionModal(SECTION_TO_DELETE);
+      });
+
+      expect(result.current.sectionToDelete).toStrictEqual(SECTION_TO_DELETE);
+
+      act(() => {
+        result.current.closeDeleteSectionModal();
+      });
+
+      expect(result.current.sectionToDelete).toBeNull();
+    });
+
+    it("does nothing when no section is selected", async () => {
+      const removeSection = vi.fn();
+      const { result } = setupDeleteSection(removeSection);
+
+      await act(async () => {
+        await result.current.confirmDeleteSection();
+      });
+
+      expect(removeSection).not.toHaveBeenCalled();
+      expect(result.current.sectionToDelete).toBeNull();
+      expect(result.current.isDeletingSection).toBe(false);
+    });
+
+    it("is deleting while the section is being removed", async () => {
+      const pendingRemoval = createDeferred<void>();
+      const removeSection = vi.fn(() => {
+        return pendingRemoval.promise;
+      });
+
+      const { result } = setupDeleteSection(removeSection);
+
+      act(() => {
+        result.current.openDeleteSectionModal(SECTION_TO_DELETE);
+      });
+
+      let pendingConfirm!: Promise<void>;
+
+      act(() => {
+        pendingConfirm = result.current.confirmDeleteSection();
+      });
+
+      expect(result.current.isDeletingSection).toBe(true);
+
+      await act(async () => {
+        pendingRemoval.resolve();
+        await pendingConfirm;
+      });
+
+      expect(result.current.isDeletingSection).toBe(false);
+    });
+
+    it("clears the section to delete, stops deleting and shows the success notification on success", async () => {
+      const removeSection = vi.fn(async () => {});
+      const { result } = setupDeleteSection(removeSection);
+
+      act(() => {
+        result.current.openDeleteSectionModal(SECTION_TO_DELETE);
+      });
+
+      await act(async () => {
+        await result.current.confirmDeleteSection();
+      });
+
+      expect(removeSection).toHaveBeenCalledWith(SECTION_TO_DELETE.id);
+      expect(result.current.sectionToDelete).toBeNull();
+      expect(result.current.isDeletingSection).toBe(false);
+
+      const successNotification = await screen.findByText(
+        getSectionDeletedMessage(SECTION_TO_DELETE.name)
+      );
+
+      expect(successNotification).toBeInTheDocument();
+    });
+
+    it("keeps the section to delete, stops deleting and shows the error notification on failure", async () => {
+      const removeSection = vi.fn(async () => {
+        throw new Error("Remove failed");
+      });
+
+      const { result } = setupDeleteSection(removeSection);
+
+      act(() => {
+        result.current.openDeleteSectionModal(SECTION_TO_DELETE);
+      });
+
+      await act(async () => {
+        await result.current.confirmDeleteSection();
+      });
+
+      expect(result.current.sectionToDelete).toStrictEqual(SECTION_TO_DELETE);
+      expect(result.current.isDeletingSection).toBe(false);
+
+      const errorNotification = await screen.findByText(
+        DELETE_SECTION_ERROR_MESSAGE
       );
 
       expect(errorNotification).toBeInTheDocument();

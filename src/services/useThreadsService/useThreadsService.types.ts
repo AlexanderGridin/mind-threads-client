@@ -13,6 +13,17 @@ export type UseThreadsServiceReturn = {
   updateThread: (threadUpdate: MindThreadUpdate) => Promise<MindThread>;
   deleteThread: (threadId: string) => Promise<void>;
   addThreadSection: (newSection: NewThreadSection) => Promise<ThreadSection>;
+  removeThreadSection: (params: RemoveThreadSectionParams) => Promise<void>;
+};
+
+export type RemoveThreadSectionParams = {
+  threadId: string;
+  sectionId: string;
+};
+
+export type ApplyDeletedSectionParams = {
+  thread: MindThread;
+  deletedAt: string;
 };
 
 export type ApplyThreadUpdateParams = {

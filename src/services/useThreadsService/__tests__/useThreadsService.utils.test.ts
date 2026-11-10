@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { mindThreadFixtures } from "@/__test-fixtures__";
 import {
+  applyDeletedSection,
   applyNewSection,
   applyThreadUpdate,
   buildThread,
@@ -131,6 +132,44 @@ describe("useThreadsService.utils", () => {
         totalSections: thread.totalSections + 1,
         lastUpdated: createdAt,
       });
+    });
+  });
+
+  describe("applyDeletedSection", () => {
+    it("decrements totalSections by one", () => {
+      const thread = { ...mindThreadFixtures[0], totalSections: 3 };
+
+      const updatedThread = applyDeletedSection({
+        thread,
+        deletedAt: FIXED_NOW.toISOString(),
+      });
+
+      expect(updatedThread.totalSections).toBe(2);
+    });
+
+    it("sets lastUpdated to deletedAt and keeps the other fields", () => {
+      const thread = mindThreadFixtures[0];
+      const deletedAt = FIXED_NOW.toISOString();
+
+      const updatedThread = applyDeletedSection({ thread, deletedAt });
+
+      expect(updatedThread).toStrictEqual({
+        ...thread,
+        totalSections: thread.totalSections - 1,
+        lastUpdated: deletedAt,
+      });
+    });
+
+    it("does not mutate the input thread", () => {
+      const thread = { ...mindThreadFixtures[0], totalSections: 3 };
+
+      applyDeletedSection({
+        thread,
+        deletedAt: FIXED_NOW.toISOString(),
+      });
+
+      expect(thread.totalSections).toBe(3);
+      expect(thread.lastUpdated).toBe(mindThreadFixtures[0].lastUpdated);
     });
   });
 

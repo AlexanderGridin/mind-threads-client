@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   LOCATION_MARKER_TEST_ID,
@@ -13,24 +13,33 @@ import {
 import { TruncatedTextTestId } from "@/components/lib/TruncatedText/TruncatedText.constants";
 import { SectionCard } from "../SectionCard";
 import { SectionCardTestId } from "../SectionCard.constants";
+import { getSectionActionsLabel } from "../components/SectionCardActions/SectionCardActions.utils";
 
 const SECTION = threadSectionFixtures[0];
 
 type SetupParams = {
   isLastCreated?: boolean;
   isOverflowing?: boolean;
+  onDelete?: () => void;
 };
 
 const setup = ({
   isLastCreated = false,
   isOverflowing = false,
+  onDelete = vi.fn(),
 }: SetupParams = {}) => {
   stubTextOverflow({ isOverflowing });
 
   const user = userEvent.setup();
 
   renderWithRouter({
-    ui: <SectionCard section={SECTION} isLastCreated={isLastCreated} />,
+    ui: (
+      <SectionCard
+        section={SECTION}
+        isLastCreated={isLastCreated}
+        onDelete={onDelete}
+      />
+    ),
   });
 
   return { user };
@@ -117,5 +126,28 @@ describe("SectionCard", () => {
 
     const tooltip = screen.queryByTestId(TruncatedTextTestId.tooltip);
     expect(tooltip).not.toBeInTheDocument();
+  });
+
+  it("shows the section actions button inside the card", () => {
+    setup();
+
+    const card = getCard();
+
+    const actionsButton = within(card).getByRole("button", {
+      name: getSectionActionsLabel(SECTION.name),
+    });
+
+    expect(actionsButton).toBeInTheDocument();
+    expect(actionsButton).toBeEnabled();
+  });
+
+  it("lays the card out as a flex row and truncates the name with an ellipsis", () => {
+    setup();
+
+    const card = getCard();
+    const name = getName();
+
+    expect(card).toHaveStyle({ display: "flex" });
+    expect(name).toHaveStyle({ textOverflow: "ellipsis" });
   });
 });

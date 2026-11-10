@@ -3,8 +3,10 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import {
+  confirmSectionDelete,
   getRenderedSectionNames,
   mindThreadFixtures,
+  openSectionDeleteMenu,
   seedSections,
   seedThreads,
   threadSectionFixtures,
@@ -20,6 +22,8 @@ import {
 } from "../../../ThreadColumns.constants";
 import { SectionCardTestId } from "../components/SectionCard/SectionCard.constants";
 import { SectionsColumn } from "../SectionsColumn";
+import { getSectionActionsLabel } from "../components/SectionCard/components/SectionCardActions/SectionCardActions.utils";
+import { DeleteSectionModalContainer } from "@/pages/ThreadPage/components/DeleteSectionModalContainer";
 
 const STORED_THREAD = mindThreadFixtures[0];
 
@@ -38,6 +42,7 @@ const setup = () => {
     <ThreadPageLoader threadId={STORED_THREAD.id}>
       <SectionsColumn />
       <AddSectionModalContainer />
+      <DeleteSectionModalContainer />
     </ThreadPageLoader>
   );
 
@@ -102,5 +107,26 @@ describe("SectionsColumn", () => {
 
     const modalTitle = await screen.findByText(ADD_SECTION_MODAL_TITLE);
     expect(modalTitle).toBeInTheDocument();
+  });
+
+  it("shows the empty message after the only section is deleted", async () => {
+    const onlySection = threadSectionFixtures[0];
+
+    seedSections([onlySection]);
+
+    const { user } = setup();
+
+    await screen.findByRole("button", {
+      name: getSectionActionsLabel(onlySection.name),
+    });
+
+    let message = screen.queryByText(SECTIONS_COLUMN_MESSAGE);
+    expect(message).not.toBeInTheDocument();
+
+    await openSectionDeleteMenu({ user, sectionName: onlySection.name });
+    await confirmSectionDelete(user);
+
+    message = await screen.findByText(SECTIONS_COLUMN_MESSAGE);
+    expect(message).toBeInTheDocument();
   });
 });

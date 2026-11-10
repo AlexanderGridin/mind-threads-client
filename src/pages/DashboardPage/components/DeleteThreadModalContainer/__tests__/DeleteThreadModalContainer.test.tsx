@@ -30,7 +30,7 @@ import { getThreadDeletedMessage } from "@/pages/DashboardPage/components/Dashbo
 import { DeleteThreadModalContainer } from "../DeleteThreadModalContainer";
 import { DELETE_THREAD_MODAL_TITLE } from "../components/DeleteThreadModal/DeleteThreadModal.constants";
 import { getDeleteThreadModalText } from "../components/DeleteThreadModal/DeleteThreadModal.utils";
-import { DeleteThreadModalActionsTestId } from "../components/DeleteThreadModal/components/DeleteThreadModalActions/DeleteThreadModalActions.constants";
+import { DeleteConfirmationModalActionsTestId } from "@/components/shared/DeleteConfirmationModal/components/DeleteConfirmationModalActions/DeleteConfirmationModalActions.constants";
 
 vi.mock("@/services", async (importOriginal) => {
   const { createServicesMock } = await import("@/__test-fixtures__");
@@ -122,12 +122,12 @@ const queryModalTitle = () => {
 };
 
 const getCancelButton = () => {
-  return screen.getByTestId(DeleteThreadModalActionsTestId.cancelButton);
+  return screen.getByTestId(DeleteConfirmationModalActionsTestId.cancelButton);
 };
 
 // While deleting, the loading spinner replaces the label, so the button is found by test id.
 const getDeleteButton = () => {
-  return screen.getByTestId(DeleteThreadModalActionsTestId.deleteButton);
+  return screen.getByTestId(DeleteConfirmationModalActionsTestId.deleteButton);
 };
 
 const getCloseButton = () => {

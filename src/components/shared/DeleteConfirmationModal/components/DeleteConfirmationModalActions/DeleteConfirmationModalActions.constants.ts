@@ -1,8 +1,8 @@
 import { initTestIdCreator } from "@/components/lib/utils";
 
-const createTestId = initTestIdCreator("DeleteThreadModalActions__");
+const createTestId = initTestIdCreator("DeleteConfirmationModalActions__");
 
-export const DeleteThreadModalActionsTestId = {
+export const DeleteConfirmationModalActionsTestId = {
   container: createTestId("container"),
   cancelButton: createTestId("cancel-button"),
   deleteButton: createTestId("delete-button"),

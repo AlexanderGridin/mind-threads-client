@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import {
   MALFORMED_JSON,
@@ -404,6 +404,140 @@ describe("useThreadsService", () => {
       ).rejects.toThrow(THREAD_NOT_FOUND_ERROR);
 
       expect(readStoredSections()).toStrictEqual([]);
+    });
+  });
+
+  describe("removeThreadSection", () => {
+    const threadWithSections = { ...mindThreadFixtures[0], totalSections: 2 };
+    const removedSectionId = threadSectionFixtures[0].id;
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("removes the section, drops totalSections by one, sets lastUpdated to the deletion time, and leaves other threads unchanged", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(LATER_NOW);
+
+      const { result } = setup();
+
+      seedThreads([threadWithSections, mindThreadFixtures[1]]);
+      seedSections(threadSectionFixtures);
+
+      await result.current.removeThreadSection({
+        threadId: threadWithSections.id,
+        sectionId: removedSectionId,
+      });
+
+      const expectedThread = {
+        ...threadWithSections,
+        totalSections: 1,
+        lastUpdated: LATER_NOW.toISOString(),
+      };
+
+      expect(readStoredThreads()).toStrictEqual([
+        expectedThread,
+        mindThreadFixtures[1],
+      ]);
+
+      expect(readStoredSections()).toStrictEqual(
+        threadSectionFixtures.slice(1)
+      );
+    });
+
+    it("leaves the stored thread strictly equal to before when the section is no longer in storage", async () => {
+      const { result } = setup();
+
+      seedThreads([threadWithSections]);
+      seedSections(threadSectionFixtures.slice(1));
+
+      await result.current.removeThreadSection({
+        threadId: threadWithSections.id,
+        sectionId: removedSectionId,
+      });
+
+      expect(readStoredThreads()).toStrictEqual([threadWithSections]);
+    });
+
+    it("removes the section and leaves the threads untouched when the thread was deleted elsewhere", async () => {
+      const { result } = setup();
+
+      const storedThreads = [mindThreadFixtures[1]];
+
+      seedThreads(storedThreads);
+      seedSections(threadSectionFixtures);
+
+      await result.current.removeThreadSection({
+        threadId: threadWithSections.id,
+        sectionId: removedSectionId,
+      });
+
+      expect(readStoredThreads()).toStrictEqual(storedThreads);
+
+      expect(readStoredSections()).toStrictEqual(
+        threadSectionFixtures.slice(1)
+      );
+    });
+
+    it("resolves and writes nothing when the section is already gone and the thread was deleted elsewhere", async () => {
+      const { result } = setup();
+
+      seedThreads([mindThreadFixtures[1]]);
+      seedSections(threadSectionFixtures.slice(2));
+
+      const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+
+      await result.current.removeThreadSection({
+        threadId: threadWithSections.id,
+        sectionId: removedSectionId,
+      });
+
+      expect(setItemSpy).not.toHaveBeenCalled();
+    });
+
+    it("rejects and leaves sections and threads unchanged when the localStorage write fails", async () => {
+      const { result } = setup();
+
+      seedThreads([threadWithSections]);
+      seedSections(threadSectionFixtures);
+
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new Error("Storage quota exceeded");
+      });
+
+      await expect(
+        result.current.removeThreadSection({
+          threadId: threadWithSections.id,
+          sectionId: removedSectionId,
+        })
+      ).rejects.toThrow("Storage quota exceeded");
+
+      expect(readStoredThreads()).toStrictEqual([threadWithSections]);
+      expect(readStoredSections()).toStrictEqual(threadSectionFixtures);
+    });
+
+    it("rejects and does not remove the section when the stored threads data is invalid", async () => {
+      const { result } = setup();
+
+      seedSections(threadSectionFixtures);
+      localStorage.setItem(
+        THREADS_STORAGE_KEY,
+        JSON.stringify({ id: "thread-1" })
+      );
+
+      await expect(
+        result.current.removeThreadSection({
+          threadId: threadWithSections.id,
+          sectionId: removedSectionId,
+        })
+      ).rejects.toThrow(INVALID_THREADS_DATA_ERROR);
+
+      expect(readStoredSections()).toStrictEqual(threadSectionFixtures);
     });
   });
 

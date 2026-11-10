@@ -8,14 +8,23 @@ export type ThreadPageValue = {
   isAddSectionModalOpen: boolean;
   isSavingSection: boolean;
   lastCreatedSectionId: string | null;
+  sectionToDelete: ThreadSection | null;
+  isDeletingSection: boolean;
 };
 
 export type ThreadPageAction = {
   openAddSectionModal: () => void;
   closeAddSectionModal: () => void;
   submitNewSection: (sectionValue: ThreadSectionValue) => Promise<void>;
+  openDeleteSectionModal: (section: ThreadSection) => void;
+  closeDeleteSectionModal: () => void;
+  confirmDeleteSection: () => Promise<void>;
 };
 
 export type UseAddSectionParams = {
   addSection: (sectionValue: ThreadSectionValue) => Promise<ThreadSection>;
+};
+
+export type UseDeleteSectionParams = {
+  removeSection: (sectionId: string) => Promise<void>;
 };

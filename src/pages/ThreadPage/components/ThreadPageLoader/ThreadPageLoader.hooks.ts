@@ -9,9 +9,18 @@ import {
   ThreadPageActionContext,
   ThreadPageValueContext,
 } from "./ThreadPageLoader.context";
-import { SAVE_SECTION_ERROR_MESSAGE } from "./ThreadPageLoader.constants";
-import { getSectionCreatedMessage } from "./ThreadPageLoader.utils";
-import type { UseAddSectionParams } from "./ThreadPageLoader.types";
+import {
+  DELETE_SECTION_ERROR_MESSAGE,
+  SAVE_SECTION_ERROR_MESSAGE,
+} from "./ThreadPageLoader.constants";
+import {
+  getSectionCreatedMessage,
+  getSectionDeletedMessage,
+} from "./ThreadPageLoader.utils";
+import type {
+  UseAddSectionParams,
+  UseDeleteSectionParams,
+} from "./ThreadPageLoader.types";
 
 export const useThreadPageValue = () => {
   const context = useContext(ThreadPageValueContext);
@@ -92,7 +101,17 @@ export const useThreadState = (threadId: string) => {
     return createdSection;
   };
 
-  return { thread, sections, threadStatus, addSection };
+  const removeSection = async (sectionId: string) => {
+    await threadsService.removeThreadSection({ threadId, sectionId });
+
+    setSections((currentSections) => {
+      return currentSections.filter((section) => {
+        return section.id !== sectionId;
+      });
+    });
+  };
+
+  return { thread, sections, threadStatus, addSection, removeSection };
 };
 
 export const useAddSection = ({ addSection }: UseAddSectionParams) => {
@@ -134,5 +153,48 @@ export const useAddSection = ({ addSection }: UseAddSectionParams) => {
     openAddSectionModal,
     closeAddSectionModal,
     submitNewSection,
+  };
+};
+
+export const useDeleteSection = ({ removeSection }: UseDeleteSectionParams) => {
+  const [sectionToDelete, setSectionToDelete] = useState<ThreadSection | null>(
+    null
+  );
+
+  const [isDeletingSection, setIsDeletingSection] = useState(false);
+
+  const openDeleteSectionModal = (section: ThreadSection) => {
+    setSectionToDelete(section);
+  };
+
+  const closeDeleteSectionModal = () => {
+    setSectionToDelete(null);
+  };
+
+  const confirmDeleteSection = async () => {
+    if (!sectionToDelete) {
+      return;
+    }
+
+    setIsDeletingSection(true);
+
+    try {
+      await removeSection(sectionToDelete.id);
+
+      closeDeleteSectionModal();
+      notify.success(getSectionDeletedMessage(sectionToDelete.name));
+    } catch {
+      notify.error(DELETE_SECTION_ERROR_MESSAGE);
+    } finally {
+      setIsDeletingSection(false);
+    }
+  };
+
+  return {
+    sectionToDelete,
+    isDeletingSection,
+    openDeleteSectionModal,
+    closeDeleteSectionModal,
+    confirmDeleteSection,
   };
 };
