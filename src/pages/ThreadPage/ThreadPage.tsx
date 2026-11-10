@@ -1,5 +1,6 @@
 import { useParams } from "react-router";
 import {
+  AddPageModalContainer,
   AddSectionModalContainer,
   DeleteSectionModalContainer,
   ThreadPageLayout,
@@ -14,6 +15,7 @@ export const ThreadPage = () => {
       <ThreadPageLayout />
 
       <AddSectionModalContainer />
+      <AddPageModalContainer />
       <DeleteSectionModalContainer />
     </ThreadPageLoader>
   );

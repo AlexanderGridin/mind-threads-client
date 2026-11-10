@@ -1,4 +1,7 @@
+import { LuMessageSquare } from "react-icons/lu";
 import { initTestIdCreator } from "@/components/lib/utils";
+import type { SectionPageType } from "@/types";
+import type { PageTypeConfig } from "./ThreadPage.types";
 
 const createTestId = initTestIdCreator("ThreadPage__");
 
@@ -20,3 +23,11 @@ export const THREAD_NOT_FOUND_MESSAGE =
   "This thread doesn't exist or was deleted.";
 export const THREAD_LOAD_ERROR_MESSAGE =
   "Couldn't load this thread. Please reload the page.";
+
+export const PAGE_TYPES: SectionPageType[] = ["chat"];
+
+export const DEFAULT_PAGE_TYPE: SectionPageType = "chat";
+
+export const PAGE_TYPE_CONFIG: Record<SectionPageType, PageTypeConfig> = {
+  chat: { label: "Chat", icon: LuMessageSquare },
+};

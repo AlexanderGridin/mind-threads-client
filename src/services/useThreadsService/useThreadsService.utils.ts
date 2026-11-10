@@ -1,6 +1,7 @@
 import type { MindThread, NewMindThread } from "@/types";
 import type {
   ApplyDeletedSectionParams,
+  ApplyNewPageParams,
   ApplyNewSectionParams,
   ApplyThreadUpdateParams,
   FindThreadParams,
@@ -26,13 +27,26 @@ export const applyNewSection = ({
   };
 };
 
+export const applyNewPage = ({
+  thread,
+  createdAt,
+}: ApplyNewPageParams): MindThread => {
+  return {
+    ...thread,
+    totalPages: thread.totalPages + 1,
+    lastUpdated: createdAt,
+  };
+};
+
 export const applyDeletedSection = ({
   thread,
+  deletedPageCount,
   deletedAt,
 }: ApplyDeletedSectionParams): MindThread => {
   return {
     ...thread,
     totalSections: thread.totalSections - 1,
+    totalPages: thread.totalPages - deletedPageCount,
     lastUpdated: deletedAt,
   };
 };

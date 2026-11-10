@@ -5,6 +5,8 @@ import type { ReactNode, ElementType, MouseEvent } from "react";
 export type BoxProps = {
   children?: ReactNode;
   as?: ElementType;
+  type?: "button";
+  "aria-current"?: boolean;
   "data-testid"?: string;
   px?: string;
   py?: string;

@@ -2,7 +2,9 @@ import type {
   MindThread,
   MindThreadUpdate,
   NewMindThread,
+  NewSectionPage,
   NewThreadSection,
+  SectionPage,
   ThreadSection,
 } from "@/types";
 
@@ -14,6 +16,7 @@ export type UseThreadsServiceReturn = {
   deleteThread: (threadId: string) => Promise<void>;
   addThreadSection: (newSection: NewThreadSection) => Promise<ThreadSection>;
   removeThreadSection: (params: RemoveThreadSectionParams) => Promise<void>;
+  addSectionPage: (newPage: NewSectionPage) => Promise<SectionPage>;
 };
 
 export type RemoveThreadSectionParams = {
@@ -23,6 +26,7 @@ export type RemoveThreadSectionParams = {
 
 export type ApplyDeletedSectionParams = {
   thread: MindThread;
+  deletedPageCount: number;
   deletedAt: string;
 };
 
@@ -32,6 +36,11 @@ export type ApplyThreadUpdateParams = {
 };
 
 export type ApplyNewSectionParams = {
+  thread: MindThread;
+  createdAt: string;
+};
+
+export type ApplyNewPageParams = {
   thread: MindThread;
   createdAt: string;
 };
