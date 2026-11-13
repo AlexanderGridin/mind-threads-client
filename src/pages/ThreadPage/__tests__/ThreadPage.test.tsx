@@ -13,20 +13,30 @@ import {
   confirmSectionDelete,
   createDeferred,
   dispatchStorageChange,
+  getRenderedPageNames,
   getRenderedSectionNames,
   createServicesMock,
   mindThreadFixtures,
+  openAddPageModal,
   openSectionDeleteMenu,
+  readStoredPages,
   readStoredSections,
   mindThreadFixturesWithSameTitle,
   renderWithRouter,
   resetThreadsServiceOverrides,
+  sectionPageFixtures,
+  seedPages,
   seedSections,
   seedThreads,
+  selectSectionCard,
   threadSectionFixtures,
   threadsServiceOverrides,
   waitForDismissListeners,
 } from "@/__test-fixtures__";
+import { DEFAULT_SWATCH_COLOR } from "@/components/lib/ColorPicker/ColorPicker.constants";
+import { PageFormTestId } from "../components/AddPageModalContainer/components/AddPageModal/components/PageForm/PageForm.constants";
+import { PageCardTestId } from "../components/ThreadContent/components/ThreadColumns/components/PagesColumn/components/PageCard/PageCard.constants";
+import { PageTypeIconTestId } from "../components/PageTypeIcon/PageTypeIcon.constants";
 import { AppPath } from "@/routing/routing.constants";
 import { getThreadPath } from "@/routing/routing.utils";
 import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsService.constants";
@@ -523,6 +533,166 @@ describe("ThreadPage", () => {
 
       expect(errorNotification).toBeInTheDocument();
       expect(modalTitle).toBeInTheDocument();
+    });
+  });
+
+  describe("creating a page", () => {
+    type User = ReturnType<typeof userEvent.setup>;
+
+    const PAGE_THREAD = mindThreadFixtures[0];
+    const OTHER_THREAD = mindThreadFixtures[1];
+    const IDEAS_SECTION = threadSectionFixtures[0];
+    const RESEARCH_SECTION = threadSectionFixtures[1];
+    const DRAFTS_SECTION = threadSectionFixtures[2];
+    const PAGE_NAME = "Ideas";
+    const SECOND_PAGE_NAME = "Sources";
+
+    const readStoredThreads = (): MindThread[] => {
+      return JSON.parse(localStorage.getItem(THREADS_STORAGE_KEY) ?? "[]");
+    };
+
+    const findStoredThread = (threadId: string) => {
+      return readStoredThreads().find((thread) => {
+        return thread.id === threadId;
+      });
+    };
+
+    const getSubmitButton = () => {
+      return screen.getByTestId(ThreadFormModalActionsTestId.submitButton);
+    };
+
+    const waitForLoadedThread = async () => {
+      await screen.findByTestId(ThreadHeaderTestId.title);
+    };
+
+    const createPage = async (user: User, name: string) => {
+      const modalTitle = await openAddPageModal(user);
+
+      const nameInput = screen.getByTestId(PageFormTestId.nameInput);
+      await user.type(nameInput, name);
+
+      const removal = waitForElementToBeRemoved(modalTitle);
+      await user.click(getSubmitButton());
+      await removal;
+    };
+
+    beforeEach(() => {
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+    });
+
+    it("keeps the created page after a remount, with its name, chat icon, and color, once its section is selected again", async () => {
+      const { user, unmount } = setup({ threadId: PAGE_THREAD.id });
+
+      await waitForLoadedThread();
+      await selectSectionCard({ user, sectionName: IDEAS_SECTION.name });
+      await createPage(user, PAGE_NAME);
+
+      unmount();
+
+      const reloaded = setup({ threadId: PAGE_THREAD.id });
+
+      await waitForLoadedThread();
+
+      const ideasSelectButton = screen.getByRole("button", {
+        name: IDEAS_SECTION.name,
+      });
+
+      expect(ideasSelectButton).toHaveAttribute("aria-current", "false");
+      expect(getRenderedPageNames()).toStrictEqual([]);
+
+      await selectSectionCard({
+        user: reloaded.user,
+        sectionName: IDEAS_SECTION.name,
+      });
+
+      expect(getRenderedPageNames()).toStrictEqual([PAGE_NAME]);
+
+      const [pageCard] = screen.getAllByTestId(PageCardTestId.container);
+      const pageIcon = within(pageCard).getByTestId(PageTypeIconTestId.chat);
+
+      expect(pageIcon).toBeInTheDocument();
+      expect(pageCard).toHaveStyle({ borderLeftColor: DEFAULT_SWATCH_COLOR });
+    });
+
+    it("does not list the page under another section of the thread or in another thread", async () => {
+      const { user, unmount } = setup({ threadId: PAGE_THREAD.id });
+
+      await waitForLoadedThread();
+      await selectSectionCard({ user, sectionName: IDEAS_SECTION.name });
+      await createPage(user, PAGE_NAME);
+
+      await selectSectionCard({ user, sectionName: RESEARCH_SECTION.name });
+
+      expect(getRenderedPageNames()).toStrictEqual([]);
+
+      unmount();
+
+      const other = setup({ threadId: OTHER_THREAD.id });
+
+      await waitForLoadedThread();
+      await selectSectionCard({
+        user: other.user,
+        sectionName: DRAFTS_SECTION.name,
+      });
+
+      expect(getRenderedPageNames()).toStrictEqual([]);
+    });
+
+    it("sets the thread's totalPages and lastUpdated to the latest page's createdAt, after each page", async () => {
+      const emptyThread = { ...PAGE_THREAD, totalPages: 0 };
+      seedThreads([emptyThread, OTHER_THREAD]);
+
+      const { user } = setup({ threadId: PAGE_THREAD.id });
+
+      await waitForLoadedThread();
+      await selectSectionCard({ user, sectionName: IDEAS_SECTION.name });
+      await createPage(user, PAGE_NAME);
+
+      const [firstStoredPage] = readStoredPages();
+      const threadAfterFirstPage = findStoredThread(PAGE_THREAD.id);
+
+      expect(threadAfterFirstPage?.totalPages).toBe(1);
+      expect(threadAfterFirstPage?.lastUpdated).toBe(firstStoredPage.createdAt);
+
+      await selectSectionCard({ user, sectionName: RESEARCH_SECTION.name });
+      await createPage(user, SECOND_PAGE_NAME);
+
+      const storedPages = readStoredPages();
+      const secondStoredPage = storedPages[storedPages.length - 1];
+      const threadAfterSecondPage = findStoredThread(PAGE_THREAD.id);
+
+      expect(threadAfterSecondPage?.totalPages).toBe(2);
+      expect(threadAfterSecondPage?.lastUpdated).toBe(
+        secondStoredPage.createdAt
+      );
+    });
+
+    it("lowers the thread's totalPages by the deleted section's pages and removes those pages from storage", async () => {
+      const threadWithPages = { ...PAGE_THREAD, totalPages: 3 };
+
+      seedThreads([threadWithPages, OTHER_THREAD]);
+      seedPages(sectionPageFixtures);
+
+      const { user } = setup({ threadId: PAGE_THREAD.id });
+
+      await waitForLoadedThread();
+      await openSectionDeleteMenu({ user, sectionName: IDEAS_SECTION.name });
+      await confirmSectionDelete(user);
+
+      const deletedMessage = await screen.findByText(
+        getSectionDeletedMessage(IDEAS_SECTION.name)
+      );
+
+      expect(deletedMessage).toBeInTheDocument();
+
+      const threadAfterDelete = findStoredThread(PAGE_THREAD.id);
+      expect(threadAfterDelete?.totalPages).toBe(1);
+
+      expect(readStoredPages()).toStrictEqual([
+        sectionPageFixtures[2],
+        sectionPageFixtures[3],
+      ]);
     });
   });
 

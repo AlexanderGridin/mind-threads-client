@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { mindThreadFixtures } from "@/__test-fixtures__";
 import {
   applyDeletedSection,
+  applyNewPage,
   applyNewSection,
   applyThreadUpdate,
   buildThread,
@@ -135,23 +136,77 @@ describe("useThreadsService.utils", () => {
     });
   });
 
+  describe("applyNewPage", () => {
+    it("increments totalPages from 0 to 1", () => {
+      const thread = { ...mindThreadFixtures[0], totalPages: 0 };
+
+      const updatedThread = applyNewPage({
+        thread,
+        createdAt: FIXED_NOW.toISOString(),
+      });
+
+      expect(updatedThread.totalPages).toBe(1);
+    });
+
+    it("increments totalPages from 1 to 2", () => {
+      const thread = { ...mindThreadFixtures[0], totalPages: 1 };
+
+      const updatedThread = applyNewPage({
+        thread,
+        createdAt: FIXED_NOW.toISOString(),
+      });
+
+      expect(updatedThread.totalPages).toBe(2);
+    });
+
+    it("sets lastUpdated to createdAt and keeps the other fields", () => {
+      const thread = mindThreadFixtures[0];
+      const createdAt = FIXED_NOW.toISOString();
+
+      const updatedThread = applyNewPage({ thread, createdAt });
+
+      expect(updatedThread).toStrictEqual({
+        ...thread,
+        totalPages: thread.totalPages + 1,
+        lastUpdated: createdAt,
+      });
+    });
+  });
+
   describe("applyDeletedSection", () => {
     it("decrements totalSections by one", () => {
       const thread = { ...mindThreadFixtures[0], totalSections: 3 };
 
       const updatedThread = applyDeletedSection({
         thread,
+        deletedPageCount: 0,
         deletedAt: FIXED_NOW.toISOString(),
       });
 
       expect(updatedThread.totalSections).toBe(2);
     });
 
+    it("decrements totalPages by the number of deleted pages", () => {
+      const thread = { ...mindThreadFixtures[0], totalPages: 3 };
+
+      const updatedThread = applyDeletedSection({
+        thread,
+        deletedPageCount: 2,
+        deletedAt: FIXED_NOW.toISOString(),
+      });
+
+      expect(updatedThread.totalPages).toBe(1);
+    });
+
     it("sets lastUpdated to deletedAt and keeps the other fields", () => {
       const thread = mindThreadFixtures[0];
       const deletedAt = FIXED_NOW.toISOString();
 
-      const updatedThread = applyDeletedSection({ thread, deletedAt });
+      const updatedThread = applyDeletedSection({
+        thread,
+        deletedPageCount: 0,
+        deletedAt,
+      });
 
       expect(updatedThread).toStrictEqual({
         ...thread,
@@ -165,6 +220,7 @@ describe("useThreadsService.utils", () => {
 
       applyDeletedSection({
         thread,
+        deletedPageCount: 0,
         deletedAt: FIXED_NOW.toISOString(),
       });
 

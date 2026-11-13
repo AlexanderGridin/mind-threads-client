@@ -1,18 +1,28 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import {
+  buildNewPage,
+  dispatchStorageChange,
   MALFORMED_JSON,
   mindThreadFixture,
   mindThreadFixtures,
   mindThreadFixturesWithSingleItem,
+  readStoredPages,
+  sectionPageFixtures,
+  seedPages,
   seedThreads,
 } from "@/__test-fixtures__";
 import { seedSections, threadSectionFixtures } from "@/__test-fixtures__";
+import {
+  INVALID_PAGES_DATA_ERROR,
+  PAGES_STORAGE_KEY,
+} from "@/services/useSectionPagesService/useSectionPagesService.constants";
 import { SECTIONS_STORAGE_KEY } from "@/services/useThreadSectionsService/useThreadSectionsService.constants";
 import type { MindThread, ThreadSection } from "@/types";
 import { useThreadsService } from "../useThreadsService";
 import {
   INVALID_THREADS_DATA_ERROR,
+  SECTION_NOT_FOUND_ERROR,
   THREAD_NOT_FOUND_ERROR,
   THREADS_STORAGE_KEY,
 } from "../useThreadsService.constants";
@@ -407,6 +417,146 @@ describe("useThreadsService", () => {
     });
   });
 
+  describe("addSectionPage", () => {
+    const FIRST_SECTION_ID = threadSectionFixtures[0].id;
+    const SECOND_SECTION_ID = threadSectionFixtures[1].id;
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("returns the stored page with its name trimmed", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+
+      const createdPage = await result.current.addSectionPage(
+        buildNewPage({ name: "  Ideas  " })
+      );
+
+      expect(createdPage.name).toBe("Ideas");
+      expect(readStoredPages()).toStrictEqual([createdPage]);
+    });
+
+    it("raises totalPages from 0 to 1, then to 2 across sections, and sets lastUpdated to each page's createdAt", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(FIXED_NOW);
+
+      const { result } = setup();
+      const emptyThread = { ...mindThreadFixtures[0], totalPages: 0 };
+
+      seedThreads([emptyThread]);
+      seedSections(threadSectionFixtures);
+
+      const firstPage = await result.current.addSectionPage(
+        buildNewPage({ sectionId: FIRST_SECTION_ID })
+      );
+
+      const threadAfterFirstPage = readStoredThreads()[0];
+
+      expect(threadAfterFirstPage.totalPages).toBe(1);
+      expect(threadAfterFirstPage.lastUpdated).toBe(firstPage.createdAt);
+
+      vi.setSystemTime(LATER_NOW);
+
+      const secondPage = await result.current.addSectionPage(
+        buildNewPage({ sectionId: SECOND_SECTION_ID })
+      );
+
+      const threadAfterSecondPage = readStoredThreads()[0];
+
+      expect(threadAfterSecondPage.totalPages).toBe(2);
+      expect(threadAfterSecondPage.lastUpdated).toBe(secondPage.createdAt);
+    });
+
+    it("keeps two pages with the same name in one section", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+
+      const firstPage = await result.current.addSectionPage(buildNewPage());
+      const secondPage = await result.current.addSectionPage(buildNewPage());
+
+      expect(readStoredPages()).toStrictEqual([firstPage, secondPage]);
+    });
+
+    it("rejects with the thread-not-found error for an unknown thread and writes nothing", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+
+      await expect(
+        result.current.addSectionPage(
+          buildNewPage({ threadId: "unknown-thread" })
+        )
+      ).rejects.toThrow(THREAD_NOT_FOUND_ERROR);
+
+      expect(readStoredPages()).toStrictEqual(sectionPageFixtures);
+      expect(readStoredThreads()).toStrictEqual(mindThreadFixtures);
+    });
+
+    it.each([
+      ["an unknown section", "unknown-section"],
+      ["a section of another thread", threadSectionFixtures[2].id],
+    ])(
+      "rejects with the section-not-found error for %s and writes nothing",
+      async (_description, sectionId) => {
+        const { result } = setup();
+
+        seedThreads(mindThreadFixtures);
+        seedSections(threadSectionFixtures);
+        seedPages(sectionPageFixtures);
+
+        await expect(
+          result.current.addSectionPage(buildNewPage({ sectionId }))
+        ).rejects.toThrow(SECTION_NOT_FOUND_ERROR);
+
+        expect(readStoredPages()).toStrictEqual(sectionPageFixtures);
+        expect(readStoredThreads()).toStrictEqual(mindThreadFixtures);
+      }
+    );
+
+    it("rejects with the section-not-found error when another tab deleted the section", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+
+      await result.current.getThreads();
+
+      seedSections(threadSectionFixtures.slice(1));
+      dispatchStorageChange(SECTIONS_STORAGE_KEY);
+
+      await expect(
+        result.current.addSectionPage(
+          buildNewPage({ sectionId: FIRST_SECTION_ID })
+        )
+      ).rejects.toThrow(SECTION_NOT_FOUND_ERROR);
+
+      expect(readStoredPages()).toStrictEqual([]);
+    });
+
+    it("rejects with the invalid-data error for stored pages and writes nothing", async () => {
+      const { result } = setup();
+      const invalidPages = JSON.stringify([{ id: "page-1" }]);
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+      localStorage.setItem(PAGES_STORAGE_KEY, invalidPages);
+
+      await expect(
+        result.current.addSectionPage(buildNewPage())
+      ).rejects.toThrow(INVALID_PAGES_DATA_ERROR);
+
+      expect(localStorage.getItem(PAGES_STORAGE_KEY)).toBe(invalidPages);
+      expect(readStoredThreads()).toStrictEqual(mindThreadFixtures);
+    });
+  });
+
   describe("removeThreadSection", () => {
     const threadWithSections = { ...mindThreadFixtures[0], totalSections: 2 };
     const removedSectionId = threadSectionFixtures[0].id;
@@ -521,6 +671,85 @@ describe("useThreadsService", () => {
       expect(readStoredSections()).toStrictEqual(threadSectionFixtures);
     });
 
+    it("deletes the section's pages, keeps the others, and lowers totalPages by the deleted count", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(LATER_NOW);
+
+      const { result } = setup();
+      const threadWithPages = { ...threadWithSections, totalPages: 3 };
+
+      seedThreads([threadWithPages, mindThreadFixtures[1]]);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+
+      await result.current.removeThreadSection({
+        threadId: threadWithPages.id,
+        sectionId: removedSectionId,
+      });
+
+      const expectedThread = {
+        ...threadWithPages,
+        totalSections: 1,
+        totalPages: 1,
+        lastUpdated: LATER_NOW.toISOString(),
+      };
+
+      expect(readStoredThreads()).toStrictEqual([
+        expectedThread,
+        mindThreadFixtures[1],
+      ]);
+      expect(readStoredPages()).toStrictEqual([
+        sectionPageFixtures[2],
+        sectionPageFixtures[3],
+      ]);
+    });
+
+    it("lets a new section with the name of a deleted section start with no pages", async () => {
+      const { result } = setup();
+      const threadWithPages = { ...threadWithSections, totalPages: 3 };
+
+      seedThreads([threadWithPages]);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+
+      await result.current.removeThreadSection({
+        threadId: threadWithPages.id,
+        sectionId: removedSectionId,
+      });
+
+      const newSection = await result.current.addThreadSection({
+        threadId: threadWithPages.id,
+        name: threadSectionFixtures[0].name,
+        color: TEST_COLOR,
+      });
+
+      const pagesOfNewSection = readStoredPages().filter((page) => {
+        return page.sectionId === newSection.id;
+      });
+
+      expect(pagesOfNewSection).toStrictEqual([]);
+    });
+
+    it("leaves totalPages unchanged when the section was already deleted elsewhere, and still removes its orphaned pages", async () => {
+      const { result } = setup();
+      const threadWithPages = { ...threadWithSections, totalPages: 3 };
+
+      seedThreads([threadWithPages]);
+      seedSections(threadSectionFixtures.slice(1));
+      seedPages(sectionPageFixtures);
+
+      await result.current.removeThreadSection({
+        threadId: threadWithPages.id,
+        sectionId: removedSectionId,
+      });
+
+      expect(readStoredThreads()).toStrictEqual([threadWithPages]);
+      expect(readStoredPages()).toStrictEqual([
+        sectionPageFixtures[2],
+        sectionPageFixtures[3],
+      ]);
+    });
+
     it("rejects and does not remove the section when the stored threads data is invalid", async () => {
       const { result } = setup();
 
@@ -624,6 +853,17 @@ describe("useThreadsService", () => {
       });
 
       expect(readStoredSections()).toStrictEqual(expectedSections);
+    });
+
+    it("removes the thread's pages and keeps the other thread's pages", async () => {
+      const { result } = setup();
+
+      seedThreads(mindThreadFixtures);
+      seedPages(sectionPageFixtures);
+
+      await result.current.deleteThread(mindThreadFixtures[0].id);
+
+      expect(readStoredPages()).toStrictEqual([sectionPageFixtures[3]]);
     });
 
     it("rejects and leaves the threads unchanged when the stored sections are malformed", async () => {

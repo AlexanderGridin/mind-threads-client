@@ -47,4 +47,18 @@ describe("Box", () => {
     const box = screen.getByTestId("ref-box");
     expect(ref.current).toBe(box);
   });
+
+  it("renders as a button with the given type and aria-current", () => {
+    setup({
+      as: "button",
+      type: "button",
+      "aria-current": true,
+      children: "Select section",
+    });
+
+    const button = screen.getByRole("button", { name: "Select section" });
+
+    expect(button).toHaveAttribute("type", "button");
+    expect(button).toHaveAttribute("aria-current", "true");
+  });
 });
