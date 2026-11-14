@@ -14,8 +14,11 @@ import {
 } from "../../ThreadColumns.constants";
 
 export const SectionsColumn = () => {
-  const { sections, lastCreatedSectionId } = useThreadPageValue();
-  const { openAddSectionModal, openDeleteSectionModal } = useThreadPageAction();
+  const { sections, lastCreatedSectionId, selectedSection } =
+    useThreadPageValue();
+
+  const { openAddSectionModal, openDeleteSectionModal, selectSection } =
+    useThreadPageAction();
 
   return (
     <ThreadColumn
@@ -33,6 +36,8 @@ export const SectionsColumn = () => {
         <SectionList
           sections={sections}
           lastCreatedSectionId={lastCreatedSectionId}
+          selectedSectionId={selectedSection ? selectedSection.id : null}
+          onSelectSection={selectSection}
           onDeleteSection={openDeleteSectionModal}
         />
       ) : (

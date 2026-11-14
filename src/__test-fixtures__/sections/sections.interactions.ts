@@ -32,6 +32,22 @@ export const openSectionDeleteMenu = async ({
   await user.click(deleteMenuItem);
 };
 
+type SelectSectionCardParams = {
+  user: User;
+  sectionName: string;
+};
+
+export const selectSectionCard = async ({
+  user,
+  sectionName,
+}: SelectSectionCardParams) => {
+  const selectButton = await screen.findByRole("button", {
+    name: sectionName,
+  });
+
+  await user.click(selectButton);
+};
+
 export const confirmSectionDelete = async (user: User) => {
   const confirmButton = screen.getByTestId(
     DeleteConfirmationModalActionsTestId.deleteButton

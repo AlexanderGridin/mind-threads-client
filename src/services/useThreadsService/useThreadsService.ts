@@ -4,12 +4,16 @@ import type {
   MindThread,
   MindThreadUpdate,
   NewMindThread,
+  NewSectionPage,
   NewThreadSection,
+  SectionPage,
   ThreadSection,
 } from "@/types";
+import { useSectionPagesService } from "../useSectionPagesService";
 import { useThreadSectionsService } from "../useThreadSectionsService";
 import {
   INVALID_THREADS_DATA_ERROR,
+  SECTION_NOT_FOUND_ERROR,
   THREAD_NOT_FOUND_ERROR,
   THREADS_STORAGE_KEY,
 } from "./useThreadsService.constants";
@@ -19,6 +23,7 @@ import type {
 } from "./useThreadsService.types";
 import {
   applyDeletedSection,
+  applyNewPage,
   applyNewSection,
   applyThreadUpdate,
   buildThread,
@@ -33,6 +38,7 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
   });
 
   const threadSectionsService = useThreadSectionsService();
+  const sectionPagesService = useSectionPagesService();
 
   const getThreads = async (): Promise<MindThread[]> => {
     const storedThreads = threadsStorage.read();
@@ -121,6 +127,47 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     return createdSection;
   };
 
+  const addSectionPage = async (
+    newPage: NewSectionPage
+  ): Promise<SectionPage> => {
+    const storedThreads = await getThreads();
+
+    const storedThread = findThread({
+      threads: storedThreads,
+      threadId: newPage.threadId,
+    });
+
+    if (!storedThread) {
+      throw new Error(THREAD_NOT_FOUND_ERROR);
+    }
+
+    const threadSections = await threadSectionsService.getThreadSections(
+      newPage.threadId
+    );
+
+    const sectionExists = threadSections.some((section) => {
+      return section.id === newPage.sectionId;
+    });
+
+    if (!sectionExists) {
+      throw new Error(SECTION_NOT_FOUND_ERROR);
+    }
+
+    const createdPage = await sectionPagesService.createSectionPage(newPage);
+
+    threadsStorage.set(
+      replaceThread({
+        threads: storedThreads,
+        updatedThread: applyNewPage({
+          thread: storedThread,
+          createdAt: createdPage.createdAt,
+        }),
+      })
+    );
+
+    return createdPage;
+  };
+
   const removeThreadSection = async ({
     threadId,
     sectionId,
@@ -131,6 +178,9 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     const isSectionDeleted =
       await threadSectionsService.deleteSection(sectionId);
 
+    const deletedPageCount =
+      await sectionPagesService.deleteSectionPages(sectionId);
+
     if (!isSectionDeleted || !storedThread) {
       return;
     }
@@ -140,6 +190,7 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
         threads: storedThreads,
         updatedThread: applyDeletedSection({
           thread: storedThread,
+          deletedPageCount,
           deletedAt: new Date().toISOString(),
         }),
       })
@@ -150,6 +201,7 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     const storedThreads = await getThreads();
 
     await threadSectionsService.deleteThreadSections(threadId);
+    await sectionPagesService.deleteThreadPages(threadId);
 
     const filteredThreads = storedThreads.filter(
       (thread) => thread.id !== threadId
@@ -166,5 +218,6 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     deleteThread,
     addThreadSection,
     removeThreadSection,
+    addSectionPage,
   };
 };

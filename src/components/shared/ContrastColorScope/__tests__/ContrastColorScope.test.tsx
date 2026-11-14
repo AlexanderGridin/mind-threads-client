@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { screen } from "@testing-library/react";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
-import { ThreadHeaderColorScope } from "../ThreadHeaderColorScope";
+import { ContrastColorScope } from "../ContrastColorScope";
 
 const CHILD_TEXT = "Child";
 const LIGHT_BACKGROUND_COLOR = "#ebcb8b";
@@ -10,13 +10,13 @@ const THEME_SCOPE_SELECTOR = ".chakra-theme";
 
 const setup = (backgroundColor?: string) => {
   renderWithUIProvider(
-    <ThreadHeaderColorScope backgroundColor={backgroundColor}>
+    <ContrastColorScope backgroundColor={backgroundColor}>
       <p>{CHILD_TEXT}</p>
-    </ThreadHeaderColorScope>
+    </ContrastColorScope>
   );
 };
 
-describe("ThreadHeaderColorScope", () => {
+describe("ContrastColorScope", () => {
   it("forces the light color mode scope for a light background", () => {
     setup(LIGHT_BACKGROUND_COLOR);
 

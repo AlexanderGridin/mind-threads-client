@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { screen, within } from "@testing-library/react";
+import {
+  screen,
+  waitForElementToBeRemoved,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import {
@@ -9,8 +13,11 @@ import {
   openSectionDeleteMenu,
   seedSections,
   seedThreads,
+  selectSectionCard,
   threadSectionFixtures,
 } from "@/__test-fixtures__";
+import { SectionFormTestId } from "@/pages/ThreadPage/components/AddSectionModalContainer/components/AddSectionModal/components/SectionForm/SectionForm.constants";
+import { ThreadFormModalActionsTestId } from "@/components/shared/ThreadFormModalActions/ThreadFormModalActions.constants";
 import { ThreadPageLoader } from "@/pages/ThreadPage/components/ThreadPageLoader";
 import { AddSectionModalContainer } from "@/pages/ThreadPage/components/AddSectionModalContainer";
 import { ADD_SECTION_MODAL_TITLE } from "@/pages/ThreadPage/components/AddSectionModalContainer/components/AddSectionModal/AddSectionModal.constants";
@@ -38,7 +45,7 @@ const STORED_SECTION_NAMES = threadSectionFixtures
 const setup = () => {
   const user = userEvent.setup();
 
-  renderWithUIProvider(
+  const { unmount } = renderWithUIProvider(
     <ThreadPageLoader threadId={STORED_THREAD.id}>
       <SectionsColumn />
       <AddSectionModalContainer />
@@ -46,7 +53,11 @@ const setup = () => {
     </ThreadPageLoader>
   );
 
-  return { user };
+  return { user, unmount };
+};
+
+const getSelectButton = (sectionName: string) => {
+  return screen.getByRole("button", { name: sectionName });
 };
 
 const getSectionsColumn = () => {
@@ -128,5 +139,119 @@ describe("SectionsColumn", () => {
 
     message = await screen.findByText(SECTIONS_COLUMN_MESSAGE);
     expect(message).toBeInTheDocument();
+  });
+
+  describe("section selection", () => {
+    const FIRST_SECTION = threadSectionFixtures[0];
+    const SECOND_SECTION = threadSectionFixtures[1];
+    const NEW_SECTION_NAME = "Sketches";
+
+    it("selects no section on load, and again after a remount", async () => {
+      seedSections(threadSectionFixtures);
+
+      const { unmount } = setup();
+
+      const firstSelectButton = await screen.findByRole("button", {
+        name: FIRST_SECTION.name,
+      });
+
+      expect(firstSelectButton).toHaveAttribute("aria-current", "false");
+
+      unmount();
+      setup();
+
+      const remountedSelectButton = await screen.findByRole("button", {
+        name: FIRST_SECTION.name,
+      });
+
+      expect(remountedSelectButton).toHaveAttribute("aria-current", "false");
+    });
+
+    it("moves the selection to the clicked card and keeps it when that card is clicked again", async () => {
+      seedSections(threadSectionFixtures);
+
+      const { user } = setup();
+
+      await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+
+      let firstSelectButton = getSelectButton(FIRST_SECTION.name);
+      expect(firstSelectButton).toHaveAttribute("aria-current", "true");
+
+      await selectSectionCard({ user, sectionName: SECOND_SECTION.name });
+
+      firstSelectButton = getSelectButton(FIRST_SECTION.name);
+      const secondSelectButton = getSelectButton(SECOND_SECTION.name);
+
+      expect(firstSelectButton).toHaveAttribute("aria-current", "false");
+      expect(secondSelectButton).toHaveAttribute("aria-current", "true");
+
+      await selectSectionCard({ user, sectionName: SECOND_SECTION.name });
+
+      expect(secondSelectButton).toHaveAttribute("aria-current", "true");
+    });
+
+    it("keeps the selection when a new section is created", async () => {
+      seedSections(threadSectionFixtures);
+
+      const { user } = setup();
+
+      await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+
+      const firstSelectButton = getSelectButton(FIRST_SECTION.name);
+      expect(firstSelectButton).toHaveAttribute("aria-current", "true");
+
+      await user.click(getAddSectionButton());
+
+      const nameInput = await screen.findByTestId(SectionFormTestId.nameInput);
+      await user.type(nameInput, NEW_SECTION_NAME);
+
+      const submitButton = screen.getByTestId(
+        ThreadFormModalActionsTestId.submitButton
+      );
+
+      await user.click(submitButton);
+      await screen.findByRole("button", { name: NEW_SECTION_NAME });
+
+      const selectButton = getSelectButton(FIRST_SECTION.name);
+      expect(selectButton).toHaveAttribute("aria-current", "true");
+    });
+
+    it("clears the selection when the selected section is deleted", async () => {
+      seedSections(threadSectionFixtures);
+
+      const { user } = setup();
+
+      await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+
+      const deletedSelectButton = getSelectButton(FIRST_SECTION.name);
+
+      await openSectionDeleteMenu({ user, sectionName: FIRST_SECTION.name });
+
+      const removal = waitForElementToBeRemoved(deletedSelectButton);
+      await confirmSectionDelete(user);
+      await removal;
+
+      const remainingSelectButton = getSelectButton(SECOND_SECTION.name);
+      expect(remainingSelectButton).toHaveAttribute("aria-current", "false");
+    });
+
+    it("keeps the selection when another section is deleted", async () => {
+      seedSections(threadSectionFixtures);
+
+      const { user } = setup();
+
+      await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+
+      const deletedSelectButton = getSelectButton(SECOND_SECTION.name);
+
+      await openSectionDeleteMenu({ user, sectionName: SECOND_SECTION.name });
+
+      const removal = waitForElementToBeRemoved(deletedSelectButton);
+      await confirmSectionDelete(user);
+      await removal;
+
+      const selectButton = getSelectButton(FIRST_SECTION.name);
+      expect(selectButton).toHaveAttribute("aria-current", "true");
+    });
   });
 });

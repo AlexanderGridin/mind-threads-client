@@ -2,15 +2,15 @@ import type { ReactNode } from "react";
 import { DarkMode, LightMode } from "@/components/lib";
 import { getContrastColorMode } from "@/utils";
 
-type ThreadHeaderColorScopeProps = {
+type ContrastColorScopeProps = {
   backgroundColor?: string;
   children: ReactNode;
 };
 
-export const ThreadHeaderColorScope = ({
+export const ContrastColorScope = ({
   backgroundColor,
   children,
-}: ThreadHeaderColorScopeProps) => {
+}: ContrastColorScopeProps) => {
   if (!backgroundColor) {
     return children;
   }

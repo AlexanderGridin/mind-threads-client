@@ -8,26 +8,39 @@ import {
   createServicesMock,
   mindThreadFixtures,
   resetThreadsServiceOverrides,
+  sectionPageFixtures,
+  seedPages,
   seedSections,
   seedThreads,
   threadSectionFixtures,
   threadsServiceOverrides,
 } from "@/__test-fixtures__";
-import type { MindThread, ThreadSection, ThreadSectionValue } from "@/types";
+import type {
+  MindThread,
+  SectionPage,
+  SectionPageValue,
+  ThreadSection,
+  ThreadSectionValue,
+} from "@/types";
 import { SECTIONS_STORAGE_KEY } from "@/services/useThreadSectionsService/useThreadSectionsService.constants";
 import { ThreadStatus } from "@/pages/ThreadPage/ThreadPage.constants";
 import {
+  useAddPage,
   useAddSection,
   useDeleteSection,
+  useSectionSelection,
   useThreadPageAction,
   useThreadPageValue,
   useThreadState,
 } from "../ThreadPageLoader.hooks";
+import type { UseAddPageParams } from "../ThreadPageLoader.types";
 import {
   DELETE_SECTION_ERROR_MESSAGE,
+  SAVE_PAGE_ERROR_MESSAGE,
   SAVE_SECTION_ERROR_MESSAGE,
 } from "../ThreadPageLoader.constants";
 import {
+  getPageCreatedMessage,
   getSectionCreatedMessage,
   getSectionDeletedMessage,
 } from "../ThreadPageLoader.utils";
@@ -47,9 +60,39 @@ const NEW_SECTION_VALUE: ThreadSectionValue = {
   color: "#5E81AC",
 };
 
+const NEW_PAGE_VALUE: SectionPageValue = {
+  name: "Ideas",
+  type: "chat",
+  color: "#5E81AC",
+};
+
 const getSectionsOfThread = (threadId: string): ThreadSection[] => {
   return threadSectionFixtures.filter((section) => {
     return section.threadId === threadId;
+  });
+};
+
+const getPagesOfThread = (threadId: string): SectionPage[] => {
+  return sectionPageFixtures.filter((page) => {
+    return page.threadId === threadId;
+  });
+};
+
+const setupSectionSelection = (sections: ThreadSection[]) => {
+  return renderHook(
+    ({ sections: currentSections }) => {
+      return useSectionSelection({ sections: currentSections });
+    },
+    { initialProps: { sections } }
+  );
+};
+
+const setupAddPage = (
+  addPage: UseAddPageParams["addPage"],
+  selectedSection: ThreadSection | null
+) => {
+  return renderHook(() => useAddPage({ addPage, selectedSection }), {
+    wrapper: ChakraUIProvider,
   });
 };
 
@@ -234,6 +277,71 @@ describe("ThreadPageLoader hooks", () => {
       expect(result.current.sections).toStrictEqual([]);
     });
 
+    it("loads only the pages of the given thread, in stored order", async () => {
+      const expectedPages = getPagesOfThread(STORED_THREAD_ID);
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+
+      const { result } = setupThreadState(STORED_THREAD_ID);
+
+      await waitFor(() => {
+        expect(result.current.threadStatus).toBe(ThreadStatus.Loaded);
+      });
+
+      expect(result.current.pages).toStrictEqual(expectedPages);
+    });
+
+    it("appends a created page to the pages and returns it", async () => {
+      const expectedPages = getPagesOfThread(STORED_THREAD_ID);
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+
+      const { result } = setupThreadState(STORED_THREAD_ID);
+
+      await waitFor(() => {
+        expect(result.current.threadStatus).toBe(ThreadStatus.Loaded);
+      });
+
+      const createdPage = await act(async () => {
+        return result.current.addPage({
+          sectionId: threadSectionFixtures[0].id,
+          pageValue: NEW_PAGE_VALUE,
+        });
+      });
+
+      expect(createdPage.threadId).toBe(STORED_THREAD_ID);
+      expect(createdPage.name).toBe(NEW_PAGE_VALUE.name);
+
+      expect(result.current.pages).toStrictEqual([
+        ...expectedPages,
+        createdPage,
+      ]);
+    });
+
+    it("removes the pages of the removed section and keeps the others", async () => {
+      const expectedPages = [sectionPageFixtures[2]];
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+
+      const { result } = setupThreadState(STORED_THREAD_ID);
+
+      await waitFor(() => {
+        expect(result.current.threadStatus).toBe(ThreadStatus.Loaded);
+      });
+
+      await act(async () => {
+        await result.current.removeSection(threadSectionFixtures[0].id);
+      });
+
+      expect(result.current.pages).toStrictEqual(expectedPages);
+    });
+
     it("keeps the sections and rejects when the service fails to remove the section", async () => {
       const expectedSections = getSectionsOfThread(STORED_THREAD_ID);
       const removedSection = expectedSections[0];
@@ -256,6 +364,198 @@ describe("ThreadPageLoader hooks", () => {
       ).rejects.toThrow("Remove failed");
 
       expect(result.current.sections).toStrictEqual(expectedSections);
+    });
+  });
+
+  describe("useSectionSelection", () => {
+    const FIRST_SECTION = threadSectionFixtures[0];
+    const SECOND_SECTION = threadSectionFixtures[1];
+    const THIRD_SECTION = threadSectionFixtures[2];
+    const NEW_SECTION: ThreadSection = {
+      ...THIRD_SECTION,
+      id: "section-new",
+      name: "Sketches",
+    };
+
+    it("selects no section at first", () => {
+      const { result } = setupSectionSelection(threadSectionFixtures);
+      expect(result.current.selectedSection).toBeNull();
+    });
+
+    it("selects the section with the given id", () => {
+      const { result } = setupSectionSelection(threadSectionFixtures);
+
+      act(() => {
+        result.current.selectSection(FIRST_SECTION.id);
+      });
+
+      expect(result.current.selectedSection).toStrictEqual(FIRST_SECTION);
+    });
+
+    it("moves the selection when another section is selected", () => {
+      const { result } = setupSectionSelection(threadSectionFixtures);
+
+      act(() => {
+        result.current.selectSection(FIRST_SECTION.id);
+      });
+
+      act(() => {
+        result.current.selectSection(SECOND_SECTION.id);
+      });
+
+      expect(result.current.selectedSection).toStrictEqual(SECOND_SECTION);
+    });
+
+    it("keeps the section selected when it is selected again", () => {
+      const { result } = setupSectionSelection(threadSectionFixtures);
+
+      act(() => {
+        result.current.selectSection(FIRST_SECTION.id);
+      });
+
+      act(() => {
+        result.current.selectSection(FIRST_SECTION.id);
+      });
+
+      expect(result.current.selectedSection).toStrictEqual(FIRST_SECTION);
+    });
+
+    it("clears the selection when the selected section leaves the sections", () => {
+      const { result, rerender } = setupSectionSelection(threadSectionFixtures);
+
+      act(() => {
+        result.current.selectSection(FIRST_SECTION.id);
+      });
+
+      rerender({ sections: [SECOND_SECTION, THIRD_SECTION] });
+
+      expect(result.current.selectedSection).toBeNull();
+    });
+
+    it("keeps the selection when another section is removed or added", () => {
+      const { result, rerender } = setupSectionSelection(threadSectionFixtures);
+
+      act(() => {
+        result.current.selectSection(FIRST_SECTION.id);
+      });
+
+      rerender({ sections: [FIRST_SECTION, SECOND_SECTION] });
+
+      expect(result.current.selectedSection).toStrictEqual(FIRST_SECTION);
+
+      rerender({
+        sections: [FIRST_SECTION, SECOND_SECTION, NEW_SECTION],
+      });
+
+      expect(result.current.selectedSection).toStrictEqual(FIRST_SECTION);
+    });
+  });
+
+  describe("useAddPage", () => {
+    const SELECTED_SECTION = threadSectionFixtures[0];
+    const CREATED_PAGE = sectionPageFixtures[0];
+
+    it("adds the page to the selected section, closes the modal, and shows the success notification", async () => {
+      const addPage = vi.fn(async () => {
+        return CREATED_PAGE;
+      });
+
+      const { result } = setupAddPage(addPage, SELECTED_SECTION);
+
+      act(() => {
+        result.current.openAddPageModal();
+      });
+
+      expect(result.current.isAddPageModalOpen).toBe(true);
+
+      await act(async () => {
+        await result.current.submitNewPage(NEW_PAGE_VALUE);
+      });
+
+      expect(addPage).toHaveBeenCalledWith({
+        sectionId: SELECTED_SECTION.id,
+        pageValue: NEW_PAGE_VALUE,
+      });
+
+      expect(result.current.isAddPageModalOpen).toBe(false);
+      expect(result.current.lastCreatedPageId).toBe(CREATED_PAGE.id);
+
+      const successNotification = await screen.findByText(
+        getPageCreatedMessage(CREATED_PAGE.name)
+      );
+
+      expect(successNotification).toBeInTheDocument();
+    });
+
+    it("is saving while the page is being added", async () => {
+      const pendingPage = createDeferred<SectionPage>();
+
+      const addPage = vi.fn(() => {
+        return pendingPage.promise;
+      });
+
+      const { result } = setupAddPage(addPage, SELECTED_SECTION);
+
+      let pendingSubmit!: Promise<void>;
+
+      act(() => {
+        pendingSubmit = result.current.submitNewPage(NEW_PAGE_VALUE);
+      });
+
+      expect(result.current.isSavingPage).toBe(true);
+
+      await act(async () => {
+        pendingPage.resolve(CREATED_PAGE);
+        await pendingSubmit;
+      });
+
+      expect(result.current.isSavingPage).toBe(false);
+    });
+
+    it("keeps the modal open and shows the error notification when the save fails", async () => {
+      const addPage = vi.fn(async () => {
+        throw new Error("Save failed");
+      });
+
+      const { result } = setupAddPage(addPage, SELECTED_SECTION);
+
+      act(() => {
+        result.current.openAddPageModal();
+      });
+
+      await act(async () => {
+        await result.current.submitNewPage(NEW_PAGE_VALUE);
+      });
+
+      expect(result.current.isAddPageModalOpen).toBe(true);
+      expect(result.current.isSavingPage).toBe(false);
+      expect(result.current.lastCreatedPageId).toBeNull();
+
+      const errorNotification = await screen.findByText(
+        SAVE_PAGE_ERROR_MESSAGE
+      );
+
+      expect(errorNotification).toBeInTheDocument();
+    });
+
+    it("shows the error notification and does not call addPage when no section is selected", async () => {
+      const addPage = vi.fn(async () => {
+        return CREATED_PAGE;
+      });
+
+      const { result } = setupAddPage(addPage, null);
+
+      await act(async () => {
+        await result.current.submitNewPage(NEW_PAGE_VALUE);
+      });
+
+      expect(addPage).not.toHaveBeenCalled();
+
+      const errorNotification = await screen.findByText(
+        SAVE_PAGE_ERROR_MESSAGE
+      );
+
+      expect(errorNotification).toBeInTheDocument();
     });
   });
 

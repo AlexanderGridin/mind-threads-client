@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
 import { Box, TruncatedText } from "@/components/lib";
+import { ContrastColorScope } from "@/components/shared";
+import { useScrollIntoView } from "@/hooks";
 import type { ThreadSection } from "@/types";
 import { SectionCardTestId } from "./SectionCard.constants";
 import { SectionCardActions } from "./components";
@@ -7,21 +8,23 @@ import { SectionCardActions } from "./components";
 type SectionCardProps = {
   section: ThreadSection;
   isLastCreated: boolean;
+  isSelected: boolean;
+  onSelect: (sectionId: string) => void;
   onDelete: (section: ThreadSection) => void;
 };
 
 export const SectionCard = ({
   section,
   isLastCreated,
+  isSelected,
+  onSelect,
   onDelete,
 }: SectionCardProps) => {
-  const cardRef = useRef<HTMLDivElement>(null);
+  const cardRef = useScrollIntoView<HTMLDivElement>(isLastCreated);
 
-  useEffect(() => {
-    if (isLastCreated) {
-      cardRef.current?.scrollIntoView({ block: "nearest" });
-    }
-  }, [isLastCreated]);
+  const handleSelect = () => {
+    onSelect(section.id);
+  };
 
   return (
     <Box
@@ -31,8 +34,6 @@ export const SectionCard = ({
       alignItems="center"
       justifyContent="space-between"
       gap="2"
-      py="2"
-      pl="3"
       pr="1"
       minWidth="0"
       borderRadius="md"
@@ -40,13 +41,35 @@ export const SectionCard = ({
       borderColor="border"
       borderLeftWidth="4px"
       borderLeftColor={section.color}
-      backgroundColor="bg"
+      backgroundColor={isSelected ? section.color : "bg"}
     >
-      <TruncatedText data-testid={SectionCardTestId.name} fontWeight="medium">
-        {section.name}
-      </TruncatedText>
+      <ContrastColorScope
+        backgroundColor={isSelected ? section.color : undefined}
+      >
+        <Box
+          data-testid={SectionCardTestId.selectButton}
+          as="button"
+          type="button"
+          aria-current={isSelected}
+          display="flex"
+          flexGrow={1}
+          minWidth="0"
+          py="2"
+          pl="3"
+          textAlign="left"
+          cursor="pointer"
+          onClick={handleSelect}
+        >
+          <TruncatedText
+            data-testid={SectionCardTestId.name}
+            fontWeight="medium"
+          >
+            {section.name}
+          </TruncatedText>
+        </Box>
 
-      <SectionCardActions section={section} onDelete={onDelete} />
+        <SectionCardActions section={section} onDelete={onDelete} />
+      </ContrastColorScope>
     </Box>
   );
 };

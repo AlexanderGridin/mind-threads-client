@@ -1,10 +1,7 @@
 import { Box, ColorModeButton, HStack, Text } from "@/components/lib";
-import { AppLogo } from "@/components/shared";
+import { AppLogo, ContrastColorScope } from "@/components/shared";
 import type { MindThread } from "@/types";
-import {
-  BackToDashboardIconButton,
-  ThreadHeaderColorScope,
-} from "./components";
+import { BackToDashboardIconButton } from "./components";
 import { ThreadHeaderTestId } from "./ThreadHeader.constants";
 
 type ThreadHeaderProps = {
@@ -28,7 +25,7 @@ export const ThreadHeader = ({ thread }: ThreadHeaderProps) => {
       borderColor="border"
       backgroundColor={backgroundColor}
     >
-      <ThreadHeaderColorScope backgroundColor={backgroundColor}>
+      <ContrastColorScope backgroundColor={backgroundColor}>
         <AppLogo />
 
         <HStack gap="3" minWidth="0">
@@ -51,7 +48,7 @@ export const ThreadHeader = ({ thread }: ThreadHeaderProps) => {
         <HStack justifyContent="flex-end">
           <ColorModeButton />
         </HStack>
-      </ThreadHeaderColorScope>
+      </ContrastColorScope>
     </Box>
   );
 };

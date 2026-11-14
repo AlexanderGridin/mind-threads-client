@@ -1,13 +1,12 @@
 import { Box } from "@/components/lib";
 import {
+  PagesColumn,
   SectionsColumn,
   ThreadColumn,
   ThreadColumnMessage,
 } from "./components";
 import {
   CONTENT_COLUMN_MESSAGE,
-  PAGES_COLUMN_HEADING,
-  PAGES_COLUMN_MESSAGE,
   THREAD_COLUMNS_ROWS_TEMPLATE,
   THREAD_COLUMNS_TEMPLATE,
   ThreadColumnsTestId,
@@ -27,12 +26,7 @@ export const ThreadColumns = () => {
     >
       <SectionsColumn />
 
-      <ThreadColumn
-        data-testid={ThreadColumnsTestId.pagesColumn}
-        heading={PAGES_COLUMN_HEADING}
-      >
-        <ThreadColumnMessage message={PAGES_COLUMN_MESSAGE} />
-      </ThreadColumn>
+      <PagesColumn />
 
       <ThreadColumn data-testid={ThreadColumnsTestId.contentColumn} isCentered>
         <ThreadColumnMessage message={CONTENT_COLUMN_MESSAGE} />
