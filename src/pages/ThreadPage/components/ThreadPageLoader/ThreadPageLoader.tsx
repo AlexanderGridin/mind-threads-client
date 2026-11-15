@@ -8,7 +8,9 @@ import {
   useAddSection,
   useDeletePage,
   useDeleteSection,
+  usePageSelection,
   useSectionSelection,
+  useSectionSwitch,
   useThreadState,
 } from "./ThreadPageLoader.hooks";
 
@@ -51,6 +53,16 @@ export const ThreadPageLoader = ({
 
   const { selectedSection, selectSection } = useSectionSelection({ sections });
 
+  const { selectedPage, selectPage, clearSelectedPage } = usePageSelection({
+    pages,
+  });
+
+  const switchSection = useSectionSwitch({
+    selectedSection,
+    selectSection,
+    clearSelectedPage,
+  });
+
   const {
     isAddPageModalOpen,
     isSavingPage,
@@ -77,7 +89,8 @@ export const ThreadPageLoader = ({
         openDeleteSectionModal,
         closeDeleteSectionModal,
         confirmDeleteSection,
-        selectSection,
+        selectSection: switchSection,
+        selectPage,
         openAddPageModal,
         closeAddPageModal,
         submitNewPage,
@@ -98,6 +111,7 @@ export const ThreadPageLoader = ({
           isDeletingSection,
           pages,
           selectedSection,
+          selectedPage,
           isAddPageModalOpen,
           isSavingPage,
           lastCreatedPageId,

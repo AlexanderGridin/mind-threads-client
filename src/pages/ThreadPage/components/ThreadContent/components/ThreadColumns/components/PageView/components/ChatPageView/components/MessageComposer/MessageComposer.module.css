@@ -1,0 +1,50 @@
+.editor {
+  outline: none;
+  padding: 0.75rem;
+  min-height: 4rem;
+}
+
+.editor :global(p.is-editor-empty:first-child)::before {
+  content: attr(data-placeholder);
+  color: var(--chakra-colors-fg-muted);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Chakra's preflight sets `font: inherit` on every element, which resets the
+   browser's default italic on <em>. Restore it for the composer's italic mark. */
+.editor em {
+  font-style: italic;
+}
+
+.editor ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+
+.editor ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+}
+
+.editor pre {
+  font-family: var(--chakra-fonts-mono);
+  background: var(--chakra-colors-bg-muted);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  white-space: pre-wrap;
+}
+
+.editor img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.375rem;
+  margin: 0.25rem 0;
+}
+
+.editor a {
+  color: var(--chakra-colors-accent);
+  text-decoration: underline;
+}

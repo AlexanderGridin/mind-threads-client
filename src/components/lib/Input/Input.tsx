@@ -1,7 +1,8 @@
 import { forwardRef } from "react";
 import { Input as ChakraInput, Field } from "@chakra-ui/react";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, FocusEvent, KeyboardEvent } from "react";
 import {
+  INPUT_ERROR_TEXT_TEST_ID,
   INPUT_LABEL_TEST_ID,
   INPUT_REQUIRED_INDICATOR_TEST_ID,
 } from "./Input.constants";
@@ -19,12 +20,18 @@ export type InputProps = {
   name?: string;
   id?: string;
   "data-testid"?: string;
+  onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
+  onBlur?: (event: FocusEvent<HTMLInputElement>) => void;
+  autoFocus?: boolean;
+  "aria-label"?: string;
+  errorText?: string;
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>((props, ref) => {
   const {
     label = "",
     required = false,
+    errorText = "",
     "data-testid": testId,
     onChange,
     ...restProps
@@ -35,7 +42,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>((props, ref) => {
   };
 
   return (
-    <Field.Root required={required}>
+    <Field.Root required={required} invalid={Boolean(errorText)}>
       {label ? (
         <Field.Label
           data-testid={
@@ -63,6 +70,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>((props, ref) => {
         _focus={{ borderColor: "accent", outlineColor: "accent" }}
         {...restProps}
       />
+
+      {errorText ? (
+        <Field.ErrorText
+          data-testid={
+            testId
+              ? `${testId}__${INPUT_ERROR_TEXT_TEST_ID}`
+              : INPUT_ERROR_TEXT_TEST_ID
+          }
+        >
+          {errorText}
+        </Field.ErrorText>
+      ) : null}
     </Field.Root>
   );
 });
