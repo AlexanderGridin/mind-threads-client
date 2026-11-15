@@ -10,7 +10,7 @@ import userEvent from "@testing-library/user-event";
 import { notify } from "@/components/lib";
 import {
   MALFORMED_JSON,
-  confirmSectionDelete,
+  confirmDeletion,
   createDeferred,
   dispatchStorageChange,
   getRenderedPageNames,
@@ -18,6 +18,7 @@ import {
   createServicesMock,
   mindThreadFixtures,
   openAddPageModal,
+  openPageDeleteMenu,
   openSectionDeleteMenu,
   readStoredPages,
   readStoredSections,
@@ -41,7 +42,8 @@ import { AppPath } from "@/routing/routing.constants";
 import { getThreadPath } from "@/routing/routing.utils";
 import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsService.constants";
 import { SECTIONS_STORAGE_KEY } from "@/services/useThreadSectionsService/useThreadSectionsService.constants";
-import type { MindThread, ThreadSection } from "@/types";
+import { PAGES_STORAGE_KEY } from "@/services/useSectionPagesService/useSectionPagesService.constants";
+import type { MindThread, SectionPage, ThreadSection } from "@/types";
 import { ThreadPage } from "../ThreadPage";
 import {
   BACK_TO_DASHBOARD_LABEL,
@@ -51,6 +53,7 @@ import {
   THREAD_NOT_FOUND_MESSAGE,
 } from "../ThreadPage.constants";
 import {
+  PAGES_COLUMN_EMPTY_MESSAGE,
   PAGES_COLUMN_MESSAGE,
   SECTIONS_COLUMN_MESSAGE,
   ThreadColumnsTestId,
@@ -61,10 +64,12 @@ import { SectionFormTestId } from "../components/AddSectionModalContainer/compon
 import { ADD_SECTION_MODAL_TITLE } from "../components/AddSectionModalContainer/components/AddSectionModal/AddSectionModal.constants";
 import {
   SAVE_SECTION_ERROR_MESSAGE,
+  getPageDeletedMessage,
   getSectionCreatedMessage,
   getSectionDeletedMessage,
 } from "../components/ThreadPageLoader";
 import { DELETE_SECTION_MODAL_TITLE } from "../components/DeleteSectionModalContainer/DeleteSectionModalContainer.constants";
+import { DELETE_PAGE_MODAL_TITLE } from "../components/DeletePageModalContainer/DeletePageModalContainer.constants";
 import { ThreadFormModalActionsTestId } from "@/components/shared/ThreadFormModalActions/ThreadFormModalActions.constants";
 import { APP_NAME } from "@/components/shared";
 
@@ -113,6 +118,10 @@ afterEach(() => {
   vi.restoreAllMocks();
   resetThreadsServiceOverrides();
 });
+
+const waitForLoadedThread = async () => {
+  await screen.findByTestId(ThreadHeaderTestId.title);
+};
 
 describe("ThreadPage", () => {
   it("shows the loader, an empty header and the app title while the thread is pending", () => {
@@ -285,10 +294,6 @@ describe("ThreadPage", () => {
 
     const getSubmitButton = () => {
       return screen.getByTestId(ThreadFormModalActionsTestId.submitButton);
-    };
-
-    const waitForLoadedThread = async () => {
-      await screen.findByTestId(ThreadHeaderTestId.title);
     };
 
     const openAddSectionModal = async (user: User) => {
@@ -561,10 +566,6 @@ describe("ThreadPage", () => {
       return screen.getByTestId(ThreadFormModalActionsTestId.submitButton);
     };
 
-    const waitForLoadedThread = async () => {
-      await screen.findByTestId(ThreadHeaderTestId.title);
-    };
-
     const createPage = async (user: User, name: string) => {
       const modalTitle = await openAddPageModal(user);
 
@@ -678,7 +679,7 @@ describe("ThreadPage", () => {
 
       await waitForLoadedThread();
       await openSectionDeleteMenu({ user, sectionName: IDEAS_SECTION.name });
-      await confirmSectionDelete(user);
+      await confirmDeletion(user);
 
       const deletedMessage = await screen.findByText(
         getSectionDeletedMessage(IDEAS_SECTION.name)
@@ -718,10 +719,6 @@ describe("ThreadPage", () => {
       buildSection("archive-1", ARCHIVE_NAME),
     ];
 
-    const waitForLoadedThread = async () => {
-      await screen.findByTestId(ThreadHeaderTestId.title);
-    };
-
     beforeEach(() => {
       seedThreads(mindThreadFixtures);
     });
@@ -733,7 +730,7 @@ describe("ThreadPage", () => {
 
       await waitForLoadedThread();
       await openSectionDeleteMenu({ user, sectionName: IDEAS_NAME });
-      await confirmSectionDelete(user);
+      await confirmDeletion(user);
 
       const sectionDeletedMessage = await screen.findByText(
         getSectionDeletedMessage(IDEAS_NAME)
@@ -756,7 +753,7 @@ describe("ThreadPage", () => {
 
       await waitForLoadedThread();
       await openSectionDeleteMenu({ user, sectionName: IDEAS_NAME, index: 1 });
-      await confirmSectionDelete(user);
+      await confirmDeletion(user);
 
       const sectionDeletedMessage = await screen.findByText(
         getSectionDeletedMessage(IDEAS_NAME)
@@ -774,7 +771,7 @@ describe("ThreadPage", () => {
 
       await waitForLoadedThread();
       await openSectionDeleteMenu({ user, sectionName: IDEAS_NAME });
-      await confirmSectionDelete(user);
+      await confirmDeletion(user);
 
       const sectionDeletedMessage = await screen.findByText(
         getSectionDeletedMessage(IDEAS_NAME)
@@ -800,7 +797,7 @@ describe("ThreadPage", () => {
 
       await waitForLoadedThread();
       await openSectionDeleteMenu({ user, sectionName: RESEARCH_NAME });
-      await confirmSectionDelete(user);
+      await confirmDeletion(user);
 
       const emptyMessage = await screen.findByText(SECTIONS_COLUMN_MESSAGE);
       expect(emptyMessage).toBeInTheDocument();
@@ -825,7 +822,7 @@ describe("ThreadPage", () => {
       const modalTitle = screen.getByText(DELETE_SECTION_MODAL_TITLE);
       expect(modalTitle).toBeInTheDocument();
 
-      await confirmSectionDelete(user);
+      await confirmDeletion(user);
 
       const successNotification = await screen.findByText(
         getSectionDeletedMessage(RESEARCH_NAME)
@@ -837,6 +834,276 @@ describe("ThreadPage", () => {
         IDEAS_NAME,
         ARCHIVE_NAME,
       ]);
+    });
+  });
+
+  describe("deleting a page", () => {
+    const PAGE_THREAD = mindThreadFixtures[0];
+    const FIRST_SECTION = threadSectionFixtures[0];
+    const SECOND_SECTION = threadSectionFixtures[1];
+
+    type DeletePageFromSectionParams = {
+      user: ReturnType<typeof userEvent.setup>;
+      sectionName: string;
+      pageName: string;
+      index?: number;
+    };
+
+    type BuildPageParams = {
+      id: string;
+      name: string;
+      sectionId: string;
+    };
+
+    const buildPage = ({
+      id,
+      name,
+      sectionId,
+    }: BuildPageParams): SectionPage => {
+      return { ...sectionPageFixtures[0], id, name, sectionId };
+    };
+
+    const deletePageFromSection = async ({
+      user,
+      sectionName,
+      pageName,
+      index = 0,
+    }: DeletePageFromSectionParams) => {
+      await selectSectionCard({ user, sectionName });
+      await openPageDeleteMenu({ user, pageName, index });
+      await confirmDeletion(user);
+    };
+
+    beforeEach(() => {
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+    });
+
+    it("leaves the other pages in order when one of three is deleted", async () => {
+      const brainstorm = buildPage({
+        id: "page-brainstorm",
+        name: "Brainstorm",
+        sectionId: FIRST_SECTION.id,
+      });
+
+      const outline = buildPage({
+        id: "page-outline",
+        name: "Outline",
+        sectionId: FIRST_SECTION.id,
+      });
+
+      const draft = buildPage({
+        id: "page-draft",
+        name: "Draft",
+        sectionId: FIRST_SECTION.id,
+      });
+
+      seedPages([brainstorm, outline, draft]);
+
+      const { user } = setup({ threadId: PAGE_THREAD.id });
+
+      await waitForLoadedThread();
+      await deletePageFromSection({
+        user,
+        sectionName: FIRST_SECTION.name,
+        pageName: outline.name,
+      });
+
+      const successNotification = await screen.findByText(
+        getPageDeletedMessage(outline.name)
+      );
+
+      expect(successNotification).toBeInTheDocument();
+
+      expect(getRenderedPageNames()).toStrictEqual([
+        brainstorm.name,
+        draft.name,
+      ]);
+    });
+
+    it("keeps the other page when two pages share a name and one is deleted", async () => {
+      const firstOutline = buildPage({
+        id: "page-outline-a",
+        name: "Outline",
+        sectionId: FIRST_SECTION.id,
+      });
+
+      const secondOutline = buildPage({
+        id: "page-outline-b",
+        name: "Outline",
+        sectionId: FIRST_SECTION.id,
+      });
+
+      seedPages([firstOutline, secondOutline]);
+
+      const { user } = setup({ threadId: PAGE_THREAD.id });
+
+      await waitForLoadedThread();
+      await deletePageFromSection({
+        user,
+        sectionName: FIRST_SECTION.name,
+        pageName: firstOutline.name,
+        index: 1,
+      });
+
+      const successNotification = await screen.findByText(
+        getPageDeletedMessage(firstOutline.name)
+      );
+
+      expect(successNotification).toBeInTheDocument();
+
+      expect(getRenderedPageNames()).toStrictEqual([firstOutline.name]);
+      expect(readStoredPages()).toStrictEqual([firstOutline]);
+    });
+
+    it("keeps the page of another section with the same name when one is deleted", async () => {
+      const ideasBrainstorm = buildPage({
+        id: "page-brainstorm-a",
+        name: "Brainstorm",
+        sectionId: FIRST_SECTION.id,
+      });
+
+      const researchBrainstorm = buildPage({
+        id: "page-brainstorm-b",
+        name: "Brainstorm",
+        sectionId: SECOND_SECTION.id,
+      });
+
+      seedPages([ideasBrainstorm, researchBrainstorm]);
+
+      const { user } = setup({ threadId: PAGE_THREAD.id });
+
+      await waitForLoadedThread();
+      await deletePageFromSection({
+        user,
+        sectionName: FIRST_SECTION.name,
+        pageName: ideasBrainstorm.name,
+      });
+
+      const successNotification = await screen.findByText(
+        getPageDeletedMessage(ideasBrainstorm.name)
+      );
+
+      expect(successNotification).toBeInTheDocument();
+
+      await selectSectionCard({ user, sectionName: SECOND_SECTION.name });
+
+      expect(getRenderedPageNames()).toStrictEqual([researchBrainstorm.name]);
+      expect(readStoredPages()).toStrictEqual([researchBrainstorm]);
+    });
+
+    it("does not list a deleted page after the thread page is remounted", async () => {
+      const brainstorm = buildPage({
+        id: "page-brainstorm",
+        name: "Brainstorm",
+        sectionId: FIRST_SECTION.id,
+      });
+
+      const outline = buildPage({
+        id: "page-outline",
+        name: "Outline",
+        sectionId: FIRST_SECTION.id,
+      });
+
+      seedPages([brainstorm, outline]);
+
+      const { user, unmount } = setup({ threadId: PAGE_THREAD.id });
+
+      await waitForLoadedThread();
+      await deletePageFromSection({
+        user,
+        sectionName: FIRST_SECTION.name,
+        pageName: brainstorm.name,
+      });
+
+      const successNotification = await screen.findByText(
+        getPageDeletedMessage(brainstorm.name)
+      );
+
+      expect(successNotification).toBeInTheDocument();
+      expect(getRenderedPageNames()).toStrictEqual([outline.name]);
+
+      unmount();
+
+      const remounted = setup({ threadId: PAGE_THREAD.id });
+
+      await waitForLoadedThread();
+      await selectSectionCard({
+        user: remounted.user,
+        sectionName: FIRST_SECTION.name,
+      });
+
+      expect(getRenderedPageNames()).toStrictEqual([outline.name]);
+    });
+
+    it("shows the empty pages message and keeps the section listed after the only page is deleted", async () => {
+      const onlyPage = buildPage({
+        id: "page-only",
+        name: "Draft",
+        sectionId: SECOND_SECTION.id,
+      });
+
+      seedPages([onlyPage]);
+
+      const { user } = setup({ threadId: PAGE_THREAD.id });
+
+      await waitForLoadedThread();
+
+      let emptyMessage = screen.queryByText(PAGES_COLUMN_EMPTY_MESSAGE);
+      expect(emptyMessage).not.toBeInTheDocument();
+
+      await deletePageFromSection({
+        user,
+        sectionName: SECOND_SECTION.name,
+        pageName: onlyPage.name,
+      });
+
+      emptyMessage = await screen.findByText(PAGES_COLUMN_EMPTY_MESSAGE);
+      expect(emptyMessage).toBeInTheDocument();
+
+      expect(getRenderedSectionNames()).toStrictEqual([
+        FIRST_SECTION.name,
+        SECOND_SECTION.name,
+      ]);
+    });
+
+    it("removes the card, closes the dialog and shows the success notification when the page was already deleted in another tab", async () => {
+      const brainstorm = buildPage({
+        id: "page-brainstorm",
+        name: "Brainstorm",
+        sectionId: FIRST_SECTION.id,
+      });
+
+      const outline = buildPage({
+        id: "page-outline",
+        name: "Outline",
+        sectionId: FIRST_SECTION.id,
+      });
+
+      seedPages([brainstorm, outline]);
+
+      const { user } = setup({ threadId: PAGE_THREAD.id });
+
+      await waitForLoadedThread();
+      await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+
+      seedPages([outline]);
+      dispatchStorageChange(PAGES_STORAGE_KEY);
+
+      await openPageDeleteMenu({ user, pageName: brainstorm.name });
+
+      const modalTitle = screen.getByText(DELETE_PAGE_MODAL_TITLE);
+      expect(modalTitle).toBeInTheDocument();
+
+      await confirmDeletion(user);
+
+      const successNotification = await screen.findByText(
+        getPageDeletedMessage(brainstorm.name)
+      );
+
+      expect(successNotification).toBeInTheDocument();
+      expect(modalTitle).not.toBeInTheDocument();
+      expect(getRenderedPageNames()).toStrictEqual([outline.name]);
     });
   });
 });

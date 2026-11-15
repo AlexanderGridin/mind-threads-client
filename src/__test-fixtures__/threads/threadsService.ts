@@ -11,6 +11,7 @@ type ThreadsServiceOverrides = Partial<
     | "addThreadSection"
     | "removeThreadSection"
     | "addSectionPage"
+    | "removeSectionPage"
   >
 >;
 
@@ -23,6 +24,7 @@ export const resetThreadsServiceOverrides = () => {
   delete threadsServiceOverrides.addThreadSection;
   delete threadsServiceOverrides.removeThreadSection;
   delete threadsServiceOverrides.addSectionPage;
+  delete threadsServiceOverrides.removeSectionPage;
 };
 
 export const createServicesMock = (
@@ -62,6 +64,12 @@ export const createServicesMock = (
           threadsServiceOverrides.addSectionPage ??
           threadsService.addSectionPage
         )(newPage),
+      removeSectionPage: (removeParams) => {
+        return (
+          threadsServiceOverrides.removeSectionPage ??
+          threadsService.removeSectionPage
+        )(removeParams);
+      },
     };
   },
 });

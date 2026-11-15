@@ -1,9 +1,9 @@
 import { screen } from "@testing-library/react";
 import type userEvent from "@testing-library/user-event";
-import { DeleteConfirmationModalActionsTestId } from "@/components/shared/DeleteConfirmationModal/components/DeleteConfirmationModalActions/DeleteConfirmationModalActions.constants";
 import { getSectionActionsLabel } from "@/pages/ThreadPage/components/ThreadContent/components/ThreadColumns/components/SectionsColumn/components/SectionCard/components/SectionCardActions/SectionCardActions.utils";
 import { SECTIONS_STORAGE_KEY } from "@/services/useThreadSectionsService/useThreadSectionsService.constants";
 import type { ThreadSection } from "@/types";
+import { openDeleteMenu } from "../deletion";
 
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -22,14 +22,11 @@ export const openSectionDeleteMenu = async ({
   sectionName,
   index = 0,
 }: OpenSectionDeleteMenuParams) => {
-  const actionsButtons = await screen.findAllByRole("button", {
-    name: getSectionActionsLabel(sectionName),
+  await openDeleteMenu({
+    user,
+    actionsLabel: getSectionActionsLabel(sectionName),
+    index,
   });
-
-  await user.click(actionsButtons[index]);
-
-  const [deleteMenuItem] = await screen.findAllByRole("menuitem");
-  await user.click(deleteMenuItem);
 };
 
 type SelectSectionCardParams = {
@@ -46,12 +43,4 @@ export const selectSectionCard = async ({
   });
 
   await user.click(selectButton);
-};
-
-export const confirmSectionDelete = async (user: User) => {
-  const confirmButton = screen.getByTestId(
-    DeleteConfirmationModalActionsTestId.deleteButton
-  );
-
-  await user.click(confirmButton);
 };

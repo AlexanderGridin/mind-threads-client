@@ -11,6 +11,7 @@ import { TruncatedTextTestId } from "@/components/lib/TruncatedText/TruncatedTex
 import { PageTypeIconTestId } from "@/pages/ThreadPage/components/PageTypeIcon/PageTypeIcon.constants";
 import { PageCard } from "../PageCard";
 import { PageCardTestId } from "../PageCard.constants";
+import { getPageActionsLabel } from "../components/PageCardActions/PageCardActions.utils";
 
 const PAGE = sectionPageFixtures[0];
 
@@ -26,8 +27,11 @@ const setup = ({
   stubTextOverflow({ isOverflowing });
 
   const user = userEvent.setup();
+  const onDelete = vi.fn();
 
-  renderWithUIProvider(<PageCard page={PAGE} isLastCreated={isLastCreated} />);
+  renderWithUIProvider(
+    <PageCard page={PAGE} isLastCreated={isLastCreated} onDelete={onDelete} />
+  );
 
   return { user };
 };
@@ -55,19 +59,35 @@ describe("PageCard", () => {
     const card = getCard();
     const name = getName();
     const icon = screen.getByTestId(PageTypeIconTestId.chat);
+    const nameRow = name.parentElement;
 
     expect(name.textContent).toBe(PAGE.name);
-    expect(card.firstElementChild).toBe(icon);
+    expect(nameRow?.firstElementChild).toBe(icon);
     expect(card).toHaveStyle({ borderLeftColor: PAGE.color });
   });
 
-  it("has no button, so there is no actions menu and nothing to click", () => {
+  it("shows exactly one button, the actions button for the page", () => {
     setup();
 
     const card = getCard();
-    const buttons = within(card).queryAllByRole("button");
+    const buttons = within(card).getAllByRole("button");
+    const actionsButton = within(card).getByRole("button", {
+      name: getPageActionsLabel(PAGE.name),
+    });
 
-    expect(buttons).toHaveLength(0);
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]).toBe(actionsButton);
+  });
+
+  it("lays the card out as a row with the name and the actions button at opposite ends", () => {
+    setup();
+
+    const card = getCard();
+
+    expect(card).toHaveStyle({
+      display: "flex",
+      justifyContent: "space-between",
+    });
   });
 
   it("scrolls itself into view with the nearest block when it is the last created page", () => {

@@ -3,9 +3,11 @@ import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import {
-  confirmSectionDelete,
+  confirmDeletion,
   getRenderedPageNames,
+  getRenderedSectionNames,
   mindThreadFixtures,
+  openPageDeleteMenu,
   openSectionDeleteMenu,
   seedPages,
   seedSections,
@@ -16,7 +18,9 @@ import {
 } from "@/__test-fixtures__";
 import type { ThreadSection } from "@/types";
 import { ThreadPageLoader } from "@/pages/ThreadPage/components/ThreadPageLoader";
+import { getPageDeletedMessage } from "@/pages/ThreadPage/components/ThreadPageLoader/ThreadPageLoader.utils";
 import { DeleteSectionModalContainer } from "@/pages/ThreadPage/components/DeleteSectionModalContainer";
+import { DeletePageModalContainer } from "@/pages/ThreadPage/components/DeletePageModalContainer";
 import {
   ADD_PAGE_BUTTON_LABEL,
   PAGES_COLUMN_EMPTY_MESSAGE,
@@ -49,6 +53,7 @@ const setup = () => {
       <SectionsColumn />
       <PagesColumn />
       <DeleteSectionModalContainer />
+      <DeletePageModalContainer />
     </ThreadPageLoader>
   );
 
@@ -163,12 +168,76 @@ describe("PagesColumn", () => {
     await selectSectionCard({ user, sectionName: SECOND_SECTION.name });
 
     await openSectionDeleteMenu({ user, sectionName: SECOND_SECTION.name });
-    await confirmSectionDelete(user);
+    await confirmDeletion(user);
 
     const message =
       await within(getPagesColumn()).findByText(PAGES_COLUMN_MESSAGE);
 
     expect(message).toBeInTheDocument();
+  });
+
+  it("shows the empty message after the only page of the selected section is deleted", async () => {
+    const onlyPage = sectionPageFixtures[2];
+
+    seedSections(threadSectionFixtures);
+    seedPages([onlyPage]);
+
+    const { user } = setup();
+
+    await selectSectionCard({ user, sectionName: SECOND_SECTION.name });
+
+    let message = within(getPagesColumn()).queryByText(
+      PAGES_COLUMN_EMPTY_MESSAGE
+    );
+
+    expect(message).not.toBeInTheDocument();
+
+    await openPageDeleteMenu({ user, pageName: onlyPage.name });
+    await confirmDeletion(user);
+
+    message = await within(getPagesColumn()).findByText(
+      PAGES_COLUMN_EMPTY_MESSAGE
+    );
+
+    expect(message).toBeInTheDocument();
+  });
+
+  it("keeps the selected section listed and selected after one of its pages is deleted", async () => {
+    const deletedPage = sectionPageFixtures[0];
+    const remainingPage = sectionPageFixtures[1];
+    const storedSectionNames = [FIRST_SECTION.name, SECOND_SECTION.name];
+
+    seedSections(threadSectionFixtures);
+    seedPages(sectionPageFixtures);
+
+    const { user } = setup();
+
+    await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+
+    const selectedBeforeDelete = screen.getByRole("button", {
+      name: FIRST_SECTION.name,
+    });
+
+    expect(selectedBeforeDelete).toHaveAttribute("aria-current", "true");
+
+    await openPageDeleteMenu({ user, pageName: deletedPage.name });
+    await confirmDeletion(user);
+
+    const successNotification = await screen.findByText(
+      getPageDeletedMessage(deletedPage.name)
+    );
+
+    expect(successNotification).toBeInTheDocument();
+    expect(getRenderedSectionNames()).toStrictEqual(storedSectionNames);
+
+    const selectedAfterDelete = screen.getByRole("button", {
+      name: FIRST_SECTION.name,
+    });
+
+    expect(selectedAfterDelete).toHaveAttribute("aria-current", "true");
+
+    expect(getRenderedPageNames()).toStrictEqual([remainingPage.name]);
+    expect(getAddPageButton()).toBeInTheDocument();
   });
 
   it("places the page list inside the column's scrollable body", async () => {

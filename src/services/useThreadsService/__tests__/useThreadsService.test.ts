@@ -770,6 +770,132 @@ describe("useThreadsService", () => {
     });
   });
 
+  describe("removeSectionPage", () => {
+    const threadWithPages = { ...mindThreadFixtures[0], totalPages: 3 };
+    const removedPageId = sectionPageFixtures[0].id;
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("removes the page, drops totalPages by one, sets lastUpdated to the deletion time, keeps totalSections and sections, and leaves other threads unchanged", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(LATER_NOW);
+
+      const { result } = setup();
+
+      seedThreads([threadWithPages, mindThreadFixtures[1]]);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+
+      await result.current.removeSectionPage({
+        threadId: threadWithPages.id,
+        pageId: removedPageId,
+      });
+
+      const expectedThread = {
+        ...threadWithPages,
+        totalPages: 2,
+        lastUpdated: LATER_NOW.toISOString(),
+      };
+
+      expect(readStoredThreads()).toStrictEqual([
+        expectedThread,
+        mindThreadFixtures[1],
+      ]);
+
+      expect(readStoredPages()).toStrictEqual(sectionPageFixtures.slice(1));
+      expect(readStoredSections()).toStrictEqual(threadSectionFixtures);
+    });
+
+    it("leaves the stored thread strictly equal to before when the page was already deleted elsewhere", async () => {
+      const { result } = setup();
+
+      seedThreads([threadWithPages]);
+      seedPages(sectionPageFixtures);
+
+      seedPages(sectionPageFixtures.slice(1));
+      dispatchStorageChange(PAGES_STORAGE_KEY);
+
+      await result.current.removeSectionPage({
+        threadId: threadWithPages.id,
+        pageId: removedPageId,
+      });
+
+      expect(readStoredThreads()).toStrictEqual([threadWithPages]);
+    });
+
+    it("removes the page and writes no thread when the thread was deleted elsewhere", async () => {
+      const { result } = setup();
+
+      const storedThreads = [mindThreadFixtures[1]];
+
+      seedThreads(storedThreads);
+      seedPages(sectionPageFixtures);
+
+      const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+
+      await result.current.removeSectionPage({
+        threadId: threadWithPages.id,
+        pageId: removedPageId,
+      });
+
+      expect(readStoredThreads()).toStrictEqual(storedThreads);
+      expect(setItemSpy).not.toHaveBeenCalledWith(
+        THREADS_STORAGE_KEY,
+        expect.any(String)
+      );
+
+      expect(readStoredPages()).toStrictEqual(sectionPageFixtures.slice(1));
+    });
+
+    it("rejects and leaves pages and threads unchanged when the localStorage write fails", async () => {
+      const { result } = setup();
+
+      seedThreads([threadWithPages]);
+      seedPages(sectionPageFixtures);
+
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new Error("Storage quota exceeded");
+      });
+
+      await expect(
+        result.current.removeSectionPage({
+          threadId: threadWithPages.id,
+          pageId: removedPageId,
+        })
+      ).rejects.toThrow("Storage quota exceeded");
+
+      expect(readStoredThreads()).toStrictEqual([threadWithPages]);
+      expect(readStoredPages()).toStrictEqual(sectionPageFixtures);
+    });
+
+    it("rejects and does not remove the page when the stored threads data is invalid", async () => {
+      const { result } = setup();
+
+      seedPages(sectionPageFixtures);
+
+      localStorage.setItem(
+        THREADS_STORAGE_KEY,
+        JSON.stringify({ id: "thread-1" })
+      );
+
+      await expect(
+        result.current.removeSectionPage({
+          threadId: threadWithPages.id,
+          pageId: removedPageId,
+        })
+      ).rejects.toThrow(INVALID_THREADS_DATA_ERROR);
+
+      expect(readStoredPages()).toStrictEqual(sectionPageFixtures);
+    });
+  });
+
   describe("deleteThread", () => {
     const threadsToDelete: MindThread[] = [
       mindThreadFixtures[0],

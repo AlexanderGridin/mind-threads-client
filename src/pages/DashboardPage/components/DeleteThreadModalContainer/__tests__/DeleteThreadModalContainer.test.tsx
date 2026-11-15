@@ -17,6 +17,9 @@ import {
   seedThreads,
   threadsServiceOverrides,
   waitForDismissListeners,
+  getDeletionCancelButton,
+  getDeletionCloseButton,
+  getDeletionDeleteButton,
 } from "@/__test-fixtures__";
 import type { MindThread } from "@/types";
 import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsService.constants";
@@ -30,7 +33,6 @@ import { getThreadDeletedMessage } from "@/pages/DashboardPage/components/Dashbo
 import { DeleteThreadModalContainer } from "../DeleteThreadModalContainer";
 import { DELETE_THREAD_MODAL_TITLE } from "../components/DeleteThreadModal/DeleteThreadModal.constants";
 import { getDeleteThreadModalText } from "../components/DeleteThreadModal/DeleteThreadModal.utils";
-import { DeleteConfirmationModalActionsTestId } from "@/components/shared/DeleteConfirmationModal/components/DeleteConfirmationModalActions/DeleteConfirmationModalActions.constants";
 
 vi.mock("@/services", async (importOriginal) => {
   const { createServicesMock } = await import("@/__test-fixtures__");
@@ -121,19 +123,6 @@ const queryModalTitle = () => {
   return screen.queryByText(DELETE_THREAD_MODAL_TITLE);
 };
 
-const getCancelButton = () => {
-  return screen.getByTestId(DeleteConfirmationModalActionsTestId.cancelButton);
-};
-
-// While deleting, the loading spinner replaces the label, so the button is found by test id.
-const getDeleteButton = () => {
-  return screen.getByTestId(DeleteConfirmationModalActionsTestId.deleteButton);
-};
-
-const getCloseButton = () => {
-  return screen.getByRole("button", { name: "Close" });
-};
-
 const openDeleteModalFor = async (
   { user }: SetupResult,
   thread: MindThread
@@ -146,7 +135,7 @@ const openDeleteModalFor = async (
 };
 
 const confirmDelete = async ({ user }: SetupResult) => {
-  await user.click(getDeleteButton());
+  await user.click(getDeletionDeleteButton());
 };
 
 const mockStorageSetItemFailure = () => {
@@ -194,7 +183,7 @@ describe("DeleteThreadModalContainer", () => {
     const modalTitle = screen.getByText(DELETE_THREAD_MODAL_TITLE);
     expect(modalTitle).toBeInTheDocument();
 
-    await context.user.click(getCancelButton());
+    await context.user.click(getDeletionCancelButton());
 
     expect(modalTitle).not.toBeInTheDocument();
 
@@ -233,7 +222,7 @@ describe("DeleteThreadModalContainer", () => {
     const modalTitle = screen.getByText(DELETE_THREAD_MODAL_TITLE);
     expect(modalTitle).toBeInTheDocument();
 
-    await context.user.click(getCloseButton());
+    await context.user.click(getDeletionCloseButton());
 
     expect(modalTitle).not.toBeInTheDocument();
 
@@ -302,8 +291,8 @@ describe("DeleteThreadModalContainer", () => {
       mindThreadFixtures.map((thread) => thread.title)
     );
 
-    expect(getCancelButton()).toBeEnabled();
-    expect(getDeleteButton()).toBeEnabled();
+    expect(getDeletionCancelButton()).toBeEnabled();
+    expect(getDeletionDeleteButton()).toBeEnabled();
   });
 
   it("removes the thread when a retry after a failed delete succeeds", async () => {
@@ -353,11 +342,11 @@ describe("DeleteThreadModalContainer", () => {
 
     await confirmDelete(context);
 
-    expect(getDeleteButton()).toHaveAttribute("data-loading");
-    expect(getDeleteButton()).toBeDisabled();
+    expect(getDeletionDeleteButton()).toHaveAttribute("data-loading");
+    expect(getDeletionDeleteButton()).toBeDisabled();
 
-    expect(getCancelButton()).toBeDisabled();
-    expect(getCloseButton()).toBeDisabled();
+    expect(getDeletionCancelButton()).toBeDisabled();
+    expect(getDeletionCloseButton()).toBeDisabled();
 
     await waitForDismissListeners();
     await context.user.keyboard("{Escape}");

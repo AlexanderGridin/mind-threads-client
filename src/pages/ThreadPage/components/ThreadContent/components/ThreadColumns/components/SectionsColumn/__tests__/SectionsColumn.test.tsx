@@ -7,7 +7,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import {
-  confirmSectionDelete,
+  confirmDeletion,
   getRenderedSectionNames,
   mindThreadFixtures,
   openSectionDeleteMenu,
@@ -135,7 +135,7 @@ describe("SectionsColumn", () => {
     expect(message).not.toBeInTheDocument();
 
     await openSectionDeleteMenu({ user, sectionName: onlySection.name });
-    await confirmSectionDelete(user);
+    await confirmDeletion(user);
 
     message = await screen.findByText(SECTIONS_COLUMN_MESSAGE);
     expect(message).toBeInTheDocument();
@@ -228,7 +228,7 @@ describe("SectionsColumn", () => {
       await openSectionDeleteMenu({ user, sectionName: FIRST_SECTION.name });
 
       const removal = waitForElementToBeRemoved(deletedSelectButton);
-      await confirmSectionDelete(user);
+      await confirmDeletion(user);
       await removal;
 
       const remainingSelectButton = getSelectButton(SECOND_SECTION.name);
@@ -247,7 +247,7 @@ describe("SectionsColumn", () => {
       await openSectionDeleteMenu({ user, sectionName: SECOND_SECTION.name });
 
       const removal = waitForElementToBeRemoved(deletedSelectButton);
-      await confirmSectionDelete(user);
+      await confirmDeletion(user);
       await removal;
 
       const selectButton = getSelectButton(FIRST_SECTION.name);
