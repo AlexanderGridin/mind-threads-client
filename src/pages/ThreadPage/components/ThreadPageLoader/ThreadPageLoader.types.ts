@@ -26,6 +26,8 @@ export type ThreadPageValue = {
   isAddPageModalOpen: boolean;
   isSavingPage: boolean;
   lastCreatedPageId: string | null;
+  pageToDelete: SectionPage | null;
+  isDeletingPage: boolean;
 };
 
 export type ThreadPageAction = {
@@ -39,10 +41,17 @@ export type ThreadPageAction = {
   openAddPageModal: () => void;
   closeAddPageModal: () => void;
   submitNewPage: (pageValue: SectionPageValue) => Promise<void>;
+  openDeletePageModal: (page: SectionPage) => void;
+  closeDeletePageModal: () => void;
+  confirmDeletePage: () => Promise<void>;
 };
 
 export type UseAddSectionParams = {
   addSection: (sectionValue: ThreadSectionValue) => Promise<ThreadSection>;
+};
+
+export type UseDeletePageParams = {
+  removePage: (pageId: string) => Promise<void>;
 };
 
 export type UseDeleteSectionParams = {
@@ -58,13 +67,19 @@ export type UseAddPageParams = {
   selectedSection: ThreadSection | null;
 };
 
-type CreatedItem = {
+export type NamedItem = {
   id: string;
   name: string;
 };
 
 export type UseCreateModalParams<Value> = {
-  create: (value: Value) => Promise<CreatedItem>;
+  create: (value: Value) => Promise<NamedItem>;
   getCreatedMessage: (name: string) => string;
+  errorMessage: string;
+};
+
+export type UseDeleteModalParams = {
+  remove: (itemId: string) => Promise<void>;
+  getDeletedMessage: (name: string) => string;
   errorMessage: string;
 };

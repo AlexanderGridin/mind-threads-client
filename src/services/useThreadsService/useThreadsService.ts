@@ -18,10 +18,12 @@ import {
   THREADS_STORAGE_KEY,
 } from "./useThreadsService.constants";
 import type {
+  RemoveSectionPageParams,
   RemoveThreadSectionParams,
   UseThreadsServiceReturn,
 } from "./useThreadsService.types";
 import {
+  applyDeletedPage,
   applyDeletedSection,
   applyNewPage,
   applyNewSection,
@@ -197,6 +199,30 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     );
   };
 
+  const removeSectionPage = async ({
+    threadId,
+    pageId,
+  }: RemoveSectionPageParams): Promise<void> => {
+    const storedThreads = await getThreads();
+    const storedThread = findThread({ threads: storedThreads, threadId });
+
+    const isPageDeleted = await sectionPagesService.deletePage(pageId);
+
+    if (!isPageDeleted || !storedThread) {
+      return;
+    }
+
+    threadsStorage.set(
+      replaceThread({
+        threads: storedThreads,
+        updatedThread: applyDeletedPage({
+          thread: storedThread,
+          deletedAt: new Date().toISOString(),
+        }),
+      })
+    );
+  };
+
   const deleteThread = async (threadId: string): Promise<void> => {
     const storedThreads = await getThreads();
 
@@ -219,5 +245,6 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     addThreadSection,
     removeThreadSection,
     addSectionPage,
+    removeSectionPage,
   };
 };

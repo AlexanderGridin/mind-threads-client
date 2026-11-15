@@ -6,6 +6,7 @@ import {
 import {
   useAddPage,
   useAddSection,
+  useDeletePage,
   useDeleteSection,
   useSectionSelection,
   useThreadState,
@@ -28,6 +29,7 @@ export const ThreadPageLoader = ({
     addSection,
     removeSection,
     addPage,
+    removePage,
   } = useThreadState(threadId);
 
   const {
@@ -58,6 +60,14 @@ export const ThreadPageLoader = ({
     submitNewPage,
   } = useAddPage({ addPage, selectedSection });
 
+  const {
+    pageToDelete,
+    isDeletingPage,
+    openDeletePageModal,
+    closeDeletePageModal,
+    confirmDeletePage,
+  } = useDeletePage({ removePage });
+
   return (
     <ThreadPageActionContext.Provider
       value={{
@@ -71,6 +81,9 @@ export const ThreadPageLoader = ({
         openAddPageModal,
         closeAddPageModal,
         submitNewPage,
+        openDeletePageModal,
+        closeDeletePageModal,
+        confirmDeletePage,
       }}
     >
       <ThreadPageValueContext.Provider
@@ -88,6 +101,8 @@ export const ThreadPageLoader = ({
           isAddPageModalOpen,
           isSavingPage,
           lastCreatedPageId,
+          pageToDelete,
+          isDeletingPage,
         }}
       >
         {children}

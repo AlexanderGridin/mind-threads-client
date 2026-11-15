@@ -11,12 +11,14 @@ type PagesColumnContentProps = {
   selectedSection: ThreadSection | null;
   pages: SectionPage[];
   lastCreatedPageId: string | null;
+  onDeletePage: (page: SectionPage) => void;
 };
 
 export const PagesColumnContent = ({
   selectedSection,
   pages,
   lastCreatedPageId,
+  onDeletePage,
 }: PagesColumnContentProps) => {
   if (!selectedSection) {
     return <ThreadColumnMessage message={PAGES_COLUMN_MESSAGE} />;
@@ -32,6 +34,10 @@ export const PagesColumnContent = ({
   }
 
   return (
-    <PageList pages={sectionPages} lastCreatedPageId={lastCreatedPageId} />
+    <PageList
+      pages={sectionPages}
+      lastCreatedPageId={lastCreatedPageId}
+      onDeletePage={onDeletePage}
+    />
   );
 };

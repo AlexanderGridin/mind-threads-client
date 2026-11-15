@@ -7,4 +7,7 @@ export const DELETE_SECTION_ERROR_MESSAGE =
 export const SAVE_PAGE_ERROR_MESSAGE =
   "Couldn't save the page. Please try again.";
 
+export const DELETE_PAGE_ERROR_MESSAGE =
+  "Couldn't delete the page. Please try again.";
+
 export const NO_SELECTED_SECTION_ERROR = "No section is selected";

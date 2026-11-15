@@ -13,7 +13,7 @@ import {
 
 export const PagesColumn = () => {
   const { selectedSection, pages, lastCreatedPageId } = useThreadPageValue();
-  const { openAddPageModal } = useThreadPageAction();
+  const { openAddPageModal, openDeletePageModal } = useThreadPageAction();
 
   return (
     <ThreadColumn
@@ -33,6 +33,7 @@ export const PagesColumn = () => {
         selectedSection={selectedSection}
         pages={pages}
         lastCreatedPageId={lastCreatedPageId}
+        onDeletePage={openDeletePageModal}
       />
     </ThreadColumn>
   );
