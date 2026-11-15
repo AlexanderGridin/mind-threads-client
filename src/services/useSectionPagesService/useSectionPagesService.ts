@@ -46,6 +46,22 @@ export const useSectionPagesService = (): UseSectionPagesServiceReturn => {
     return createdPage;
   };
 
+  const deletePage = async (pageId: string): Promise<boolean> => {
+    const storedPages = await getPages();
+
+    const remainingPages = storedPages.filter((page) => {
+      return page.id !== pageId;
+    });
+
+    if (remainingPages.length === storedPages.length) {
+      return false;
+    }
+
+    pagesStorage.set(remainingPages);
+
+    return true;
+  };
+
   const deleteSectionPages = async (sectionId: string): Promise<number> => {
     const storedPages = await getPages();
 
@@ -75,6 +91,7 @@ export const useSectionPagesService = (): UseSectionPagesServiceReturn => {
   return {
     getThreadPages,
     createSectionPage,
+    deletePage,
     deleteSectionPages,
     deleteThreadPages,
   };

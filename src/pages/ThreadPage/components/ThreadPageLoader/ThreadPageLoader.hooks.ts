@@ -20,6 +20,7 @@ import {
   ThreadPageValueContext,
 } from "./ThreadPageLoader.context";
 import {
+  DELETE_PAGE_ERROR_MESSAGE,
   DELETE_SECTION_ERROR_MESSAGE,
   NO_SELECTED_SECTION_ERROR,
   SAVE_PAGE_ERROR_MESSAGE,
@@ -27,14 +28,18 @@ import {
 } from "./ThreadPageLoader.constants";
 import {
   getPageCreatedMessage,
+  getPageDeletedMessage,
   getSectionCreatedMessage,
   getSectionDeletedMessage,
 } from "./ThreadPageLoader.utils";
 import type {
   AddPageParams,
+  NamedItem,
   UseAddPageParams,
   UseAddSectionParams,
   UseCreateModalParams,
+  UseDeleteModalParams,
+  UseDeletePageParams,
   UseDeleteSectionParams,
   UseSectionSelectionParams,
 } from "./ThreadPageLoader.types";
@@ -161,6 +166,16 @@ export const useThreadState = (threadId: string) => {
     return createdPage;
   };
 
+  const removePage = async (pageId: string) => {
+    await threadsService.removeSectionPage({ threadId, pageId });
+
+    setPages((currentPages) => {
+      return currentPages.filter((page) => {
+        return page.id !== pageId;
+      });
+    });
+  };
+
   return {
     thread,
     sections,
@@ -169,6 +184,7 @@ export const useThreadState = (threadId: string) => {
     addSection,
     removeSection,
     addPage,
+    removePage,
   };
 };
 
@@ -206,6 +222,44 @@ export const useCreateModal = <Value>({
   };
 
   return { isOpen, isSaving, lastCreatedId, open, close, submit };
+};
+
+export const useDeleteModal = <Item extends NamedItem>({
+  remove,
+  getDeletedMessage,
+  errorMessage,
+}: UseDeleteModalParams) => {
+  const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const open = (item: Item) => {
+    setItemToDelete(item);
+  };
+
+  const close = () => {
+    setItemToDelete(null);
+  };
+
+  const confirm = async () => {
+    if (!itemToDelete) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await remove(itemToDelete.id);
+
+      close();
+      notify.success(getDeletedMessage(itemToDelete.name));
+    } catch {
+      notify.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return { itemToDelete, isDeleting, open, close, confirm };
 };
 
 export const useSectionSelection = ({
@@ -270,44 +324,33 @@ export const useAddSection = ({ addSection }: UseAddSectionParams) => {
 };
 
 export const useDeleteSection = ({ removeSection }: UseDeleteSectionParams) => {
-  const [sectionToDelete, setSectionToDelete] = useState<ThreadSection | null>(
-    null
-  );
-
-  const [isDeletingSection, setIsDeletingSection] = useState(false);
-
-  const openDeleteSectionModal = (section: ThreadSection) => {
-    setSectionToDelete(section);
-  };
-
-  const closeDeleteSectionModal = () => {
-    setSectionToDelete(null);
-  };
-
-  const confirmDeleteSection = async () => {
-    if (!sectionToDelete) {
-      return;
-    }
-
-    setIsDeletingSection(true);
-
-    try {
-      await removeSection(sectionToDelete.id);
-
-      closeDeleteSectionModal();
-      notify.success(getSectionDeletedMessage(sectionToDelete.name));
-    } catch {
-      notify.error(DELETE_SECTION_ERROR_MESSAGE);
-    } finally {
-      setIsDeletingSection(false);
-    }
-  };
+  const sectionModal = useDeleteModal<ThreadSection>({
+    remove: removeSection,
+    getDeletedMessage: getSectionDeletedMessage,
+    errorMessage: DELETE_SECTION_ERROR_MESSAGE,
+  });
 
   return {
-    sectionToDelete,
-    isDeletingSection,
-    openDeleteSectionModal,
-    closeDeleteSectionModal,
-    confirmDeleteSection,
+    sectionToDelete: sectionModal.itemToDelete,
+    isDeletingSection: sectionModal.isDeleting,
+    openDeleteSectionModal: sectionModal.open,
+    closeDeleteSectionModal: sectionModal.close,
+    confirmDeleteSection: sectionModal.confirm,
+  };
+};
+
+export const useDeletePage = ({ removePage }: UseDeletePageParams) => {
+  const pageModal = useDeleteModal<SectionPage>({
+    remove: removePage,
+    getDeletedMessage: getPageDeletedMessage,
+    errorMessage: DELETE_PAGE_ERROR_MESSAGE,
+  });
+
+  return {
+    pageToDelete: pageModal.itemToDelete,
+    isDeletingPage: pageModal.isDeleting,
+    openDeletePageModal: pageModal.open,
+    closeDeletePageModal: pageModal.close,
+    confirmDeletePage: pageModal.confirm,
   };
 };

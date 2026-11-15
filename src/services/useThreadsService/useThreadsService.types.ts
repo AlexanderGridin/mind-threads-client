@@ -17,6 +17,7 @@ export type UseThreadsServiceReturn = {
   addThreadSection: (newSection: NewThreadSection) => Promise<ThreadSection>;
   removeThreadSection: (params: RemoveThreadSectionParams) => Promise<void>;
   addSectionPage: (newPage: NewSectionPage) => Promise<SectionPage>;
+  removeSectionPage: (params: RemoveSectionPageParams) => Promise<void>;
 };
 
 export type RemoveThreadSectionParams = {
@@ -24,9 +25,19 @@ export type RemoveThreadSectionParams = {
   sectionId: string;
 };
 
+export type RemoveSectionPageParams = {
+  threadId: string;
+  pageId: string;
+};
+
 export type ApplyDeletedSectionParams = {
   thread: MindThread;
   deletedPageCount: number;
+  deletedAt: string;
+};
+
+export type ApplyDeletedPageParams = {
+  thread: MindThread;
   deletedAt: string;
 };
 

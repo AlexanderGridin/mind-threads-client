@@ -9,3 +9,7 @@ export const getSectionDeletedMessage = (sectionName: string) => {
 export const getPageCreatedMessage = (pageName: string) => {
   return `Page "${pageName}" created.`;
 };
+
+export const getPageDeletedMessage = (pageName: string) => {
+  return `Page "${pageName}" deleted.`;
+};

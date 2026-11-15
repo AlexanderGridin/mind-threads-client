@@ -27,20 +27,26 @@ import { ThreadStatus } from "@/pages/ThreadPage/ThreadPage.constants";
 import {
   useAddPage,
   useAddSection,
+  useDeletePage,
   useDeleteSection,
   useSectionSelection,
   useThreadPageAction,
   useThreadPageValue,
   useThreadState,
 } from "../ThreadPageLoader.hooks";
-import type { UseAddPageParams } from "../ThreadPageLoader.types";
+import type {
+  UseAddPageParams,
+  UseDeletePageParams,
+} from "../ThreadPageLoader.types";
 import {
+  DELETE_PAGE_ERROR_MESSAGE,
   DELETE_SECTION_ERROR_MESSAGE,
   SAVE_PAGE_ERROR_MESSAGE,
   SAVE_SECTION_ERROR_MESSAGE,
 } from "../ThreadPageLoader.constants";
 import {
   getPageCreatedMessage,
+  getPageDeletedMessage,
   getSectionCreatedMessage,
   getSectionDeletedMessage,
 } from "../ThreadPageLoader.utils";
@@ -114,6 +120,12 @@ const setupDeleteSection = (
   removeSection: (sectionId: string) => Promise<void>
 ) => {
   return renderHook(() => useDeleteSection({ removeSection }), {
+    wrapper: ChakraUIProvider,
+  });
+};
+
+const setupDeletePage = (removePage: UseDeletePageParams["removePage"]) => {
+  return renderHook(() => useDeletePage({ removePage }), {
     wrapper: ChakraUIProvider,
   });
 };
@@ -364,6 +376,71 @@ describe("ThreadPageLoader hooks", () => {
       ).rejects.toThrow("Remove failed");
 
       expect(result.current.sections).toStrictEqual(expectedSections);
+    });
+
+    it("removes only the targeted page by id and keeps the order of the rest and the pages of other sections", async () => {
+      const removedPage = sectionPageFixtures[0];
+      const expectedPages = [sectionPageFixtures[1], sectionPageFixtures[2]];
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+
+      const { result } = setupThreadState(STORED_THREAD_ID);
+
+      await waitFor(() => {
+        expect(result.current.threadStatus).toBe(ThreadStatus.Loaded);
+      });
+
+      await act(async () => {
+        await result.current.removePage(removedPage.id);
+      });
+
+      expect(result.current.pages).toStrictEqual(expectedPages);
+    });
+
+    it("leaves the sections unchanged when a page is removed", async () => {
+      const expectedSections = getSectionsOfThread(STORED_THREAD_ID);
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+
+      const { result } = setupThreadState(STORED_THREAD_ID);
+
+      await waitFor(() => {
+        expect(result.current.threadStatus).toBe(ThreadStatus.Loaded);
+      });
+
+      await act(async () => {
+        await result.current.removePage(sectionPageFixtures[0].id);
+      });
+
+      expect(result.current.sections).toStrictEqual(expectedSections);
+    });
+
+    it("keeps the pages and rejects when the service fails to remove the page", async () => {
+      const expectedPages = getPagesOfThread(STORED_THREAD_ID);
+
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+
+      threadsServiceOverrides.removeSectionPage = async () => {
+        throw new Error("Remove failed");
+      };
+
+      const { result } = setupThreadState(STORED_THREAD_ID);
+
+      await waitFor(() => {
+        expect(result.current.threadStatus).toBe(ThreadStatus.Loaded);
+      });
+
+      await expect(
+        result.current.removePage(expectedPages[0].id)
+      ).rejects.toThrow("Remove failed");
+
+      expect(result.current.pages).toStrictEqual(expectedPages);
     });
   });
 
@@ -762,6 +839,118 @@ describe("ThreadPageLoader hooks", () => {
 
       const errorNotification = await screen.findByText(
         DELETE_SECTION_ERROR_MESSAGE
+      );
+
+      expect(errorNotification).toBeInTheDocument();
+    });
+  });
+
+  describe("useDeletePage", () => {
+    const PAGE_TO_DELETE = sectionPageFixtures[1];
+
+    it("sets the page to delete when opened and clears it when closed", () => {
+      const removePage = vi.fn();
+      const { result } = setupDeletePage(removePage);
+
+      expect(result.current.pageToDelete).toBeNull();
+
+      act(() => {
+        result.current.openDeletePageModal(PAGE_TO_DELETE);
+      });
+
+      expect(result.current.pageToDelete).toStrictEqual(PAGE_TO_DELETE);
+
+      act(() => {
+        result.current.closeDeletePageModal();
+      });
+
+      expect(result.current.pageToDelete).toBeNull();
+    });
+
+    it("does nothing when no page is selected", async () => {
+      const removePage = vi.fn();
+      const { result } = setupDeletePage(removePage);
+
+      await act(async () => {
+        await result.current.confirmDeletePage();
+      });
+
+      expect(removePage).not.toHaveBeenCalled();
+      expect(result.current.pageToDelete).toBeNull();
+      expect(result.current.isDeletingPage).toBe(false);
+    });
+
+    it("is deleting while the page is being removed", async () => {
+      const pendingRemoval = createDeferred<void>();
+      const removePage = vi.fn(() => {
+        return pendingRemoval.promise;
+      });
+
+      const { result } = setupDeletePage(removePage);
+
+      act(() => {
+        result.current.openDeletePageModal(PAGE_TO_DELETE);
+      });
+
+      let pendingConfirm!: Promise<void>;
+
+      act(() => {
+        pendingConfirm = result.current.confirmDeletePage();
+      });
+
+      expect(result.current.isDeletingPage).toBe(true);
+
+      await act(async () => {
+        pendingRemoval.resolve();
+        await pendingConfirm;
+      });
+
+      expect(result.current.isDeletingPage).toBe(false);
+    });
+
+    it("clears the page to delete, stops deleting and shows the success notification on success", async () => {
+      const removePage = vi.fn(async () => {});
+      const { result } = setupDeletePage(removePage);
+
+      act(() => {
+        result.current.openDeletePageModal(PAGE_TO_DELETE);
+      });
+
+      await act(async () => {
+        await result.current.confirmDeletePage();
+      });
+
+      expect(removePage).toHaveBeenCalledWith(PAGE_TO_DELETE.id);
+      expect(result.current.pageToDelete).toBeNull();
+      expect(result.current.isDeletingPage).toBe(false);
+
+      const successNotification = await screen.findByText(
+        getPageDeletedMessage(PAGE_TO_DELETE.name)
+      );
+
+      expect(successNotification).toBeInTheDocument();
+    });
+
+    it("keeps the page to delete, stops deleting and shows the error notification on failure", async () => {
+      const removePage = vi.fn(async () => {
+        throw new Error("Remove failed");
+      });
+
+      const { result } = setupDeletePage(removePage);
+
+      act(() => {
+        result.current.openDeletePageModal(PAGE_TO_DELETE);
+      });
+
+      await act(async () => {
+        await result.current.confirmDeletePage();
+      });
+
+      expect(result.current.pageToDelete).toStrictEqual(PAGE_TO_DELETE);
+      expect(result.current.isDeletingPage).toBe(false);
+
+      const errorNotification = await screen.findByText(
+        DELETE_PAGE_ERROR_MESSAGE
       );
 
       expect(errorNotification).toBeInTheDocument();

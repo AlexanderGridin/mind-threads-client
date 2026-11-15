@@ -6,9 +6,14 @@ import { PageListTestId } from "./PageList.constants";
 type PageListProps = {
   pages: SectionPage[];
   lastCreatedPageId: string | null;
+  onDeletePage: (page: SectionPage) => void;
 };
 
-export const PageList = ({ pages, lastCreatedPageId }: PageListProps) => {
+export const PageList = ({
+  pages,
+  lastCreatedPageId,
+  onDeletePage,
+}: PageListProps) => {
   return (
     <VStack data-testid={PageListTestId.container} gap="2" alignItems="stretch">
       {pages.map((page) => {
@@ -17,6 +22,7 @@ export const PageList = ({ pages, lastCreatedPageId }: PageListProps) => {
             key={page.id}
             page={page}
             isLastCreated={page.id === lastCreatedPageId}
+            onDelete={onDeletePage}
           />
         );
       })}

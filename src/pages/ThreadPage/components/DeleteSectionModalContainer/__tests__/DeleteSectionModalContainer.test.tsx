@@ -6,7 +6,7 @@ import userEvent, {
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import {
   clickOutside,
-  confirmSectionDelete,
+  confirmDeletion,
   createDeferred,
   getRenderedSectionNames,
   mindThreadFixtures,
@@ -18,8 +18,10 @@ import {
   threadSectionFixtures,
   threadsServiceOverrides,
   waitForDismissListeners,
+  getDeletionCancelButton,
+  getDeletionCloseButton,
+  getDeletionDeleteButton,
 } from "@/__test-fixtures__";
-import { DeleteConfirmationModalActionsTestId } from "@/components/shared/DeleteConfirmationModal/components/DeleteConfirmationModalActions/DeleteConfirmationModalActions.constants";
 import { ThreadPageLoader } from "@/pages/ThreadPage/components/ThreadPageLoader";
 import { DELETE_SECTION_ERROR_MESSAGE } from "@/pages/ThreadPage/components/ThreadPageLoader/ThreadPageLoader.constants";
 import { getSectionDeletedMessage } from "@/pages/ThreadPage/components/ThreadPageLoader/ThreadPageLoader.utils";
@@ -64,19 +66,6 @@ const setup = ({
 
 const queryModalTitle = () => {
   return screen.queryByText(DELETE_SECTION_MODAL_TITLE);
-};
-
-const getCancelButton = () => {
-  return screen.getByRole("button", { name: "Cancel" });
-};
-
-const getCloseButton = () => {
-  return screen.getByRole("button", { name: "Close" });
-};
-
-// While deleting, the loading spinner replaces the label, so the button is found by test id.
-const getDeleteButton = () => {
-  return screen.getByTestId(DeleteConfirmationModalActionsTestId.deleteButton);
 };
 
 beforeEach(() => {
@@ -142,7 +131,7 @@ describe("DeleteSectionModalContainer", () => {
 
     const modalTitle = screen.getByText(DELETE_SECTION_MODAL_TITLE);
 
-    const cancelButton = getCancelButton();
+    const cancelButton = getDeletionCancelButton();
     await context.user.click(cancelButton);
 
     expect(modalTitle).not.toBeInTheDocument();
@@ -164,7 +153,7 @@ describe("DeleteSectionModalContainer", () => {
 
     const modalTitle = screen.getByText(DELETE_SECTION_MODAL_TITLE);
 
-    const closeButton = getCloseButton();
+    const closeButton = getDeletionCloseButton();
     await context.user.click(closeButton);
 
     expect(modalTitle).not.toBeInTheDocument();
@@ -236,11 +225,11 @@ describe("DeleteSectionModalContainer", () => {
       user: context.user,
       sectionName: SECTION_NAME,
     });
-    await confirmSectionDelete(context.user);
+    await confirmDeletion(context.user);
 
-    const deleteButton = getDeleteButton();
-    const cancelButton = getCancelButton();
-    const closeButton = getCloseButton();
+    const deleteButton = getDeletionDeleteButton();
+    const cancelButton = getDeletionCancelButton();
+    const closeButton = getDeletionCloseButton();
 
     expect(deleteButton).toHaveAttribute("data-loading");
     expect(deleteButton).toBeDisabled();
@@ -270,7 +259,7 @@ describe("DeleteSectionModalContainer", () => {
       user: context.user,
       sectionName: SECTION_NAME,
     });
-    await confirmSectionDelete(context.user);
+    await confirmDeletion(context.user);
 
     const successNotification = await screen.findByText(
       getSectionDeletedMessage(SECTION_NAME)
@@ -297,7 +286,7 @@ describe("DeleteSectionModalContainer", () => {
       user: context.user,
       sectionName: SECTION_NAME,
     });
-    await confirmSectionDelete(context.user);
+    await confirmDeletion(context.user);
 
     const errorNotification = await screen.findByText(
       DELETE_SECTION_ERROR_MESSAGE
@@ -308,8 +297,8 @@ describe("DeleteSectionModalContainer", () => {
     const modalTitle = queryModalTitle();
     expect(modalTitle).toBeInTheDocument();
 
-    const cancelButton = getCancelButton();
-    const deleteButton = getDeleteButton();
+    const cancelButton = getDeletionCancelButton();
+    const deleteButton = getDeletionDeleteButton();
 
     expect(cancelButton).toBeEnabled();
     expect(deleteButton).toBeEnabled();
@@ -331,7 +320,7 @@ describe("DeleteSectionModalContainer", () => {
     });
 
     const modalTitle = screen.getByText(DELETE_SECTION_MODAL_TITLE);
-    await confirmSectionDelete(context.user);
+    await confirmDeletion(context.user);
 
     const errorNotification = await screen.findByText(
       DELETE_SECTION_ERROR_MESSAGE
@@ -339,7 +328,7 @@ describe("DeleteSectionModalContainer", () => {
 
     expect(errorNotification).toBeInTheDocument();
 
-    const cancelButton = getCancelButton();
+    const cancelButton = getDeletionCancelButton();
     await context.user.click(cancelButton);
 
     expect(modalTitle).not.toBeInTheDocument();

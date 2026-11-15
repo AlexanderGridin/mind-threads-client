@@ -6,3 +6,4 @@ export * from "./AddSectionModalContainer";
 export * from "./DeleteSectionModalContainer";
 export * from "./PageTypeIcon";
 export * from "./AddPageModalContainer";
+export * from "./DeletePageModalContainer";

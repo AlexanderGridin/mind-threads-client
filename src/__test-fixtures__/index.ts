@@ -6,3 +6,4 @@ export * from "./deferred";
 export * from "./zag";
 export * from "./router";
 export * from "./document";
+export * from "./deletion";

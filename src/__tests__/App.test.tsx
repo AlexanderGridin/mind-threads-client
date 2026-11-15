@@ -4,15 +4,20 @@ import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import {
-  confirmSectionDelete,
+  confirmDeletion,
   dispatchStorageChange,
   mindThreadFixtures,
+  openPageDeleteMenu,
   openSectionDeleteMenu,
+  seedPages,
   seedSections,
   seedThreads,
+  selectSectionCard,
+  sectionPageFixtures,
   threadSectionFixtures,
 } from "@/__test-fixtures__";
 import type { MindThread, ThreadSection } from "@/types";
+import { PAGES_STORAGE_KEY } from "@/services/useSectionPagesService/useSectionPagesService.constants";
 import { SECTIONS_STORAGE_KEY } from "@/services/useThreadSectionsService/useThreadSectionsService.constants";
 import { THREADS_STORAGE_KEY } from "@/services/useThreadsService/useThreadsService.constants";
 import { ThreadColumnsTestId } from "@/pages/ThreadPage/components/ThreadContent/components/ThreadColumns/ThreadColumns.constants";
@@ -27,8 +32,14 @@ import { MindThreadCardTestId } from "@/pages/DashboardPage/components/Dashboard
 import { MindThreadListTestId } from "@/pages/DashboardPage/components/DashboardContent/components/MindThreadList/MindThreadList.constants";
 import { BACK_TO_DASHBOARD_LABEL } from "@/pages/ThreadPage/ThreadPage.constants";
 import { ThreadHeaderTestId } from "@/pages/ThreadPage/components/ThreadHeader/ThreadHeader.constants";
-import { DELETE_SECTION_ERROR_MESSAGE } from "@/pages/ThreadPage/components/ThreadPageLoader/ThreadPageLoader.constants";
-import { getSectionDeletedMessage } from "@/pages/ThreadPage/components/ThreadPageLoader/ThreadPageLoader.utils";
+import {
+  DELETE_PAGE_ERROR_MESSAGE,
+  DELETE_SECTION_ERROR_MESSAGE,
+} from "@/pages/ThreadPage/components/ThreadPageLoader/ThreadPageLoader.constants";
+import {
+  getPageDeletedMessage,
+  getSectionDeletedMessage,
+} from "@/pages/ThreadPage/components/ThreadPageLoader/ThreadPageLoader.utils";
 import { APP_NAME } from "@/components/shared";
 
 const mockUseColorModeReturn = { toggleColorMode: vi.fn() };
@@ -271,7 +282,7 @@ describe("App", () => {
 
     const deleteSection = async (user: User, sectionName: string) => {
       await openSectionDeleteMenu({ user, sectionName });
-      await confirmSectionDelete(user);
+      await confirmDeletion(user);
     };
 
     const getStoredSections = (): ThreadSection[] => {
@@ -525,6 +536,140 @@ describe("App", () => {
         expect(sectionsText.textContent).toBe("2 sections");
 
         expect(getStoredThread(SECTION_THREAD.id)?.lastUpdated).toBe(
+          SECOND_SECTION_TIME
+        );
+      });
+    });
+
+    describe("deleting a page", () => {
+      const PAGE_THREAD: MindThread = {
+        ...mindThreadFixtures[0],
+        totalPages: 3,
+        lastUpdated: FIRST_SECTION_TIME,
+      };
+
+      const PAGE_TO_DELETE = sectionPageFixtures[0];
+      const PAGE_DELETE_ATTEMPT_TIME = "2026-11-08T12:00:00.000Z";
+
+      const deletePage = async (user: User, pageName: string) => {
+        await selectSectionCard({ user, sectionName: FIRST_SECTION_NAME });
+        await openPageDeleteMenu({ user, pageName });
+        await confirmDeletion(user);
+      };
+
+      beforeEach(() => {
+        seedThreads([PAGE_THREAD]);
+        seedSections(threadSectionFixtures);
+        seedPages(sectionPageFixtures);
+      });
+
+      it("shows two pages and the just-now update time on the card after one of three pages is deleted", async () => {
+        const { user } = setup("/");
+
+        await findThreadTitles();
+        await openThreadFromDashboard(user, PAGE_THREAD.title);
+
+        vi.setSystemTime(new Date(SECOND_SECTION_TIME));
+
+        await deletePage(user, PAGE_TO_DELETE.name);
+
+        const successNotification = await screen.findByText(
+          getPageDeletedMessage(PAGE_TO_DELETE.name)
+        );
+
+        expect(successNotification).toBeInTheDocument();
+
+        await returnToDashboard(user);
+
+        const [pagesText] = screen.getAllByTestId(MindThreadCardTestId.pages);
+
+        const [lastUpdated] = screen.getAllByTestId(
+          MindThreadCardTestId.lastUpdated
+        );
+
+        expect(pagesText.textContent).toBe("2 pages");
+        expect(lastUpdated.textContent).toBe(JUST_NOW_TEXT);
+
+        expect(getStoredThread(PAGE_THREAD.id)?.lastUpdated).toBe(
+          SECOND_SECTION_TIME
+        );
+      });
+
+      it("keeps the card's count and update time when the page delete fails", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {});
+
+        const { user } = setup("/");
+
+        await findThreadTitles();
+        await openThreadFromDashboard(user, PAGE_THREAD.title);
+
+        const setItemSpy = vi
+          .spyOn(Storage.prototype, "setItem")
+          .mockImplementation(() => {
+            throw new Error("Storage quota exceeded");
+          });
+
+        await deletePage(user, PAGE_TO_DELETE.name);
+
+        const errorNotification = await screen.findByText(
+          DELETE_PAGE_ERROR_MESSAGE
+        );
+
+        expect(errorNotification).toBeInTheDocument();
+
+        const cancelButton = screen.getByRole("button", { name: "Cancel" });
+        await user.click(cancelButton);
+
+        setItemSpy.mockRestore();
+
+        await returnToDashboard(user);
+
+        const [pagesText] = screen.getAllByTestId(MindThreadCardTestId.pages);
+        expect(pagesText.textContent).toBe("3 pages");
+
+        expect(getStoredThread(PAGE_THREAD.id)?.lastUpdated).toBe(
+          FIRST_SECTION_TIME
+        );
+      });
+
+      it("drops the count only once when the page was already deleted in another tab", async () => {
+        const { user } = setup("/");
+
+        await findThreadTitles();
+        await openThreadFromDashboard(user, PAGE_THREAD.title);
+
+        const otherTabThread = {
+          ...PAGE_THREAD,
+          totalPages: 2,
+          lastUpdated: SECOND_SECTION_TIME,
+        };
+
+        seedThreads([otherTabThread]);
+        seedPages(
+          sectionPageFixtures.filter((page) => {
+            return page.id !== PAGE_TO_DELETE.id;
+          })
+        );
+
+        dispatchStorageChange(THREADS_STORAGE_KEY);
+        dispatchStorageChange(PAGES_STORAGE_KEY);
+
+        vi.setSystemTime(new Date(PAGE_DELETE_ATTEMPT_TIME));
+
+        await deletePage(user, PAGE_TO_DELETE.name);
+
+        const successNotification = await screen.findByText(
+          getPageDeletedMessage(PAGE_TO_DELETE.name)
+        );
+
+        expect(successNotification).toBeInTheDocument();
+
+        await returnToDashboard(user);
+
+        const [pagesText] = screen.getAllByTestId(MindThreadCardTestId.pages);
+        expect(pagesText.textContent).toBe("2 pages");
+
+        expect(getStoredThread(PAGE_THREAD.id)?.lastUpdated).toBe(
           SECOND_SECTION_TIME
         );
       });
