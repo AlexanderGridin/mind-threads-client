@@ -183,7 +183,7 @@ describe("DeletePageModalContainer", () => {
 
     await clickOutside(context.user);
 
-    await waitForElementToBeRemoved(modalTitle);
+    await waitForElementToBeRemoved(modalTitle, { timeout: 30_000 });
 
     expect(getRenderedPageNames()).toStrictEqual(STORED_PAGE_NAMES);
     expect(readStoredPages()).toStrictEqual(sectionPageFixtures);

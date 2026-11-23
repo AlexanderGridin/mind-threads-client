@@ -25,3 +25,7 @@ export const INVALID_LINK_URL_MESSAGE = "Enter a valid http or https URL";
 export const UNSUPPORTED_IMAGE_MESSAGE = "Only image files are supported.";
 export const IMAGE_LOAD_ERROR_MESSAGE =
   "Couldn't load the image. Please try again.";
+export const FILE_READ_ERROR_MESSAGE = "File could not be read";
+export const FILE_READ_INVALID_RESULT_MESSAGE =
+  "File could not be read as a data URL";
+export const FILE_READ_ABORTED_MESSAGE = "File reading was aborted";

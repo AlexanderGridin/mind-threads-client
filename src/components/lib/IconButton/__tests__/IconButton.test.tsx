@@ -7,6 +7,10 @@ import { renderWithUIProvider } from "../../__test-fixtures__";
 
 const mockOnClick = vi.fn();
 
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 const setup = (props: Omit<Partial<IconButtonProps>, "onClick"> = {}) => {
   const user = userEvent.setup();
 
@@ -51,5 +55,44 @@ describe("IconButton", () => {
     setup({ "data-testid": "icon-button-test" });
 
     expect(screen.getByTestId("icon-button-test")).toBeInTheDocument();
+  });
+
+  it.each([
+    { pressed: true, expected: "true" },
+    { pressed: false, expected: "false" },
+  ])(
+    "sets aria-pressed to $expected when aria-pressed is $pressed",
+    ({ pressed, expected }) => {
+      setup({ "aria-label": "Tag", "aria-pressed": pressed });
+
+      const button = screen.getByRole("button", { name: "Tag" });
+      expect(button).toHaveAttribute("aria-pressed", expected);
+    }
+  );
+
+  it("is disabled when disabled is set", async () => {
+    const { user } = setup({ "aria-label": "Disabled", disabled: true });
+
+    const button = screen.getByRole("button", { name: "Disabled" });
+    await user.click(button);
+
+    expect(button).toBeDisabled();
+    expect(mockOnClick).not.toHaveBeenCalled();
+  });
+
+  it("applies height, minWidth, and px as styles", () => {
+    setup({
+      "aria-label": "Remove",
+      height: "4",
+      minWidth: "4",
+      px: "0",
+    });
+
+    const button = screen.getByRole("button", { name: "Remove" });
+    expect(button).toHaveStyle({
+      height: "var(--chakra-sizes-4)",
+      minWidth: "var(--chakra-sizes-4)",
+      paddingInline: "0",
+    });
   });
 });

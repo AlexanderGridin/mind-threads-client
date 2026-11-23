@@ -29,7 +29,9 @@ import {
   useAddSection,
   useDeletePage,
   useDeleteSection,
+  usePageSelection,
   useSectionSelection,
+  useSectionSwitch,
   useThreadPageAction,
   useThreadPageValue,
   useThreadState,
@@ -91,6 +93,33 @@ const setupSectionSelection = (sections: ThreadSection[]) => {
     },
     { initialProps: { sections } }
   );
+};
+
+const setupPageSelection = (pages: SectionPage[]) => {
+  return renderHook(
+    ({ pages: currentPages }) => {
+      return usePageSelection({ pages: currentPages });
+    },
+    { initialProps: { pages } }
+  );
+};
+
+const setupSectionSwitch = (selectedSection: ThreadSection | null) => {
+  const selectSection = vi.fn();
+  const clearSelectedPage = vi.fn();
+
+  const hook = renderHook(
+    ({ selectedSection: currentSelectedSection }) => {
+      return useSectionSwitch({
+        selectedSection: currentSelectedSection,
+        selectSection,
+        clearSelectedPage,
+      });
+    },
+    { initialProps: { selectedSection } }
+  );
+
+  return { ...hook, selectSection, clearSelectedPage };
 };
 
 const setupAddPage = (
@@ -525,6 +554,126 @@ describe("ThreadPageLoader hooks", () => {
       });
 
       expect(result.current.selectedSection).toStrictEqual(FIRST_SECTION);
+    });
+  });
+
+  describe("usePageSelection", () => {
+    const FIRST_PAGE = sectionPageFixtures[0];
+    const SECOND_PAGE = sectionPageFixtures[1];
+    const THIRD_PAGE = sectionPageFixtures[2];
+    const NEW_PAGE: SectionPage = {
+      ...THIRD_PAGE,
+      id: "page-new",
+      name: "Sketches",
+    };
+
+    it("selects no page at first", () => {
+      const { result } = setupPageSelection(sectionPageFixtures);
+      expect(result.current.selectedPage).toBeNull();
+    });
+
+    it("selects the page with the given id", () => {
+      const { result } = setupPageSelection(sectionPageFixtures);
+
+      act(() => {
+        result.current.selectPage(FIRST_PAGE.id);
+      });
+
+      expect(result.current.selectedPage).toStrictEqual(FIRST_PAGE);
+    });
+
+    it("moves the selection when another page is selected", () => {
+      const { result } = setupPageSelection(sectionPageFixtures);
+
+      act(() => {
+        result.current.selectPage(FIRST_PAGE.id);
+      });
+
+      act(() => {
+        result.current.selectPage(SECOND_PAGE.id);
+      });
+
+      expect(result.current.selectedPage).toStrictEqual(SECOND_PAGE);
+    });
+
+    it("clears the selection when the selected page leaves the pages", () => {
+      const { result, rerender } = setupPageSelection(sectionPageFixtures);
+
+      act(() => {
+        result.current.selectPage(FIRST_PAGE.id);
+      });
+
+      rerender({ pages: [SECOND_PAGE, THIRD_PAGE] });
+      expect(result.current.selectedPage).toBeNull();
+    });
+
+    it("keeps the selection when another page is removed or added", () => {
+      const { result, rerender } = setupPageSelection(sectionPageFixtures);
+
+      act(() => {
+        result.current.selectPage(FIRST_PAGE.id);
+      });
+
+      rerender({ pages: [FIRST_PAGE, SECOND_PAGE] });
+      expect(result.current.selectedPage).toStrictEqual(FIRST_PAGE);
+
+      rerender({ pages: [FIRST_PAGE, SECOND_PAGE, NEW_PAGE] });
+      expect(result.current.selectedPage).toStrictEqual(FIRST_PAGE);
+    });
+
+    it("clears the selection with clearSelectedPage", () => {
+      const { result } = setupPageSelection(sectionPageFixtures);
+
+      act(() => {
+        result.current.selectPage(FIRST_PAGE.id);
+      });
+
+      act(() => {
+        result.current.clearSelectedPage();
+      });
+
+      expect(result.current.selectedPage).toBeNull();
+    });
+  });
+
+  describe("useSectionSwitch", () => {
+    const FIRST_SECTION = threadSectionFixtures[0];
+    const SECOND_SECTION = threadSectionFixtures[1];
+
+    it("selects the other section and clears the selected page", () => {
+      const { result, selectSection, clearSelectedPage } =
+        setupSectionSwitch(FIRST_SECTION);
+
+      act(() => {
+        result.current(SECOND_SECTION.id);
+      });
+
+      expect(selectSection).toHaveBeenCalledExactlyOnceWith(SECOND_SECTION.id);
+      expect(clearSelectedPage).toHaveBeenCalledOnce();
+    });
+
+    it("selects the section and clears the selected page when no section is selected", () => {
+      const { result, selectSection, clearSelectedPage } =
+        setupSectionSwitch(null);
+
+      act(() => {
+        result.current(FIRST_SECTION.id);
+      });
+
+      expect(selectSection).toHaveBeenCalledExactlyOnceWith(FIRST_SECTION.id);
+      expect(clearSelectedPage).toHaveBeenCalledOnce();
+    });
+
+    it("does nothing when the selected section is chosen again", () => {
+      const { result, selectSection, clearSelectedPage } =
+        setupSectionSwitch(FIRST_SECTION);
+
+      act(() => {
+        result.current(FIRST_SECTION.id);
+      });
+
+      expect(selectSection).not.toHaveBeenCalled();
+      expect(clearSelectedPage).not.toHaveBeenCalled();
     });
   });
 

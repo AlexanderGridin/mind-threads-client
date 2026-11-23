@@ -2,6 +2,9 @@ import type { Editor } from "@tiptap/core";
 import {
   ALLOWED_LINK_PROTOCOLS,
   CONTENT_NODE_TYPES,
+  FILE_READ_ABORTED_MESSAGE,
+  FILE_READ_ERROR_MESSAGE,
+  FILE_READ_INVALID_RESULT_MESSAGE,
   IMAGE_MIME_PREFIX,
 } from "./MessageComposer.constants";
 import type { ComposerCommand } from "./MessageComposer.types";
@@ -33,15 +36,15 @@ export const readFileAsDataUrl = (file: File) => {
         return;
       }
 
-      reject(new Error("File could not be read as a data URL"));
+      reject(new Error(FILE_READ_INVALID_RESULT_MESSAGE));
     });
 
     reader.addEventListener("error", () => {
-      reject(new Error("File could not be read"));
+      reject(new Error(FILE_READ_ERROR_MESSAGE));
     });
 
     reader.addEventListener("abort", () => {
-      reject(new Error("File reading was aborted"));
+      reject(new Error(FILE_READ_ABORTED_MESSAGE));
     });
 
     reader.readAsDataURL(file);
