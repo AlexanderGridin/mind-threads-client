@@ -79,4 +79,8 @@ Key technical choices:
   ```
   This structure allows for easier future extraction into a separate design system package. For testing components that use Chakra UI, always use `renderWithUIProvider` from `@/components/lib/__test-fixtures__`.
 
+- **Tiptap**: The message composer (`MessageComposer`, under the thread page's `PageView`) uses Tiptap 3. All `@tiptap/*` packages are pinned to the same exact version, and `document.execCommand()` is never used.
+  Every composer action is a command object (`ComposerCommand`, with `execute(context)`) defined in `MessageComposer.commands.ts`. Toolbar buttons, the Send button, and keyboard shortcuts invoke the same objects. For example, `boldCommand` backs both the Bold button and Ctrl/Cmd+B. Actions that carry data use factories such as `createInsertLinkCommand(url)`.
+  Commands are tested against a real headless editor from `createTestEditor` in `@/__test-fixtures__`. `vitest.setup.ts` polyfills the Range and `elementFromPoint` layout APIs that ProseMirror needs in jsdom.
+
   App-wide notifications are rendered by `Notifications`, which is mounted inside `ChakraUIProvider`, and triggered with `notify.success(message)` or `notify.error(message)` from `@/components/lib`. They appear bottom-right, close automatically after 5 s, and follow the color mode. Tests rendered with `renderWithUIProvider` see them, and `vitest.setup.ts` clears them after each test.
