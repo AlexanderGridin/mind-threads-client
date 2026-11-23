@@ -11,6 +11,8 @@ type PagesColumnContentProps = {
   selectedSection: ThreadSection | null;
   pages: SectionPage[];
   lastCreatedPageId: string | null;
+  selectedPageId: string | null;
+  onSelectPage: (pageId: string) => void;
   onDeletePage: (page: SectionPage) => void;
 };
 
@@ -18,6 +20,8 @@ export const PagesColumnContent = ({
   selectedSection,
   pages,
   lastCreatedPageId,
+  selectedPageId,
+  onSelectPage,
   onDeletePage,
 }: PagesColumnContentProps) => {
   if (!selectedSection) {
@@ -37,6 +41,8 @@ export const PagesColumnContent = ({
     <PageList
       pages={sectionPages}
       lastCreatedPageId={lastCreatedPageId}
+      selectedPageId={selectedPageId}
+      onSelectPage={onSelectPage}
       onDeletePage={onDeletePage}
     />
   );

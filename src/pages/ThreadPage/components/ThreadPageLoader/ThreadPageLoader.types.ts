@@ -23,6 +23,7 @@ export type ThreadPageValue = {
   isDeletingSection: boolean;
   pages: SectionPage[];
   selectedSection: ThreadSection | null;
+  selectedPage: SectionPage | null;
   isAddPageModalOpen: boolean;
   isSavingPage: boolean;
   lastCreatedPageId: string | null;
@@ -38,6 +39,7 @@ export type ThreadPageAction = {
   closeDeleteSectionModal: () => void;
   confirmDeleteSection: () => Promise<void>;
   selectSection: (sectionId: string) => void;
+  selectPage: (pageId: string) => void;
   openAddPageModal: () => void;
   closeAddPageModal: () => void;
   submitNewPage: (pageValue: SectionPageValue) => Promise<void>;
@@ -60,6 +62,16 @@ export type UseDeleteSectionParams = {
 
 export type UseSectionSelectionParams = {
   sections: ThreadSection[];
+};
+
+export type UsePageSelectionParams = {
+  pages: SectionPage[];
+};
+
+export type UseSectionSwitchParams = {
+  selectedSection: ThreadSection | null;
+  selectSection: (sectionId: string) => void;
+  clearSelectedPage: () => void;
 };
 
 export type UseAddPageParams = {

@@ -14,6 +14,7 @@ export default defineConfig({
         "src/index.css",
         "index.ts",
         "*.types.ts",
+        "**/types/**",
         "src/pages/ColorsDemoPage/**",
         "src/__mocks__/**",
         "**/__test-fixtures__/**",

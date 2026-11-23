@@ -41,7 +41,9 @@ import type {
   UseDeleteModalParams,
   UseDeletePageParams,
   UseDeleteSectionParams,
+  UsePageSelectionParams,
   UseSectionSelectionParams,
+  UseSectionSwitchParams,
 } from "./ThreadPageLoader.types";
 
 export const useThreadPageValue = () => {
@@ -279,6 +281,42 @@ export const useSectionSelection = ({
   };
 
   return { selectedSection, selectSection };
+};
+
+export const usePageSelection = ({ pages }: UsePageSelectionParams) => {
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
+
+  const selectedPage =
+    pages.find((page) => {
+      return page.id === selectedPageId;
+    }) ?? null;
+
+  const selectPage = (pageId: string) => {
+    setSelectedPageId(pageId);
+  };
+
+  const clearSelectedPage = () => {
+    setSelectedPageId(null);
+  };
+
+  return { selectedPage, selectPage, clearSelectedPage };
+};
+
+export const useSectionSwitch = ({
+  selectedSection,
+  selectSection,
+  clearSelectedPage,
+}: UseSectionSwitchParams) => {
+  const switchSection = (sectionId: string) => {
+    if (sectionId === selectedSection?.id) {
+      return;
+    }
+
+    selectSection(sectionId);
+    clearSelectedPage();
+  };
+
+  return switchSection;
 };
 
 export const useAddPage = ({ addPage, selectedSection }: UseAddPageParams) => {

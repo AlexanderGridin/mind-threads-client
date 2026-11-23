@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import type userEvent from "@testing-library/user-event";
 import { ThreadColumnsTestId } from "@/pages/ThreadPage/components/ThreadContent/components/ThreadColumns/ThreadColumns.constants";
 import { ADD_PAGE_MODAL_TITLE } from "@/pages/ThreadPage/components/AddPageModalContainer/components/AddPageModal/AddPageModal.constants";
@@ -18,6 +18,23 @@ export const openAddPageModal = async (user: User) => {
   await user.click(addPageButton);
 
   return screen.findByText(ADD_PAGE_MODAL_TITLE);
+};
+
+type SelectPageCardParams = {
+  user: User;
+  pageName: string;
+};
+
+export const selectPageCard = async ({
+  user,
+  pageName,
+}: SelectPageCardParams) => {
+  const pagesColumn = screen.getByTestId(ThreadColumnsTestId.pagesColumn);
+  const pageButton = within(pagesColumn).getByRole("button", {
+    name: pageName,
+  });
+
+  await user.click(pageButton);
 };
 
 export const openPageDeleteMenu = async ({

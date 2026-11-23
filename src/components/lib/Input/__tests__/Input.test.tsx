@@ -6,13 +6,18 @@ import { createRef, type Ref } from "react";
 import { Input, type InputProps } from "../Input";
 import { renderWithUIProvider } from "../../__test-fixtures__";
 import {
+  INPUT_ERROR_TEXT_TEST_ID,
   INPUT_LABEL_TEST_ID,
   INPUT_REQUIRED_INDICATOR_TEST_ID,
 } from "../Input.constants";
 
 const TEST_ID = "custom-input";
+const ERROR_TEXT = "Enter a valid value";
+const ARIA_LABEL = "Tag name";
 
 const mockOnChange = vi.fn();
+const mockOnKeyDown = vi.fn();
+const mockOnBlur = vi.fn();
 
 const setup = ({
   value = "",
@@ -118,5 +123,67 @@ describe("Input", () => {
 
     const input = screen.getByRole("textbox");
     expect(ref.current).toBe(input);
+  });
+
+  it("shows errorText with the error test ID and marks the input invalid", () => {
+    setup({ errorText: ERROR_TEXT, "data-testid": TEST_ID });
+
+    const errorText = screen.getByTestId(
+      `${TEST_ID}__${INPUT_ERROR_TEXT_TEST_ID}`
+    );
+
+    const input = screen.getByTestId(TEST_ID);
+
+    expect(errorText).toBeInTheDocument();
+    expect(errorText.textContent).toBe(ERROR_TEXT);
+    expect(input).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("shows no error text and is not invalid when errorText is empty", () => {
+    setup({ errorText: "", "data-testid": TEST_ID });
+
+    const errorText = screen.queryByTestId(
+      `${TEST_ID}__${INPUT_ERROR_TEXT_TEST_ID}`
+    );
+
+    const input = screen.getByTestId(TEST_ID);
+
+    expect(errorText).not.toBeInTheDocument();
+    expect(input).not.toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("calls onKeyDown with the pressed key", async () => {
+    const { user } = setup({ onKeyDown: mockOnKeyDown });
+
+    const input = screen.getByRole("textbox");
+    await user.type(input, "{Enter}");
+
+    expect(mockOnKeyDown).toHaveBeenCalledWith(
+      expect.objectContaining({ key: "Enter" })
+    );
+  });
+
+  it("calls onBlur when focus leaves the input", async () => {
+    const { user } = setup({ onBlur: mockOnBlur });
+
+    const input = screen.getByRole("textbox");
+    await user.click(input);
+    await user.tab();
+
+    expect(mockOnBlur).toHaveBeenCalledTimes(1);
+  });
+
+  it("focuses the input on mount with autoFocus", () => {
+    setup({ autoFocus: true });
+
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveFocus();
+  });
+
+  it("exposes aria-label as the accessible name", () => {
+    setup({ "aria-label": ARIA_LABEL });
+
+    const input = screen.getByRole("textbox", { name: ARIA_LABEL });
+    expect(input).toBeInTheDocument();
   });
 });

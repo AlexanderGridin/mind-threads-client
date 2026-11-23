@@ -28,3 +28,18 @@ globalThis.ResizeObserver = class {
 };
 
 Element.prototype.scrollIntoView = vi.fn();
+
+const createEmptyRectList = () => {
+  return Object.assign([], { item: () => null }) as unknown as DOMRectList;
+};
+
+Range.prototype.getBoundingClientRect = () => {
+  return new DOMRect();
+};
+
+Range.prototype.getClientRects = createEmptyRectList;
+Element.prototype.getClientRects = createEmptyRectList;
+
+document.elementFromPoint = () => {
+  return null;
+};

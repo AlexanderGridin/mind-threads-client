@@ -29,6 +29,7 @@ import {
   seedPages,
   seedSections,
   seedThreads,
+  selectPageCard,
   selectSectionCard,
   threadSectionFixtures,
   threadsServiceOverrides,
@@ -53,6 +54,7 @@ import {
   THREAD_NOT_FOUND_MESSAGE,
 } from "../ThreadPage.constants";
 import {
+  CONTENT_COLUMN_MESSAGE,
   PAGES_COLUMN_EMPTY_MESSAGE,
   PAGES_COLUMN_MESSAGE,
   SECTIONS_COLUMN_MESSAGE,
@@ -261,9 +263,13 @@ describe("ThreadPage", () => {
     const header = await screen.findByTestId(ThreadHeaderTestId.title);
     expect(header).toBeInTheDocument();
 
-    expect(document.title).toBe(
-      `${STORED_BOOKMARK_THREAD.title} · ${APP_NAME}`
-    );
+    // The title is set in an effect that can run after the header is in the
+    // DOM, so the check waits for it instead of reading it right away.
+    await waitFor(() => {
+      expect(document.title).toBe(
+        `${STORED_BOOKMARK_THREAD.title} · ${APP_NAME}`
+      );
+    });
 
     unmount();
 
@@ -1104,6 +1110,96 @@ describe("ThreadPage", () => {
       expect(successNotification).toBeInTheDocument();
       expect(modalTitle).not.toBeInTheDocument();
       expect(getRenderedPageNames()).toStrictEqual([outline.name]);
+    });
+  });
+
+  describe("page view", () => {
+    const VIEW_THREAD = mindThreadFixtures[0];
+    const VIEW_FIRST_SECTION = threadSectionFixtures[0];
+    const VIEW_PAGE = sectionPageFixtures[0];
+
+    beforeEach(() => {
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+    });
+
+    const getContentColumn = () => {
+      return screen.getByTestId(ThreadColumnsTestId.contentColumn);
+    };
+
+    const selectFirstPage = async (
+      user: ReturnType<typeof userEvent.setup>
+    ) => {
+      await selectSectionCard({ user, sectionName: VIEW_FIRST_SECTION.name });
+      await selectPageCard({ user, pageName: VIEW_PAGE.name });
+    };
+
+    it("shows the no-selection message again after the selected page is deleted", async () => {
+      const { user } = setup({ threadId: VIEW_THREAD.id });
+
+      await waitForLoadedThread();
+      await selectFirstPage(user);
+
+      let message = within(getContentColumn()).queryByText(
+        CONTENT_COLUMN_MESSAGE
+      );
+
+      expect(message).not.toBeInTheDocument();
+
+      await openPageDeleteMenu({ user, pageName: VIEW_PAGE.name });
+      await confirmDeletion(user);
+
+      message = await within(getContentColumn()).findByText(
+        CONTENT_COLUMN_MESSAGE
+      );
+
+      expect(message).toBeInTheDocument();
+    });
+
+    it("shows the no-selection message again after the section of the selected page is deleted", async () => {
+      const { user } = setup({ threadId: VIEW_THREAD.id });
+
+      await waitForLoadedThread();
+      await selectFirstPage(user);
+
+      let message = within(getContentColumn()).queryByText(
+        CONTENT_COLUMN_MESSAGE
+      );
+
+      expect(message).not.toBeInTheDocument();
+
+      await openSectionDeleteMenu({
+        user,
+        sectionName: VIEW_FIRST_SECTION.name,
+      });
+
+      await confirmDeletion(user);
+
+      message = await within(getContentColumn()).findByText(
+        CONTENT_COLUMN_MESSAGE
+      );
+
+      expect(message).toBeInTheDocument();
+    });
+
+    it("selects no page after a reload, and shows the no-selection message", async () => {
+      const { user, unmount } = setup({ threadId: VIEW_THREAD.id });
+
+      await waitForLoadedThread();
+      await selectFirstPage(user);
+
+      unmount();
+
+      setup({ threadId: VIEW_THREAD.id });
+
+      await waitForLoadedThread();
+
+      const message = within(getContentColumn()).getByText(
+        CONTENT_COLUMN_MESSAGE
+      );
+
+      expect(message).toBeInTheDocument();
     });
   });
 });

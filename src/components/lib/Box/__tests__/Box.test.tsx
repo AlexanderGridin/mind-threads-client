@@ -8,6 +8,10 @@ import { renderWithUIProvider } from "../../__test-fixtures__";
 
 const mockOnClick = vi.fn();
 
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 const setup = ({
   ref,
   ...props
@@ -60,5 +64,29 @@ describe("Box", () => {
 
     expect(button).toHaveAttribute("type", "button");
     expect(button).toHaveAttribute("aria-current", "true");
+  });
+
+  it("applies the layout props as styles", () => {
+    setup({
+      children: "Layout",
+      "data-testid": "layout-box",
+      flexWrap: "wrap",
+      overflowX: "auto",
+      whiteSpace: "nowrap",
+      maxHeight: "16rem",
+      borderTopWidth: "1px",
+      marginLeft: "auto",
+    });
+
+    const box = screen.getByTestId("layout-box");
+
+    expect(box).toHaveStyle({
+      flexWrap: "wrap",
+      overflowX: "auto",
+      whiteSpace: "nowrap",
+      maxHeight: "16rem",
+      borderTopWidth: "1px",
+      marginLeft: "auto",
+    });
   });
 });

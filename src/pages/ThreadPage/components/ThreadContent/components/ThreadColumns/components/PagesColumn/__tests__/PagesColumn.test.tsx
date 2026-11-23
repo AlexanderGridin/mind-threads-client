@@ -12,6 +12,7 @@ import {
   seedPages,
   seedSections,
   seedThreads,
+  selectPageCard,
   selectSectionCard,
   sectionPageFixtures,
   threadSectionFixtures,
@@ -68,6 +69,10 @@ const getAddPageButton = () => {
   return within(getPagesColumn()).queryByRole("button", {
     name: ADD_PAGE_BUTTON_LABEL,
   });
+};
+
+const getPageSelectButton = (pageName: string) => {
+  return within(getPagesColumn()).getByRole("button", { name: pageName });
 };
 
 beforeEach(() => {
@@ -253,5 +258,29 @@ describe("PagesColumn", () => {
 
     const scrollBody = pageList.parentElement;
     expect(scrollBody).toHaveStyle({ overflowY: "auto" });
+  });
+
+  it("marks the clicked page as current and moves the mark when another page is clicked", async () => {
+    const firstPage = sectionPageFixtures[0];
+    const secondPage = sectionPageFixtures[1];
+
+    seedSections(threadSectionFixtures);
+    seedPages(sectionPageFixtures);
+
+    const { user } = setup();
+
+    await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+    await selectPageCard({ user, pageName: firstPage.name });
+
+    const firstPageButton = getPageSelectButton(firstPage.name);
+    expect(firstPageButton).toHaveAttribute("aria-current", "true");
+
+    await selectPageCard({ user, pageName: secondPage.name });
+
+    const secondPageButton = getPageSelectButton(secondPage.name);
+    expect(secondPageButton).toHaveAttribute("aria-current", "true");
+
+    const previousPageButton = getPageSelectButton(firstPage.name);
+    expect(previousPageButton).toHaveAttribute("aria-current", "false");
   });
 });

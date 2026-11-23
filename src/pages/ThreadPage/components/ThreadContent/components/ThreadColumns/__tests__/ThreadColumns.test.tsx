@@ -1,7 +1,18 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
-import { mindThreadFixtures, seedThreads } from "@/__test-fixtures__";
+import {
+  mindThreadFixtures,
+  seedPages,
+  seedSections,
+  seedThreads,
+  selectPageCard,
+  selectSectionCard,
+  sectionPageFixtures,
+  threadSectionFixtures,
+} from "@/__test-fixtures__";
+import { PageCardTestId } from "../components/PagesColumn/components/PageCard/PageCard.constants";
 import { ThreadPageLoader } from "@/pages/ThreadPage/components/ThreadPageLoader";
 import { ThreadColumns } from "../ThreadColumns";
 import {
@@ -17,11 +28,15 @@ import {
 const STORED_THREAD = mindThreadFixtures[0];
 
 const setup = () => {
+  const user = userEvent.setup();
+
   renderWithUIProvider(
     <ThreadPageLoader threadId={STORED_THREAD.id}>
       <ThreadColumns />
     </ThreadPageLoader>
   );
+
+  return { user };
 };
 
 beforeEach(() => {
@@ -88,6 +103,99 @@ describe("ThreadColumns", () => {
     expect(body).toHaveStyle({
       alignItems: "center",
       justifyContent: "center",
+    });
+  });
+
+  describe("page view", () => {
+    const FIRST_SECTION = threadSectionFixtures[0];
+    const SECOND_SECTION = threadSectionFixtures[1];
+    const FIRST_PAGE = sectionPageFixtures[0];
+
+    beforeEach(() => {
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+    });
+
+    it("shows the selected page view in the content column, next to the sections and pages columns", async () => {
+      const { user } = setup();
+
+      await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+      await selectPageCard({ user, pageName: FIRST_PAGE.name });
+
+      const contentColumn = screen.getByTestId(
+        ThreadColumnsTestId.contentColumn
+      );
+
+      const heading = within(contentColumn).getByRole("heading", {
+        level: 3,
+        name: FIRST_PAGE.name,
+      });
+
+      expect(heading).toBeInTheDocument();
+
+      const sectionsColumn = screen.getByTestId(
+        ThreadColumnsTestId.sectionsColumn
+      );
+
+      const pagesColumn = screen.getByTestId(ThreadColumnsTestId.pagesColumn);
+
+      expect(sectionsColumn).toBeInTheDocument();
+      expect(pagesColumn).toBeInTheDocument();
+    });
+
+    it("brings back the no-selection message when another section is selected, and keeps it when the first section is selected again", async () => {
+      const { user } = setup();
+
+      await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+      await selectPageCard({ user, pageName: FIRST_PAGE.name });
+
+      await selectSectionCard({ user, sectionName: SECOND_SECTION.name });
+
+      const contentColumn = screen.getByTestId(
+        ThreadColumnsTestId.contentColumn
+      );
+
+      const messageAfterSwitch = within(contentColumn).getByText(
+        CONTENT_COLUMN_MESSAGE
+      );
+
+      expect(messageAfterSwitch).toBeInTheDocument();
+
+      await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+
+      const messageAfterReturn = within(contentColumn).getByText(
+        CONTENT_COLUMN_MESSAGE
+      );
+
+      expect(messageAfterReturn).toBeInTheDocument();
+
+      const selectedPageButtons = screen
+        .queryAllByTestId(PageCardTestId.selectButton)
+        .filter((selectButton) => {
+          return selectButton.getAttribute("aria-current") === "true";
+        });
+
+      expect(selectedPageButtons).toHaveLength(0);
+    });
+
+    it("keeps the page view when the selected section is clicked again", async () => {
+      const { user } = setup();
+
+      await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+      await selectPageCard({ user, pageName: FIRST_PAGE.name });
+
+      await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+
+      const contentColumn = screen.getByTestId(
+        ThreadColumnsTestId.contentColumn
+      );
+
+      const heading = within(contentColumn).getByRole("heading", {
+        level: 3,
+        name: FIRST_PAGE.name,
+      });
+
+      expect(heading).toBeInTheDocument();
     });
   });
 });

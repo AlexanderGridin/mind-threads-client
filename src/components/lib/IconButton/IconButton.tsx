@@ -7,9 +7,14 @@ export type IconButtonProps = {
   "aria-label": string;
   onClick: () => void;
   "data-testid"?: string;
+  "aria-pressed"?: boolean;
+  disabled?: boolean;
   variant?: "subtle" | "outline" | "solid" | "surface" | "ghost" | "plain";
   borderColor?: string;
   color?: string;
+  height?: string;
+  minWidth?: string;
+  px?: string;
   size?: "sm" | "md" | "lg" | "xl" | "2xl" | "2xs" | "xs";
   css?: { _icon?: { width?: string; height?: string } };
 };
