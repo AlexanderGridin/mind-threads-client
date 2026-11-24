@@ -1,6 +1,6 @@
 import type { KeyboardEvent } from "react";
 import { Box, Input } from "@/components/lib";
-import { TagChip } from "./components";
+import { TagChip } from "../../../TagChip";
 import {
   TAG_INPUT_LABEL,
   TAG_INPUT_PLACEHOLDER,

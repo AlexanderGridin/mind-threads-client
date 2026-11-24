@@ -1,5 +1,7 @@
 import type {
+  ChatMessage,
   MindThread,
+  NewChatMessage,
   SectionPage,
   SectionPageValue,
   ThreadSection,
@@ -46,6 +48,8 @@ export type ThreadPageAction = {
   openDeletePageModal: (page: SectionPage) => void;
   closeDeletePageModal: () => void;
   confirmDeletePage: () => Promise<void>;
+  getPageMessages: (pageId: string) => Promise<ChatMessage[]>;
+  addPageMessage: (newMessage: NewChatMessage) => Promise<ChatMessage>;
 };
 
 export type UseAddSectionParams = {

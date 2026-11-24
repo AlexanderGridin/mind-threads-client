@@ -52,6 +52,13 @@ export type BoxProps = {
   gridTemplateRows?: string;
   borderLeftWidth?: string;
   borderLeftColor?: string;
+  className?: string;
+  dangerouslySetInnerHTML?: { __html: string };
+  "data-index"?: number;
+  left?: string;
+  transform?: string;
+  pb?: string;
+  maxWidth?: string;
 };
 
 export const Box = forwardRef<HTMLDivElement, BoxProps>(

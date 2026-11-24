@@ -6,7 +6,7 @@ export type ComposerCommandContext = {
   openLinkField: () => void;
   openImagePicker: () => void;
   toggleTagField: () => void;
-  send: () => void;
+  send: () => Promise<void>;
 };
 
 export type ComposerAction = {
@@ -50,5 +50,5 @@ export type UseComposerSendParams = {
   editor: Editor;
   tags: string[];
   resetTags: () => void;
-  onSend: (message: ComposerMessage) => void;
+  onSend: (message: ComposerMessage) => Promise<boolean>;
 };
