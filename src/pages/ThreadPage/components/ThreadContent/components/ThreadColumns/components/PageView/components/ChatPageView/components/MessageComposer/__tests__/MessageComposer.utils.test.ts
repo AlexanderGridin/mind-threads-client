@@ -3,6 +3,7 @@ import {
   PNG_DATA_URL_PREFIX,
   PNG_FILE_NAME,
   createTestEditor,
+  destroyTestEditors,
   createTestFile,
   mockFileReaderError,
 } from "@/__test-fixtures__";
@@ -22,6 +23,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  destroyTestEditors();
   vi.restoreAllMocks();
 });
 

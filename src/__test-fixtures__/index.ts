@@ -8,3 +8,5 @@ export * from "./router";
 export * from "./document";
 export * from "./deletion";
 export * from "./composer";
+export * from "./messages";
+export * from "./virtualizer";

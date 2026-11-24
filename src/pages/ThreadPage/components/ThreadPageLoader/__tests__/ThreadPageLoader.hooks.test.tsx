@@ -3,12 +3,17 @@ import { act, renderHook, screen, waitFor } from "@testing-library/react";
 import { ChakraUIProvider } from "@/components/lib/ChakraUIProvider";
 import { NotificationsTestId } from "@/components/lib/Notifications/Notifications.constants";
 import {
+  firstPageMessageFixtures,
   MALFORMED_JSON,
+  buildNewMessage,
+  chatMessageFixtures,
   createDeferred,
   createServicesMock,
   mindThreadFixtures,
+  readStoredMessages,
   resetThreadsServiceOverrides,
   sectionPageFixtures,
+  seedMessages,
   seedPages,
   seedSections,
   seedThreads,
@@ -470,6 +475,47 @@ describe("ThreadPageLoader hooks", () => {
       ).rejects.toThrow("Remove failed");
 
       expect(result.current.pages).toStrictEqual(expectedPages);
+    });
+
+    it("getPageMessages resolves the seeded page's messages", async () => {
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+      seedMessages(chatMessageFixtures);
+
+      const { result } = setupThreadState(STORED_THREAD_ID);
+
+      await waitFor(() => {
+        expect(result.current.threadStatus).toBe(ThreadStatus.Loaded);
+      });
+
+      const pageMessages = await result.current.getPageMessages(
+        sectionPageFixtures[0].id
+      );
+
+      expect(pageMessages).toStrictEqual(firstPageMessageFixtures);
+    });
+
+    it("addPageMessage resolves the created message and stores it first", async () => {
+      seedThreads(mindThreadFixtures);
+      seedSections(threadSectionFixtures);
+      seedPages(sectionPageFixtures);
+      seedMessages(chatMessageFixtures);
+
+      const { result } = setupThreadState(STORED_THREAD_ID);
+
+      await waitFor(() => {
+        expect(result.current.threadStatus).toBe(ThreadStatus.Loaded);
+      });
+
+      const createdMessage = await result.current.addPageMessage(
+        buildNewMessage({ content: "<p>Loader message</p>" })
+      );
+
+      expect(readStoredMessages()).toStrictEqual([
+        createdMessage,
+        ...chatMessageFixtures,
+      ]);
     });
   });
 

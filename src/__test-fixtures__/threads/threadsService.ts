@@ -12,6 +12,8 @@ type ThreadsServiceOverrides = Partial<
     | "removeThreadSection"
     | "addSectionPage"
     | "removeSectionPage"
+    | "getPageMessages"
+    | "addPageMessage"
   >
 >;
 
@@ -25,6 +27,23 @@ export const resetThreadsServiceOverrides = () => {
   delete threadsServiceOverrides.removeThreadSection;
   delete threadsServiceOverrides.addSectionPage;
   delete threadsServiceOverrides.removeSectionPage;
+  delete threadsServiceOverrides.getPageMessages;
+  delete threadsServiceOverrides.addPageMessage;
+};
+
+export const LOAD_MESSAGES_ERROR = "Messages could not be loaded";
+export const ADD_MESSAGE_ERROR = "Storage quota exceeded";
+
+export const failPageMessagesLoad = () => {
+  threadsServiceOverrides.getPageMessages = async () => {
+    throw new Error(LOAD_MESSAGES_ERROR);
+  };
+};
+
+export const failPageMessageAdd = () => {
+  threadsServiceOverrides.addPageMessage = async () => {
+    throw new Error(ADD_MESSAGE_ERROR);
+  };
 };
 
 export const createServicesMock = (
@@ -69,6 +88,18 @@ export const createServicesMock = (
           threadsServiceOverrides.removeSectionPage ??
           threadsService.removeSectionPage
         )(removeParams);
+      },
+      getPageMessages: (pageId) => {
+        return (
+          threadsServiceOverrides.getPageMessages ??
+          threadsService.getPageMessages
+        )(pageId);
+      },
+      addPageMessage: (newMessage) => {
+        return (
+          threadsServiceOverrides.addPageMessage ??
+          threadsService.addPageMessage
+        )(newMessage);
       },
     };
   },

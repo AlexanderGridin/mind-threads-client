@@ -1,14 +1,22 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import {
+  buildNewMessage,
   buildNewPage,
+  chatMessageFixtures,
   dispatchStorageChange,
+  firstPageMessageFixtures,
   MALFORMED_JSON,
+  messagesAfterPageDelete,
+  messagesAfterSectionDelete,
+  messagesAfterThreadDelete,
   mindThreadFixture,
   mindThreadFixtures,
   mindThreadFixturesWithSingleItem,
+  readStoredMessages,
   readStoredPages,
   sectionPageFixtures,
+  seedMessages,
   seedPages,
   seedThreads,
 } from "@/__test-fixtures__";
@@ -18,10 +26,15 @@ import {
   PAGES_STORAGE_KEY,
 } from "@/services/useSectionPagesService/useSectionPagesService.constants";
 import { SECTIONS_STORAGE_KEY } from "@/services/useThreadSectionsService/useThreadSectionsService.constants";
+import {
+  INVALID_MESSAGES_DATA_ERROR,
+  MESSAGES_STORAGE_KEY,
+} from "@/services/usePageMessagesService/usePageMessagesService.constants";
 import type { MindThread, ThreadSection } from "@/types";
 import { useThreadsService } from "../useThreadsService";
 import {
   INVALID_THREADS_DATA_ERROR,
+  PAGE_NOT_FOUND_ERROR,
   SECTION_NOT_FOUND_ERROR,
   THREAD_NOT_FOUND_ERROR,
   THREADS_STORAGE_KEY,
@@ -30,6 +43,7 @@ import {
 const TEST_COLOR = "#A8E6CF";
 const FIXED_NOW = new Date("2026-06-20T12:00:00Z");
 const LATER_NOW = new Date("2026-06-21T09:30:00Z");
+const UNKNOWN_PAGE_ID = "page-that-does-not-exist";
 
 const setup = () => {
   return renderHook(() => useThreadsService());
@@ -1003,6 +1017,241 @@ describe("useThreadsService", () => {
       ).rejects.toThrow(SyntaxError);
 
       expect(readStoredThreads()).toStrictEqual(mindThreadFixtures);
+    });
+  });
+
+  describe("message routing and cascade deletes", () => {
+    const threadWithPages = { ...mindThreadFixtures[0], totalPages: 3 };
+    const threadWithSections = { ...mindThreadFixtures[0], totalSections: 3 };
+    const removedPageId = sectionPageFixtures[0].id;
+    const removedSectionId = threadSectionFixtures[0].id;
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    describe("getPageMessages", () => {
+      it("returns the page's messages, newest first", async () => {
+        const { result } = setup();
+
+        seedMessages(chatMessageFixtures);
+
+        const pageMessages = await result.current.getPageMessages(
+          sectionPageFixtures[0].id
+        );
+
+        expect(pageMessages).toStrictEqual(firstPageMessageFixtures);
+      });
+    });
+
+    describe("addPageMessage", () => {
+      it("stores and returns the message for an existing page", async () => {
+        const { result } = setup();
+
+        seedPages(sectionPageFixtures);
+        seedMessages(chatMessageFixtures);
+
+        const createdMessage = await result.current.addPageMessage(
+          buildNewMessage({ content: "<p>New idea</p>" })
+        );
+
+        expect(readStoredMessages()).toStrictEqual([
+          createdMessage,
+          ...chatMessageFixtures,
+        ]);
+      });
+
+      it("rejects with PAGE_NOT_FOUND_ERROR for an unknown page and stores nothing", async () => {
+        const { result } = setup();
+
+        seedPages(sectionPageFixtures);
+        seedMessages(chatMessageFixtures);
+
+        await expect(
+          result.current.addPageMessage(
+            buildNewMessage({ pageId: UNKNOWN_PAGE_ID })
+          )
+        ).rejects.toThrow(PAGE_NOT_FOUND_ERROR);
+
+        expect(readStoredMessages()).toStrictEqual(chatMessageFixtures);
+      });
+    });
+
+    describe("cascade deletes", () => {
+      it("removeSectionPage deletes the page's messages and keeps the others", async () => {
+        const { result } = setup();
+
+        seedThreads([threadWithPages]);
+        seedPages(sectionPageFixtures);
+        seedMessages(chatMessageFixtures);
+
+        await result.current.removeSectionPage({
+          threadId: threadWithPages.id,
+          pageId: removedPageId,
+        });
+
+        expect(readStoredMessages()).toStrictEqual(messagesAfterPageDelete);
+      });
+
+      it("removeSectionPage deletes the messages even when the page was already deleted", async () => {
+        const { result } = setup();
+
+        seedThreads([threadWithPages]);
+        seedMessages(chatMessageFixtures);
+
+        await result.current.removeSectionPage({
+          threadId: threadWithPages.id,
+          pageId: removedPageId,
+        });
+
+        expect(readStoredMessages()).toStrictEqual(messagesAfterPageDelete);
+      });
+
+      it("removeThreadSection deletes the section's messages", async () => {
+        const { result } = setup();
+
+        seedThreads([threadWithSections]);
+        seedSections(threadSectionFixtures);
+        seedPages(sectionPageFixtures);
+        seedMessages(chatMessageFixtures);
+
+        await result.current.removeThreadSection({
+          threadId: threadWithSections.id,
+          sectionId: removedSectionId,
+        });
+
+        expect(readStoredMessages()).toStrictEqual(messagesAfterSectionDelete);
+      });
+
+      it("deleteThread deletes the thread's messages", async () => {
+        const { result } = setup();
+
+        seedThreads(mindThreadFixtures);
+        seedSections(threadSectionFixtures);
+        seedPages(sectionPageFixtures);
+        seedMessages(chatMessageFixtures);
+
+        await result.current.deleteThread(mindThreadFixtures[0].id);
+
+        expect(readStoredMessages()).toStrictEqual(messagesAfterThreadDelete);
+      });
+
+      it("removeSectionPage keeps the page deleted and the thread counter lowered when the stored messages are invalid", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(LATER_NOW);
+
+        const { result } = setup();
+
+        seedThreads([threadWithPages]);
+        seedPages(sectionPageFixtures);
+
+        localStorage.setItem(
+          MESSAGES_STORAGE_KEY,
+          JSON.stringify([{ id: "message-1" }])
+        );
+
+        await expect(
+          result.current.removeSectionPage({
+            threadId: threadWithPages.id,
+            pageId: removedPageId,
+          })
+        ).rejects.toThrow(INVALID_MESSAGES_DATA_ERROR);
+
+        const expectedThread = {
+          ...threadWithPages,
+          totalPages: 2,
+          lastUpdated: LATER_NOW.toISOString(),
+        };
+
+        expect(readStoredPages()).toStrictEqual(sectionPageFixtures.slice(1));
+        expect(readStoredThreads()).toStrictEqual([expectedThread]);
+      });
+
+      it("removeThreadSection keeps the section deleted and the thread counter lowered when the stored messages are invalid", async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(LATER_NOW);
+
+        const { result } = setup();
+
+        seedThreads([threadWithSections]);
+        seedSections(threadSectionFixtures);
+
+        localStorage.setItem(
+          MESSAGES_STORAGE_KEY,
+          JSON.stringify([{ id: "message-1" }])
+        );
+
+        await expect(
+          result.current.removeThreadSection({
+            threadId: threadWithSections.id,
+            sectionId: removedSectionId,
+          })
+        ).rejects.toThrow(INVALID_MESSAGES_DATA_ERROR);
+
+        const expectedThread = {
+          ...threadWithSections,
+          totalSections: 2,
+          lastUpdated: LATER_NOW.toISOString(),
+        };
+
+        expect(readStoredSections()).toStrictEqual(
+          threadSectionFixtures.slice(1)
+        );
+
+        expect(readStoredThreads()).toStrictEqual([expectedThread]);
+      });
+
+      it("deleteThread removes the thread even when the stored messages are invalid", async () => {
+        const { result } = setup();
+
+        seedThreads(mindThreadFixtures);
+        seedSections(threadSectionFixtures);
+        seedPages(sectionPageFixtures);
+
+        localStorage.setItem(
+          MESSAGES_STORAGE_KEY,
+          JSON.stringify([{ id: "message-1" }])
+        );
+
+        await expect(
+          result.current.deleteThread(mindThreadFixtures[0].id)
+        ).rejects.toThrow(INVALID_MESSAGES_DATA_ERROR);
+
+        expect(readStoredThreads()).toStrictEqual([mindThreadFixtures[1]]);
+      });
+
+      it("a message added to another page after removeSectionPage on the same hook does not bring back the deleted messages", async () => {
+        const { result } = setup();
+
+        seedThreads([threadWithPages]);
+        seedPages(sectionPageFixtures);
+        seedMessages(chatMessageFixtures);
+
+        await result.current.removeSectionPage({
+          threadId: threadWithPages.id,
+          pageId: removedPageId,
+        });
+
+        const otherPage = sectionPageFixtures[1];
+
+        const createdMessage = await result.current.addPageMessage(
+          buildNewMessage({
+            threadId: otherPage.threadId,
+            sectionId: otherPage.sectionId,
+            pageId: otherPage.id,
+            content: "<p>Other page</p>",
+          })
+        );
+
+        expect(readStoredMessages()).toStrictEqual([
+          createdMessage,
+          ...messagesAfterPageDelete,
+        ]);
+      });
     });
   });
 });

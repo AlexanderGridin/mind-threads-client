@@ -3,7 +3,7 @@ import type userEvent from "@testing-library/user-event";
 import { MessageComposerTestId } from "@/pages/ThreadPage/components/ThreadContent/components/ThreadColumns/components/PageView/components/ChatPageView/components/MessageComposer/MessageComposer.constants";
 import { tagCommand } from "@/pages/ThreadPage/components/ThreadContent/components/ThreadColumns/components/PageView/components/ChatPageView/components/MessageComposer/MessageComposer.commands";
 import { TAG_INPUT_LABEL } from "@/pages/ThreadPage/components/ThreadContent/components/ThreadColumns/components/PageView/components/ChatPageView/components/MessageComposer/components/TagRow/TagRow.constants";
-import { getComposerEditor } from "./composer.queries";
+import { getComposerEditor, getSendButton } from "./composer.queries";
 
 type User = ReturnType<typeof userEvent.setup>;
 
@@ -27,6 +27,21 @@ export const typeInComposer = async ({ user, text }: TypeInComposerParams) => {
 
   await user.click(editor);
   await user.type(editor, text);
+};
+
+type SendComposerMessageParams = {
+  user: User;
+  text: string;
+};
+
+export const sendComposerMessage = async ({
+  user,
+  text,
+}: SendComposerMessageParams) => {
+  await typeInComposer({ user, text });
+
+  const sendButton = getSendButton();
+  await user.click(sendButton);
 };
 
 export const selectAllInComposer = async (user: User) => {

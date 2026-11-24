@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef, type Ref } from "react";
 
@@ -88,5 +88,37 @@ describe("Box", () => {
       borderTopWidth: "1px",
       marginLeft: "auto",
     });
+  });
+
+  it("renders the given HTML with dangerouslySetInnerHTML", () => {
+    setup({
+      "data-testid": "html-box",
+      dangerouslySetInnerHTML: { __html: "<strong>Bold</strong>" },
+    });
+
+    const box = screen.getByTestId("html-box");
+    const boldText = within(box).getByText("Bold");
+
+    expect(boldText.tagName).toBe("STRONG");
+  });
+
+  it("applies className", () => {
+    setup({
+      "data-testid": "class-box",
+      className: "custom-class",
+    });
+
+    const box = screen.getByTestId("class-box");
+    expect(box).toHaveClass("custom-class");
+  });
+
+  it("renders data-index as an attribute", () => {
+    setup({
+      "data-testid": "indexed-box",
+      "data-index": 3,
+    });
+
+    const box = screen.getByTestId("indexed-box");
+    expect(box).toHaveAttribute("data-index", "3");
   });
 });

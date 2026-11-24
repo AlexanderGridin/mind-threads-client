@@ -3,6 +3,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   addComposerTag,
+  createDeferred,
   PNG_DATA_URL_PREFIX,
   PNG_FILE_NAME,
   createPngFile,
@@ -42,18 +43,19 @@ import {
   LINK_URL_LABEL,
 } from "../components/LinkField/LinkField.constants";
 import { TAG_INPUT_LABEL } from "../components/TagRow/TagRow.constants";
-import { TagChipTestId } from "../components/TagRow/components/TagChip/TagChip.constants";
+import { TagChipTestId } from "../../TagChip/TagChip.constants";
 
 const LINK_URL = "https://example.com";
 const TAG = "ideas";
 
 type SetupParams = {
   applyAccept?: boolean;
+  isSent?: boolean;
 };
 
-const setup = ({ applyAccept = true }: SetupParams = {}) => {
+const setup = ({ applyAccept = true, isSent = true }: SetupParams = {}) => {
   const user = userEvent.setup({ applyAccept });
-  const onSend = vi.fn();
+  const onSend = vi.fn().mockResolvedValue(isSent);
 
   renderWithUIProvider(<MessageComposer onSend={onSend} />);
 
@@ -505,7 +507,11 @@ describe("MessageComposer", () => {
       });
 
       const editor = getComposerEditor();
-      expect(editor.textContent).toBe("");
+
+      await waitFor(() => {
+        expect(editor.textContent).toBe("");
+      });
+
       expect(getChipNames()).toStrictEqual([]);
       const closedTagInput = queryTagInput();
       expect(closedTagInput).not.toBeInTheDocument();
@@ -530,10 +536,53 @@ describe("MessageComposer", () => {
 
       const sendButton = getSendButton();
       await user.click(sendButton);
-      await user.keyboard("{Control>}z{/Control}");
 
       const editor = getComposerEditor();
+
+      await waitFor(() => {
+        expect(editor.textContent).toBe("");
+      });
+
+      await user.keyboard("{Control>}z{/Control}");
+
       expect(editor.textContent).toBe("");
+    });
+
+    it("keeps the text and tags when onSend resolves false", async () => {
+      const { user, onSend } = setup({ isSent: false });
+
+      await typeInComposer({ user, text: "Hello" });
+      await addComposerTag({ user, tag: TAG });
+
+      const sendButton = getSendButton();
+      await user.click(sendButton);
+
+      expect(onSend).toHaveBeenCalledOnce();
+
+      const editor = getComposerEditor();
+      expect(editor.textContent).toBe("Hello");
+      expect(getChipNames()).toStrictEqual([TAG]);
+    });
+
+    it("keeps the editor text while onSend is pending, and clears it once onSend resolves true", async () => {
+      const { user, onSend } = setup();
+      const sendResult = createDeferred<boolean>();
+
+      onSend.mockReturnValueOnce(sendResult.promise);
+
+      await typeInComposer({ user, text: "Hello" });
+
+      const sendButton = getSendButton();
+      await user.click(sendButton);
+
+      const editor = getComposerEditor();
+      expect(editor.textContent).toBe("Hello");
+
+      sendResult.resolve(true);
+
+      await waitFor(() => {
+        expect(editor.textContent).toBe("");
+      });
     });
 
     it("does nothing on Ctrl+Enter when the editor is empty", async () => {
