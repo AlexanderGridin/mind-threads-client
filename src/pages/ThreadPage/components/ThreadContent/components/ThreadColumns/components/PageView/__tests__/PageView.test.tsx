@@ -1,16 +1,22 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { screen, within } from "@testing-library/react";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
+  chatMessageFixtures,
   getComposerEditor,
+  getFeedMessageContents,
+  getFeedMessages,
   isFollowing,
   mindThreadFixtures,
+  seedMessages,
   seedPages,
   seedSections,
   seedThreads,
   selectPageCard,
   selectSectionCard,
   sectionPageFixtures,
+  sendComposerMessage,
+  stubVirtualizerLayout,
   threadSectionFixtures,
   typeInComposer,
 } from "@/__test-fixtures__";
@@ -30,11 +36,15 @@ const FIRST_SECTION = threadSectionFixtures[0];
 const FIRST_PAGE = sectionPageFixtures[0];
 const SECOND_PAGE = sectionPageFixtures[1];
 const DRAFT_TEXT = "Draft idea";
+const SENT_TEXT = "Hello";
+const FIRST_PAGE_NOTE_TEXT = "A note without tags";
+const FIRST_PAGE_BOLD_TEXT = "Bold idea for the page";
+const SECOND_PAGE_MESSAGE_TEXT = "Message on the second page";
 
 const setup = () => {
   const user = userEvent.setup();
 
-  renderWithUIProvider(
+  const renderResult = renderWithUIProvider(
     <ThreadPageLoader threadId={STORED_THREAD.id}>
       <SectionsColumn />
       <PagesColumn />
@@ -42,7 +52,7 @@ const setup = () => {
     </ThreadPageLoader>
   );
 
-  return { user };
+  return { user, unmount: renderResult.unmount };
 };
 
 const getContentColumn = () => {
@@ -72,6 +82,13 @@ beforeEach(() => {
   seedThreads(mindThreadFixtures);
   seedSections(threadSectionFixtures);
   seedPages(sectionPageFixtures);
+  seedMessages(chatMessageFixtures);
+
+  stubVirtualizerLayout();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("PageView", () => {
@@ -130,5 +147,64 @@ describe("PageView", () => {
 
     const editor = getComposerEditor();
     expect(editor.textContent).toBe("");
+  });
+
+  it("shows only the selected page's messages", async () => {
+    const { user } = setup();
+
+    await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+    await selectPageCard({ user, pageName: FIRST_PAGE.name });
+
+    const firstPageNote = await screen.findByText(FIRST_PAGE_NOTE_TEXT);
+    const otherPageMessage = screen.queryByText(SECOND_PAGE_MESSAGE_TEXT);
+
+    expect(firstPageNote).toBeInTheDocument();
+    expect(otherPageMessage).not.toBeInTheDocument();
+
+    await selectPageCard({ user, pageName: SECOND_PAGE.name });
+
+    const secondPageMessage = await screen.findByText(SECOND_PAGE_MESSAGE_TEXT);
+    const staleFirstPageNote = screen.queryByText(FIRST_PAGE_NOTE_TEXT);
+
+    expect(secondPageMessage).toBeInTheDocument();
+    expect(staleFirstPageNote).not.toBeInTheDocument();
+  });
+
+  it("keeps a sent message in order after the tree is rendered again", async () => {
+    const { user, unmount } = setup();
+
+    await selectSectionCard({ user, sectionName: FIRST_SECTION.name });
+    await selectPageCard({ user, pageName: FIRST_PAGE.name });
+
+    await waitFor(() => {
+      expect(getFeedMessages()).toHaveLength(2);
+    });
+
+    await sendComposerMessage({ user, text: SENT_TEXT });
+
+    await waitFor(() => {
+      expect(getFeedMessages()).toHaveLength(3);
+    });
+
+    unmount();
+
+    const { user: reloadedUser } = setup();
+
+    await selectSectionCard({
+      user: reloadedUser,
+      sectionName: FIRST_SECTION.name,
+    });
+
+    await selectPageCard({ user: reloadedUser, pageName: FIRST_PAGE.name });
+
+    await waitFor(() => {
+      expect(getFeedMessages()).toHaveLength(3);
+    });
+
+    expect(getFeedMessageContents()).toStrictEqual([
+      SENT_TEXT,
+      FIRST_PAGE_BOLD_TEXT,
+      FIRST_PAGE_NOTE_TEXT,
+    ]);
   });
 });

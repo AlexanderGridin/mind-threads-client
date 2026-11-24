@@ -32,6 +32,8 @@ export const ThreadPageLoader = ({
     removeSection,
     addPage,
     removePage,
+    getPageMessages,
+    addPageMessage,
   } = useThreadState(threadId);
 
   const {
@@ -97,6 +99,8 @@ export const ThreadPageLoader = ({
         openDeletePageModal,
         closeDeletePageModal,
         confirmDeletePage,
+        getPageMessages,
+        addPageMessage,
       }}
     >
       <ThreadPageValueContext.Provider

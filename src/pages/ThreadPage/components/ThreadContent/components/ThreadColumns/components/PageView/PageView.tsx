@@ -23,7 +23,7 @@ export const PageView = () => {
       data-testid={ThreadColumnsTestId.contentColumn}
       heading={selectedPage.name}
     >
-      <ChatPageView key={selectedPage.id} />
+      <ChatPageView key={selectedPage.id} page={selectedPage} />
     </ThreadColumn>
   );
 };

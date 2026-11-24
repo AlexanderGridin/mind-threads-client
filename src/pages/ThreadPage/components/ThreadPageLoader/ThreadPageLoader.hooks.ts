@@ -187,6 +187,8 @@ export const useThreadState = (threadId: string) => {
     removeSection,
     addPage,
     removePage,
+    getPageMessages: threadsService.getPageMessages,
+    addPageMessage: threadsService.addPageMessage,
   };
 };
 

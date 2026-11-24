@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useEditor, useEditorState } from "@tiptap/react";
 import { notify } from "@/components/lib";
+import chatPageViewStyles from "../../ChatPageView.module.css";
 import styles from "./MessageComposer.module.css";
 import {
   COMPOSER_EDITOR_LABEL,
@@ -34,7 +35,7 @@ export const useComposerEditor = ({
     extensions: createComposerExtensions({ getCommandContext }),
     editorProps: {
       attributes: {
-        class: styles.editor,
+        class: `${styles.editor} ${chatPageViewStyles.richText}`,
         role: "textbox",
         "aria-multiline": "true",
         "aria-label": COMPOSER_EDITOR_LABEL,
@@ -201,12 +202,16 @@ export const useComposerSend = ({
   resetTags,
   onSend,
 }: UseComposerSendParams) => {
-  const send = () => {
+  const send = async () => {
     if (!hasComposerContent(editor)) {
       return;
     }
 
-    onSend({ content: editor.getHTML(), tags });
+    const isSent = await onSend({ content: editor.getHTML(), tags });
+
+    if (!isSent) {
+      return;
+    }
 
     editor.chain().setMeta("addToHistory", false).clearContent().focus().run();
 

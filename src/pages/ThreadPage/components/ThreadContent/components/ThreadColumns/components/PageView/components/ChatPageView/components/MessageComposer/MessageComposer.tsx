@@ -33,7 +33,7 @@ import {
 } from "./components";
 
 type MessageComposerProps = {
-  onSend: (message: ComposerMessage) => void;
+  onSend: (message: ComposerMessage) => Promise<boolean>;
 };
 
 export const MessageComposer = ({ onSend }: MessageComposerProps) => {

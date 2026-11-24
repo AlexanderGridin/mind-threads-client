@@ -15,17 +15,20 @@ import {
   dispatchStorageChange,
   getRenderedPageNames,
   getRenderedSectionNames,
+  chatMessageFixtures,
   createServicesMock,
   mindThreadFixtures,
   openAddPageModal,
   openPageDeleteMenu,
   openSectionDeleteMenu,
+  readStoredMessages,
   readStoredPages,
   readStoredSections,
   mindThreadFixturesWithSameTitle,
   renderWithRouter,
   resetThreadsServiceOverrides,
   sectionPageFixtures,
+  seedMessages,
   seedPages,
   seedSections,
   seedThreads,
@@ -1122,6 +1125,7 @@ describe("ThreadPage", () => {
       seedThreads(mindThreadFixtures);
       seedSections(threadSectionFixtures);
       seedPages(sectionPageFixtures);
+      seedMessages(chatMessageFixtures);
     });
 
     const getContentColumn = () => {
@@ -1200,6 +1204,21 @@ describe("ThreadPage", () => {
       );
 
       expect(message).toBeInTheDocument();
+    });
+
+    it("removes the deleted page's messages from storage and keeps the other pages' messages", async () => {
+      const { user } = setup({ threadId: VIEW_THREAD.id });
+
+      await waitForLoadedThread();
+      await selectFirstPage(user);
+      await openPageDeleteMenu({ user, pageName: VIEW_PAGE.name });
+      await confirmDeletion(user);
+
+      const remainingMessages = chatMessageFixtures.slice(2);
+
+      await waitFor(() => {
+        expect(readStoredMessages()).toStrictEqual(remainingMessages);
+      });
     });
   });
 });

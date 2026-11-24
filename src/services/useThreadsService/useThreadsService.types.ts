@@ -1,6 +1,8 @@
 import type {
+  ChatMessage,
   MindThread,
   MindThreadUpdate,
+  NewChatMessage,
   NewMindThread,
   NewSectionPage,
   NewThreadSection,
@@ -18,6 +20,8 @@ export type UseThreadsServiceReturn = {
   removeThreadSection: (params: RemoveThreadSectionParams) => Promise<void>;
   addSectionPage: (newPage: NewSectionPage) => Promise<SectionPage>;
   removeSectionPage: (params: RemoveSectionPageParams) => Promise<void>;
+  getPageMessages: (pageId: string) => Promise<ChatMessage[]>;
+  addPageMessage: (newMessage: NewChatMessage) => Promise<ChatMessage>;
 };
 
 export type RemoveThreadSectionParams = {

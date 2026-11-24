@@ -7,14 +7,26 @@ type CreateCommandContextParams = Partial<ComposerCommandContext> & {
   editor: Editor;
 };
 
+const createdTestEditors: Editor[] = [];
+
 export const createTestEditor = (content = "") => {
-  return new Editor({
+  const editor = new Editor({
     extensions: createComposerExtensions({
       getCommandContext: () => {
         return null;
       },
     }),
     content,
+  });
+
+  createdTestEditors.push(editor);
+
+  return editor;
+};
+
+export const destroyTestEditors = () => {
+  createdTestEditors.splice(0).forEach((editor) => {
+    editor.destroy();
   });
 };
 
@@ -27,7 +39,7 @@ export const createCommandContext = ({
     openLinkField: vi.fn(),
     openImagePicker: vi.fn(),
     toggleTagField: vi.fn(),
-    send: vi.fn(),
+    send: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 };

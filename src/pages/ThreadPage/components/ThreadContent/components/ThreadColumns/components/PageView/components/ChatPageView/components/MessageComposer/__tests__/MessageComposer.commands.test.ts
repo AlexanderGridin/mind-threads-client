@@ -3,6 +3,7 @@ import type { Editor } from "@tiptap/core";
 import {
   createCommandContext,
   createTestEditor,
+  destroyTestEditors,
   selectAllText,
 } from "@/__test-fixtures__";
 import {
@@ -35,6 +36,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  destroyTestEditors();
   vi.restoreAllMocks();
 });
 

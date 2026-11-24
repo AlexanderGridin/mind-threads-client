@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { renderWithUIProvider } from "@/components/lib/__test-fixtures__";
 import { TagRow } from "../TagRow";
 import { TAG_INPUT_LABEL } from "../TagRow.constants";
-import { TagChipTestId } from "../components/TagChip/TagChip.constants";
+import { TagChipTestId } from "../../../../TagChip/TagChip.constants";
 
 const TAGS = ["ideas", "todo"];
 

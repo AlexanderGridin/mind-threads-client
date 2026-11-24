@@ -11,13 +11,20 @@ const LONG_TAG = "a-very-long-tag-name-that-must-never-be-cut-off-in-the-chip";
 
 type SetupParams = {
   tag?: string;
+  withOnRemove?: boolean;
 };
 
-const setup = ({ tag = TAG }: SetupParams = {}) => {
+const setup = ({ tag = TAG, withOnRemove = true }: SetupParams = {}) => {
   const user = userEvent.setup();
   const onRemove = vi.fn();
 
-  renderWithUIProvider(<TagChip tag={tag} onRemove={onRemove} />);
+  renderWithUIProvider(
+    withOnRemove ? (
+      <TagChip tag={tag} onRemove={onRemove} />
+    ) : (
+      <TagChip tag={tag} />
+    )
+  );
 
   return { user, onRemove };
 };
@@ -51,6 +58,23 @@ describe("TagChip", () => {
     expect(tagName.textContent).toBe(LONG_TAG);
     expect(chip).toHaveStyle({ whiteSpace: "nowrap", flexShrink: "0" });
     expect(tagName).not.toHaveStyle({ textOverflow: "ellipsis" });
+  });
+
+  it("shows a read-only chip without a remove button", () => {
+    setup({ withOnRemove: false });
+
+    const tagName = getTagName();
+    const removeButton = screen.queryByRole("button");
+
+    expect(tagName.textContent).toBe(TAG);
+    expect(removeButton).not.toBeInTheDocument();
+  });
+
+  it("lets a read-only chip shrink and wrap", () => {
+    setup({ tag: LONG_TAG, withOnRemove: false });
+
+    const chip = screen.getByTestId(TagChipTestId.container);
+    expect(chip).toHaveStyle({ whiteSpace: "normal", flexShrink: "1" });
   });
 
   it("names the remove button after the tag", () => {

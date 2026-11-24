@@ -9,6 +9,7 @@ export type TextProps = {
   color?: string;
   "data-testid"?: string;
   truncate?: boolean;
+  overflowWrap?: string;
 };
 
 export const Text = ({ children, ...props }: TextProps) => (

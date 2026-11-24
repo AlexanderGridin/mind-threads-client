@@ -1,18 +1,22 @@
 import { useLocalStorage } from "@/hooks";
 import { replaceThread } from "@/utils";
 import type {
+  ChatMessage,
   MindThread,
   MindThreadUpdate,
+  NewChatMessage,
   NewMindThread,
   NewSectionPage,
   NewThreadSection,
   SectionPage,
   ThreadSection,
 } from "@/types";
+import { usePageMessagesService } from "../usePageMessagesService";
 import { useSectionPagesService } from "../useSectionPagesService";
 import { useThreadSectionsService } from "../useThreadSectionsService";
 import {
   INVALID_THREADS_DATA_ERROR,
+  PAGE_NOT_FOUND_ERROR,
   SECTION_NOT_FOUND_ERROR,
   THREAD_NOT_FOUND_ERROR,
   THREADS_STORAGE_KEY,
@@ -41,6 +45,7 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
 
   const threadSectionsService = useThreadSectionsService();
   const sectionPagesService = useSectionPagesService();
+  const pageMessagesService = usePageMessagesService();
 
   const getThreads = async (): Promise<MindThread[]> => {
     const storedThreads = threadsStorage.read();
@@ -183,20 +188,20 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     const deletedPageCount =
       await sectionPagesService.deleteSectionPages(sectionId);
 
-    if (!isSectionDeleted || !storedThread) {
-      return;
+    if (isSectionDeleted && storedThread) {
+      threadsStorage.set(
+        replaceThread({
+          threads: storedThreads,
+          updatedThread: applyDeletedSection({
+            thread: storedThread,
+            deletedPageCount,
+            deletedAt: new Date().toISOString(),
+          }),
+        })
+      );
     }
 
-    threadsStorage.set(
-      replaceThread({
-        threads: storedThreads,
-        updatedThread: applyDeletedSection({
-          thread: storedThread,
-          deletedPageCount,
-          deletedAt: new Date().toISOString(),
-        }),
-      })
-    );
+    await pageMessagesService.deleteSectionMessages(sectionId);
   };
 
   const removeSectionPage = async ({
@@ -208,19 +213,41 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
 
     const isPageDeleted = await sectionPagesService.deletePage(pageId);
 
-    if (!isPageDeleted || !storedThread) {
-      return;
+    if (isPageDeleted && storedThread) {
+      threadsStorage.set(
+        replaceThread({
+          threads: storedThreads,
+          updatedThread: applyDeletedPage({
+            thread: storedThread,
+            deletedAt: new Date().toISOString(),
+          }),
+        })
+      );
     }
 
-    threadsStorage.set(
-      replaceThread({
-        threads: storedThreads,
-        updatedThread: applyDeletedPage({
-          thread: storedThread,
-          deletedAt: new Date().toISOString(),
-        }),
-      })
+    await pageMessagesService.deletePageMessages(pageId);
+  };
+
+  const getPageMessages = async (pageId: string): Promise<ChatMessage[]> => {
+    return pageMessagesService.getPageMessages(pageId);
+  };
+
+  const addPageMessage = async (
+    newMessage: NewChatMessage
+  ): Promise<ChatMessage> => {
+    const threadPages = await sectionPagesService.getThreadPages(
+      newMessage.threadId
     );
+
+    const pageExists = threadPages.some((page) => {
+      return page.id === newMessage.pageId;
+    });
+
+    if (!pageExists) {
+      throw new Error(PAGE_NOT_FOUND_ERROR);
+    }
+
+    return pageMessagesService.createMessage(newMessage);
   };
 
   const deleteThread = async (threadId: string): Promise<void> => {
@@ -234,6 +261,8 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     );
 
     threadsStorage.set(filteredThreads);
+
+    await pageMessagesService.deleteThreadMessages(threadId);
   };
 
   return {
@@ -246,5 +275,7 @@ export const useThreadsService = (): UseThreadsServiceReturn => {
     removeThreadSection,
     addSectionPage,
     removeSectionPage,
+    getPageMessages,
+    addPageMessage,
   };
 };
